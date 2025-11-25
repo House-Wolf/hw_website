@@ -42,3 +42,13 @@ next-env.d.ts
 
 ./CLAUDE
 CLAUDE.md
+
+# project planning documents
+hw_project_breakdown.txt
+/app/generated/prisma
+
+# claude code settings
+.claude/
+
+# package manager lock files (using pnpm)
+package-lock.json

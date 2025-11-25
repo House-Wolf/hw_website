@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { SessionProvider } from "@/components/auth/SessionProvider";
 import Header from "@/components/layout/Header";
 import Navbar from "@/components/layout/Navbar";
 
@@ -79,9 +80,11 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--wolf-charcoal)] text-[var(--wolf-pearl)]`}
       >
-        <Header />
-        <Navbar />
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <SessionProvider>
+          <Header />
+          <Navbar />
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </SessionProvider>
       </body>
     </html>
   );
