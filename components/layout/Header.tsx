@@ -1,9 +1,8 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
+import { UserButton } from "@/components/auth/UserButton";
 
-export default function Navbar() {
+export default function Header() {
   return (
     <nav className="sticky top-0 z-(--z-sticky) bg-[#252933] border-b border-(--border)/30 shadow-lg">
       <div className="container mx-auto">
@@ -26,13 +25,8 @@ export default function Navbar() {
             </h1>
           </div>
 
-          {/* Sign In Button - Right */}
-          <Link
-            href="/dashboard"
-            className="btn btn-secondary text-sm md:text-base"
-          >
-            Sign In
-          </Link>
+          {/* User Button - Right (shows Sign In or User Profile) */}
+          <UserButton />
         </div>
       </div>
     </nav>

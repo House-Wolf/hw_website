@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SessionProvider } from "@/components/auth/SessionProvider";
+import Header from "@/components/layout/Header";
+import Navbar from "@/components/layout/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,6 +81,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--wolf-charcoal)] text-[var(--wolf-pearl)]`}
       >
         <SessionProvider>
+          <Header />
+          <Navbar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </SessionProvider>
       </body>
