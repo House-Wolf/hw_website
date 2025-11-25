@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Header from "@/components/layout/Header";
+import Navbar from "@/components/layout/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -77,6 +79,8 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--wolf-charcoal)] text-[var(--wolf-pearl)]`}
       >
+        <Header />
+        <Navbar />
         <ErrorBoundary>{children}</ErrorBoundary>
       </body>
     </html>
