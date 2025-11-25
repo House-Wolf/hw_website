@@ -1,0 +1,352 @@
+// House Wolf PostgreSQL Schema
+// Based on project breakdown specifications
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// Core & Auth
+// ============================================
+
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  discordId          String    @unique @map("discord_id")
+  discordUsername    String    @map("discord_username")
+  discordDisplayName String?   @map("discord_display_name")
+  avatarUrl          String?   @map("avatar_url")
+  isActive           Boolean   @default(true) @map("is_active")
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  roles                     UserRole[]
+  mercenaryProfiles         MercenaryProfile[]                @relation("UserProfiles")
+  approvedProfiles          MercenaryProfile[]                @relation("ApprovedBy")
+  rejectedProfiles          MercenaryProfile[]                @relation("RejectedBy")
+  profileApprovalHistory    MercenaryProfileApprovalHistory[]
+  marketplaceListings       MarketplaceListings[]
+  marketplaceStatus         MarketplaceUserStatus?
+  suspendedMarketplaceUsers MarketplaceUserStatus[]           @relation("SuspendedBy")
+  listingAudits             MarketplaceListingAuditLog[]
+  auditLogs                 AuditLog[]
+
+  @@map("users")
+}
+
+model DiscordRole {
+  id        String   @id @map("id")
+  name      String
+  color     Int?
+  position  Int?
+  isManaged Boolean  @default(false) @map("is_managed")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  users                   UserRole[]
+  permissions             RolePermission[]
+  divisionAllowedRoles    DivisionAllowedRole[]
+  subdivisionAllowedRoles SubdivisionAllowedRole[]
+
+  @@map("discord_roles")
+}
+
+model UserRole {
+  userId        String   @map("user_id") @db.Uuid
+  discordRoleId String   @map("discord_role_id")
+  assignedAt    DateTime @default(now()) @map("assigned_at") @db.Timestamptz
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discordRole DiscordRole @relation(fields: [discordRoleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, discordRoleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          Int    @id @default(autoincrement())
+  key         String @unique
+  description String
+
+  // Relations
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  discordRoleId String @map("discord_role_id")
+  permissionId  Int    @map("permission_id")
+
+  // Relations
+  discordRole DiscordRole @relation(fields: [discordRoleId], references: [id], onDelete: Cascade)
+  permission  Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([discordRoleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// Divisions & Ranks
+// ============================================
+
+model Division {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String
+  iconUrl     String?  @map("icon_url")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  subdivisions      Subdivision[]
+  mercenaryProfiles MercenaryProfile[]
+  allowedRoles      DivisionAllowedRole[]
+
+  @@map("divisions")
+}
+
+model Subdivision {
+  id          Int      @id @default(autoincrement())
+  divisionId  Int      @map("division_id")
+  name        String
+  slug        String   @unique
+  description String
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  division          Division                 @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  mercenaryProfiles MercenaryProfile[]
+  allowedRoles      SubdivisionAllowedRole[]
+
+  @@map("subdivisions")
+}
+
+model Rank {
+  id               Int      @id @default(autoincrement())
+  name             String
+  slug             String   @unique
+  sortOrder        Int      @default(0) @map("sort_order")
+  isLeadershipCore Boolean  @default(false) @map("is_leadership_core")
+  isOfficerCore    Boolean  @default(false) @map("is_officer_core")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  mercenaryProfiles MercenaryProfile[]
+
+  @@map("ranks")
+}
+
+model DivisionAllowedRole {
+  divisionId    Int    @map("division_id")
+  discordRoleId String @map("discord_role_id")
+
+  // Relations
+  division    Division    @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  discordRole DiscordRole @relation(fields: [discordRoleId], references: [id], onDelete: Cascade)
+
+  @@id([divisionId, discordRoleId])
+  @@map("division_allowed_roles")
+}
+
+model SubdivisionAllowedRole {
+  subdivisionId Int    @map("subdivision_id")
+  discordRoleId String @map("discord_role_id")
+
+  // Relations
+  subdivision Subdivision @relation(fields: [subdivisionId], references: [id], onDelete: Cascade)
+  discordRole DiscordRole @relation(fields: [discordRoleId], references: [id], onDelete: Cascade)
+
+  @@id([subdivisionId, discordRoleId])
+  @@map("subdivision_allowed_roles")
+}
+
+// ============================================
+// Mercenary Profiles
+// ============================================
+
+model MercenaryProfile {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  characterName   String    @map("character_name")
+  rankId          Int?      @map("rank_id")
+  divisionId      Int       @map("division_id")
+  subdivisionId   Int?      @map("subdivision_id")
+  portraitUrl     String?   @map("portrait_url")
+  bio             String
+  status          String // DRAFT, PENDING_REVIEW, APPROVED, REJECTED
+  isPublic        Boolean   @default(true) @map("is_public")
+  lastSubmittedAt DateTime? @map("last_submitted_at") @db.Timestamptz
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz
+  approvedBy      String?   @map("approved_by") @db.Uuid
+  rejectedAt      DateTime? @map("rejected_at") @db.Timestamptz
+  rejectedBy      String?   @map("rejected_by") @db.Uuid
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user            User                              @relation("UserProfiles", fields: [userId], references: [id], onDelete: Cascade)
+  rank            Rank?                             @relation(fields: [rankId], references: [id])
+  division        Division                          @relation(fields: [divisionId], references: [id])
+  subdivision     Subdivision?                      @relation(fields: [subdivisionId], references: [id])
+  approver        User?                             @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  rejecter        User?                             @relation("RejectedBy", fields: [rejectedBy], references: [id])
+  approvalHistory MercenaryProfileApprovalHistory[]
+
+  @@map("mercenary_profiles")
+}
+
+model MercenaryProfileApprovalHistory {
+  id        Int      @id @default(autoincrement())
+  profileId String   @map("profile_id") @db.Uuid
+  action    String // APPROVED, REJECTED
+  actorId   String   @map("actor_id") @db.Uuid
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  profile MercenaryProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  actor   User             @relation(fields: [actorId], references: [id])
+
+  @@map("mercenary_profile_approval_history")
+}
+
+// ============================================
+// Marketplace
+// ============================================
+
+model MarketplaceCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    Int?     @map("parent_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  parent   MarketplaceCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children MarketplaceCategory[] @relation("CategoryHierarchy")
+  listings MarketplaceListings[]
+
+  @@map("marketplace_categories")
+}
+
+model MarketplaceListings {
+  id               String    @id @default(uuid()) @db.Uuid
+  sellerUserId     String    @map("seller_user_id") @db.Uuid
+  title            String
+  description      String
+  categoryId       Int       @map("category_id")
+  price            Decimal   @db.Decimal(12, 2)
+  currency         String // e.g. aUEC
+  quantity         Int       @default(1)
+  condition        String? // NEW, USED, DAMAGED
+  status           String // ACTIVE, PENDING_REVIEW, SOLD, HIDDEN, DELETED, SUSPENDED
+  discordThreadId  String?   @map("discord_thread_id")
+  discordChannelId String?   @map("discord_channel_id")
+  expiresAt        DateTime? @map("expires_at") @db.Timestamptz
+  metadata         Json?     @db.JsonB
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  seller   User                         @relation(fields: [sellerUserId], references: [id], onDelete: Cascade)
+  category MarketplaceCategory          @relation(fields: [categoryId], references: [id])
+  images   MarketplaceListingImage[]
+  audits   MarketplaceListingAuditLog[]
+
+  @@map("marketplace_listings")
+}
+
+model MarketplaceListingImage {
+  id        Int      @id @default(autoincrement())
+  listingId String   @map("listing_id") @db.Uuid
+  imageUrl  String   @map("image_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  listing MarketplaceListings @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("marketplace_listing_images")
+}
+
+model MarketplaceUserStatus {
+  userId      String    @id @map("user_id") @db.Uuid
+  isSuspended Boolean   @default(false) @map("is_suspended")
+  reason      String?
+  suspendedBy String?   @map("suspended_by") @db.Uuid
+  suspendedAt DateTime? @map("suspended_at") @db.Timestamptz
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suspender User? @relation("SuspendedBy", fields: [suspendedBy], references: [id])
+
+  @@map("marketplace_user_status")
+}
+
+model MarketplaceListingAuditLog {
+  id        Int      @id @default(autoincrement())
+  listingId String   @map("listing_id") @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  action    String // CREATED, UPDATED, DELETED, HIDDEN, STATUS_CHANGED, etc.
+  oldValues Json?    @map("old_values") @db.JsonB
+  newValues Json?    @map("new_values") @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  listing MarketplaceListings @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  actor   User?               @relation(fields: [actorId], references: [id])
+
+  @@map("marketplace_listing_audit_log")
+}
+
+// ============================================
+// Global Audit / Settings
+// ============================================
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  targetType String   @map("target_type") // MERCENARY_PROFILE, LISTING, DIVISION, etc.
+  targetId   String   @map("target_id")
+  metadata   Json?    @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model SiteSetting {
+  key   String @id
+  value Json   @db.JsonB
+
+  @@map("site_settings")
+}
