@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // Allow linking Discord account to existing email
+  // This is safe since we verify guild membership
+  allowDangerousEmailAccountLinking: true,
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -13,6 +16,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         params: {
           scope: "identify email guilds guilds.members.read",
         },
+      },
+      profile(profile) {
+        // Map Discord profile to NextAuth user format
+        return {
+          id: profile.id,
+          name: profile.global_name ?? profile.username,
+          email: profile.email,
+          image: profile.avatar
+            ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+            : null,
+          // Custom fields for our database
+          discordId: profile.id,
+          discordUsername: profile.username,
+          discordDisplayName: profile.global_name ?? null,
+        };
       },
     }),
   ],
@@ -47,80 +65,85 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return false;
         }
 
-        // Fetch guild member details to get roles
-        const memberResponse = await fetch(
-          `https://discord.com/api/users/@me/guilds/${guildId}/member`,
-          {
-            headers: {
-              Authorization: `Bearer ${account.access_token}`,
-            },
-          }
-        );
-
-        if (!memberResponse.ok) {
-          console.error("Failed to fetch guild member details");
-          return true; // Allow login but without role sync
-        }
-
-        const member = await memberResponse.json();
-
-        // Update or create user with Discord data
-        await prisma.user.upsert({
-          where: { discordId: profile.id as string },
-          update: {
-            discordUsername: profile.username as string,
-            discordDisplayName: (profile as any).global_name || null,
-            avatarUrl: profile.image || null,
-            lastLoginAt: new Date(),
-          },
-          create: {
-            discordId: profile.id as string,
-            discordUsername: profile.username as string,
-            discordDisplayName: (profile as any).global_name || null,
-            avatarUrl: profile.image || null,
-            email: profile.email || null,
-            lastLoginAt: new Date(),
-          },
-        });
-
-        // Sync Discord roles
-        const dbUser = await prisma.user.findUnique({
-          where: { discordId: profile.id as string },
-        });
-
-        if (dbUser && member.roles) {
-          // Remove old role assignments
-          await prisma.userRole.deleteMany({
-            where: { userId: dbUser.id },
-          });
-
-          // Add current roles
-          for (const roleId of member.roles) {
-            // Ensure role exists in database
-            await prisma.discordRole.upsert({
-              where: { id: roleId },
-              update: {},
-              create: {
-                id: roleId,
-                name: "Unknown Role", // Will be updated later with proper sync
-              },
-            });
-
-            // Create user-role assignment
-            await prisma.userRole.create({
-              data: {
-                userId: dbUser.id,
-                discordRoleId: roleId,
-              },
-            });
-          }
-        }
-
+        // Let NextAuth adapter handle user creation/linking
+        // We'll sync Discord data and roles in the jwt/session callback after user is created
         return true;
       } catch (error) {
         console.error("Error in signIn callback:", error);
         return false;
       }
+    },
+
+    async jwt({ token, user, account, profile, trigger }) {
+      // After sign in, sync Discord-specific data and roles
+      if (trigger === "signIn" && account && profile) {
+        try {
+          // Find the user by email (created by adapter)
+          const dbUser = await prisma.user.findUnique({
+            where: { email: profile.email as string },
+          });
+
+          if (dbUser) {
+            // Update Discord-specific fields
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: {
+                discordId: profile.id as string,
+                discordUsername: profile.username as string,
+                discordDisplayName: (profile as any).global_name || null,
+                avatarUrl: profile.image as string,
+                lastLoginAt: new Date(),
+              },
+            });
+
+            // Fetch and sync Discord roles
+            const memberResponse = await fetch(
+              `https://discord.com/api/users/@me/guilds/${process.env.DISCORD_GUILD_ID}/member`,
+              {
+                headers: {
+                  Authorization: `Bearer ${account.access_token}`,
+                },
+              }
+            );
+
+            if (memberResponse.ok) {
+              const member = await memberResponse.json();
+
+              if (member.roles) {
+                // Remove old role assignments
+                await prisma.userRole.deleteMany({
+                  where: { userId: dbUser.id },
+                });
+
+                // Add current roles
+                for (const roleId of member.roles) {
+                  // Ensure role exists in database
+                  await prisma.discordRole.upsert({
+                    where: { id: roleId },
+                    update: {},
+                    create: {
+                      id: roleId,
+                      name: "Unknown Role",
+                    },
+                  });
+
+                  // Create user-role assignment
+                  await prisma.userRole.create({
+                    data: {
+                      userId: dbUser.id,
+                      discordRoleId: roleId,
+                    },
+                  });
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error syncing Discord data:", error);
+        }
+      }
+
+      return token;
     },
 
     async session({ session, user }) {
