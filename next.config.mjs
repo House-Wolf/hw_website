@@ -14,6 +14,7 @@ const nextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
   images: {
     remotePatterns: [
       {
