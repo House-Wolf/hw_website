@@ -129,7 +129,7 @@ async function revertDossierAction(formData: FormData) {
 export default async function AdminPanelPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
 
@@ -140,8 +140,9 @@ export default async function AdminPanelPage({
     redirect("/dashboard");
   }
 
+  const params = await searchParams;
   const requestedTab =
-    typeof searchParams?.tab === "string" ? (searchParams.tab as string) : "users";
+    typeof params?.tab === "string" ? (params.tab as string) : "users";
   let activeTab: "users" | "dossiers" = "users";
   if (requestedTab === "dossiers" && hasDossierAdmin) {
     activeTab = "dossiers";

@@ -201,7 +201,7 @@ async function submitBio(formData: FormData) {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
@@ -227,7 +227,8 @@ export default async function ProfilePage({
 
   const hasAccess = allowedDivisions.length > 0;
 
-  const submitted = searchParams?.submitted === "1";
+  const params = await searchParams;
+  const submitted = params?.submitted === "1";
 
   return (
     <div className="space-y-6">
