@@ -2,8 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -23,6 +24,11 @@ export default function AuthErrorPage() {
         title: "Verification Error",
         description:
           "The verification link may have expired or already been used.",
+      },
+      Suspended: {
+        title: "Access Suspended",
+        description:
+          "Your account has been suspended from dashboard access. Contact an administrator if you believe this is an error.",
       },
       Default: {
         title: "Authentication Error",
@@ -80,5 +86,13 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--wolf-obsidian)]">Loading...</div>}>
+      <ErrorContent />
+    </Suspense>
   );
 }

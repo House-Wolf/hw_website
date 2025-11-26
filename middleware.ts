@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = !!req.auth;
+  const isSuspended = req.auth?.user && (req.auth.user as any).isActive === false;
 
   // Protected routes that require authentication
   const protectedRoutes = ["/dashboard"];
@@ -21,6 +22,12 @@ export default auth((req) => {
     const signInUrl = new URL("/auth/signin", req.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
+  }
+
+  if (isProtectedRoute && isSuspended) {
+    const suspendedUrl = new URL("/auth/error", req.url);
+    suspendedUrl.searchParams.set("error", "Suspended");
+    return NextResponse.redirect(suspendedUrl);
   }
 
   // Redirect authenticated users away from auth pages
