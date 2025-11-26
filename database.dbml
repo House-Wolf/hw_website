@@ -1,0 +1,313 @@
+Table "_prisma_migrations" {
+  "id" varchar(36) [pk, not null]
+  "checksum" varchar(64) [not null]
+  "finished_at" timestamptz
+  "migration_name" varchar(255) [not null]
+  "logs" text
+  "rolled_back_at" timestamptz
+  "started_at" timestamptz [not null, default: `now()`]
+  "applied_steps_count" int4 [not null, default: 0]
+}
+
+Table "users" {
+  "id" uuid [pk, not null]
+  "discord_id" text [unique, not null]
+  "discord_username" text [not null]
+  "discord_display_name" text
+  "avatar_url" text
+  "is_active" bool [not null, default: true]
+  "last_login_at" timestamptz
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+  "email" text [unique]
+  "email_verified" timestamp
+  "image" text
+  "name" text
+}
+
+Table "discord_roles" {
+  "id" text [pk, not null]
+  "name" text [not null]
+  "color" int4
+  "position" int4
+  "is_managed" bool [not null, default: false]
+  "is_active" bool [not null, default: true]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "user_roles" {
+  "user_id" uuid [not null]
+  "discord_role_id" text [not null]
+  "assigned_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (user_id, discord_role_id) [pk, type: btree, name: "user_roles_pkey"]
+  }
+}
+
+Table "permissions" {
+  "id" int4 [pk, not null, increment]
+  "key" text [unique, not null]
+  "description" text [not null]
+}
+
+Table "role_permissions" {
+  "discord_role_id" text [not null]
+  "permission_id" int4 [not null]
+
+  Indexes {
+    (discord_role_id, permission_id) [pk, type: btree, name: "role_permissions_pkey"]
+  }
+}
+
+Table "divisions" {
+  "id" int4 [pk, not null, increment]
+  "name" text [not null]
+  "slug" text [unique, not null]
+  "description" text [not null]
+  "icon_url" text
+  "is_active" bool [not null, default: true]
+  "sort_order" int4 [not null, default: 0]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "subdivisions" {
+  "id" int4 [pk, not null, increment]
+  "division_id" int4 [not null]
+  "name" text [not null]
+  "slug" text [unique, not null]
+  "description" text [not null]
+  "is_active" bool [not null, default: true]
+  "sort_order" int4 [not null, default: 0]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "ranks" {
+  "id" int4 [pk, not null, increment]
+  "name" text [not null]
+  "slug" text [unique, not null]
+  "sort_order" int4 [not null, default: 0]
+  "is_leadership_core" bool [not null, default: false]
+  "is_officer_core" bool [not null, default: false]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "division_allowed_roles" {
+  "division_id" int4 [not null]
+  "discord_role_id" text [not null]
+
+  Indexes {
+    (division_id, discord_role_id) [pk, type: btree, name: "division_allowed_roles_pkey"]
+  }
+}
+
+Table "subdivision_allowed_roles" {
+  "subdivision_id" int4 [not null]
+  "discord_role_id" text [not null]
+
+  Indexes {
+    (subdivision_id, discord_role_id) [pk, type: btree, name: "subdivision_allowed_roles_pkey"]
+  }
+}
+
+Table "mercenary_profiles" {
+  "id" uuid [pk, not null]
+  "user_id" uuid [not null]
+  "character_name" text [not null]
+  "rank_id" int4
+  "division_id" int4 [not null]
+  "subdivision_id" int4
+  "portrait_url" text
+  "bio" text [not null]
+  "status" text [not null]
+  "is_public" bool [not null, default: true]
+  "last_submitted_at" timestamptz
+  "approved_at" timestamptz
+  "approved_by" uuid
+  "rejected_at" timestamptz
+  "rejected_by" uuid
+  "rejection_reason" text
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "mercenary_profile_approval_history" {
+  "id" int4 [pk, not null, increment]
+  "profile_id" uuid [not null]
+  "action" text [not null]
+  "actor_id" uuid [not null]
+  "reason" text
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "marketplace_categories" {
+  "id" int4 [pk, not null, increment]
+  "name" text [not null]
+  "slug" text [unique, not null]
+  "description" text
+  "parent_id" int4
+  "is_active" bool [not null, default: true]
+  "sort_order" int4 [not null, default: 0]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "marketplace_listings" {
+  "id" uuid [pk, not null]
+  "seller_user_id" uuid [not null]
+  "title" text [not null]
+  "description" text [not null]
+  "category_id" int4 [not null]
+  "price" numeric(12,2) [not null]
+  "currency" text [not null]
+  "quantity" int4 [not null, default: 1]
+  "condition" text
+  "status" text [not null]
+  "discord_thread_id" text
+  "discord_channel_id" text
+  "expires_at" timestamptz
+  "metadata" jsonb
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+  "deleted_at" timestamptz
+}
+
+Table "marketplace_listing_images" {
+  "id" int4 [pk, not null, increment]
+  "listing_id" uuid [not null]
+  "image_url" text [not null]
+  "sort_order" int4 [not null, default: 0]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "marketplace_user_status" {
+  "user_id" uuid [pk, not null]
+  "is_suspended" bool [not null, default: false]
+  "reason" text
+  "suspended_by" uuid
+  "suspended_at" timestamptz
+  "ends_at" timestamptz
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null]
+}
+
+Table "marketplace_listing_audit_log" {
+  "id" int4 [pk, not null, increment]
+  "listing_id" uuid [not null]
+  "actor_id" uuid
+  "action" text [not null]
+  "old_values" jsonb
+  "new_values" jsonb
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "audit_logs" {
+  "id" int4 [pk, not null, increment]
+  "actor_id" uuid
+  "action" text [not null]
+  "target_type" text [not null]
+  "target_id" text [not null]
+  "metadata" jsonb
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "site_settings" {
+  "key" text [pk, not null]
+  "value" jsonb [not null]
+}
+
+Table "accounts" {
+  "id" uuid [pk, not null]
+  "user_id" uuid [not null]
+  "type" text [not null]
+  "provider" text [not null]
+  "provider_account_id" text [not null]
+  "refresh_token" text
+  "access_token" text
+  "expires_at" int4
+  "token_type" text
+  "scope" text
+  "id_token" text
+  "session_state" text
+
+  Indexes {
+    (provider, provider_account_id) [type: btree, unique, name: "accounts_provider_provider_account_id_key"]
+  }
+}
+
+Table "sessions" {
+  "id" uuid [pk, not null]
+  "session_token" text [unique, not null]
+  "user_id" uuid [not null]
+  "expires" timestamp [not null]
+}
+
+Table "verification_tokens" {
+  "identifier" text [not null]
+  "token" text [not null]
+  "expires" timestamp [not null]
+
+  Indexes {
+    (identifier, token) [type: btree, unique, name: "verification_tokens_identifier_token_key"]
+  }
+}
+
+Ref "accounts_user_id_fkey":"users"."id" < "accounts"."user_id" [update: cascade, delete: cascade]
+
+Ref "audit_logs_actor_id_fkey":"users"."id" < "audit_logs"."actor_id" [update: cascade, delete: set null]
+
+Ref "division_allowed_roles_discord_role_id_fkey":"discord_roles"."id" < "division_allowed_roles"."discord_role_id" [update: cascade, delete: cascade]
+
+Ref "division_allowed_roles_division_id_fkey":"divisions"."id" < "division_allowed_roles"."division_id" [update: cascade, delete: cascade]
+
+Ref "marketplace_categories_parent_id_fkey":"marketplace_categories"."id" < "marketplace_categories"."parent_id" [update: cascade, delete: set null]
+
+Ref "marketplace_listing_audit_log_actor_id_fkey":"users"."id" < "marketplace_listing_audit_log"."actor_id" [update: cascade, delete: set null]
+
+Ref "marketplace_listing_audit_log_listing_id_fkey":"marketplace_listings"."id" < "marketplace_listing_audit_log"."listing_id" [update: cascade, delete: cascade]
+
+Ref "marketplace_listing_images_listing_id_fkey":"marketplace_listings"."id" < "marketplace_listing_images"."listing_id" [update: cascade, delete: cascade]
+
+Ref "marketplace_listings_category_id_fkey":"marketplace_categories"."id" < "marketplace_listings"."category_id" [update: cascade, delete: restrict]
+
+Ref "marketplace_listings_seller_user_id_fkey":"users"."id" < "marketplace_listings"."seller_user_id" [update: cascade, delete: cascade]
+
+Ref "marketplace_user_status_suspended_by_fkey":"users"."id" < "marketplace_user_status"."suspended_by" [update: cascade, delete: set null]
+
+Ref "marketplace_user_status_user_id_fkey":"users"."id" < "marketplace_user_status"."user_id" [update: cascade, delete: cascade]
+
+Ref "mercenary_profile_approval_history_actor_id_fkey":"users"."id" < "mercenary_profile_approval_history"."actor_id" [update: cascade, delete: restrict]
+
+Ref "mercenary_profile_approval_history_profile_id_fkey":"mercenary_profiles"."id" < "mercenary_profile_approval_history"."profile_id" [update: cascade, delete: cascade]
+
+Ref "mercenary_profiles_approved_by_fkey":"users"."id" < "mercenary_profiles"."approved_by" [update: cascade, delete: set null]
+
+Ref "mercenary_profiles_division_id_fkey":"divisions"."id" < "mercenary_profiles"."division_id" [update: cascade, delete: restrict]
+
+Ref "mercenary_profiles_rank_id_fkey":"ranks"."id" < "mercenary_profiles"."rank_id" [update: cascade, delete: set null]
+
+Ref "mercenary_profiles_rejected_by_fkey":"users"."id" < "mercenary_profiles"."rejected_by" [update: cascade, delete: set null]
+
+Ref "mercenary_profiles_subdivision_id_fkey":"subdivisions"."id" < "mercenary_profiles"."subdivision_id" [update: cascade, delete: set null]
+
+Ref "mercenary_profiles_user_id_fkey":"users"."id" < "mercenary_profiles"."user_id" [update: cascade, delete: cascade]
+
+Ref "role_permissions_discord_role_id_fkey":"discord_roles"."id" < "role_permissions"."discord_role_id" [update: cascade, delete: cascade]
+
+Ref "role_permissions_permission_id_fkey":"permissions"."id" < "role_permissions"."permission_id" [update: cascade, delete: cascade]
+
+Ref "sessions_user_id_fkey":"users"."id" < "sessions"."user_id" [update: cascade, delete: cascade]
+
+Ref "subdivision_allowed_roles_discord_role_id_fkey":"discord_roles"."id" < "subdivision_allowed_roles"."discord_role_id" [update: cascade, delete: cascade]
+
+Ref "subdivision_allowed_roles_subdivision_id_fkey":"subdivisions"."id" < "subdivision_allowed_roles"."subdivision_id" [update: cascade, delete: cascade]
+
+Ref "subdivisions_division_id_fkey":"divisions"."id" < "subdivisions"."division_id" [update: cascade, delete: cascade]
+
+Ref "user_roles_discord_role_id_fkey":"discord_roles"."id" < "user_roles"."discord_role_id" [update: cascade, delete: cascade]
+
+Ref "user_roles_user_id_fkey":"users"."id" < "user_roles"."user_id" [update: cascade, delete: cascade]

@@ -2,12 +2,64 @@ import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { deriveUserPermissions } from "./derive-permissions";
+import { ROLE_IDS, DOSSIER_ADMIN_RANKS } from "./role-constants";
+
+type DiscordGuildRole = {
+  id: string;
+  name: string;
+  color: number;
+  position: number;
+  managed: boolean;
+};
+
+// Role constants moved to lib/role-constants.ts to avoid duplication
+
+function normalizeName(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+async function syncGuildRolesMetadata(guildId: string, botToken?: string) {
+  if (!botToken) {
+    console.warn("DISCORD_BOT_TOKEN missing; cannot sync role metadata");
+    return;
+  }
+
+  const resp = await fetch(`https://discord.com/api/guilds/${guildId}/roles`, {
+    headers: {
+      Authorization: `Bot ${botToken}`,
+    },
+  });
+
+  if (!resp.ok) {
+    console.error("Failed to fetch guild roles for metadata sync");
+    return;
+  }
+
+  const roles: DiscordGuildRole[] = await resp.json();
+
+  for (const role of roles) {
+    await prisma.discordRole.upsert({
+      where: { id: role.id },
+      update: {
+        name: role.name,
+        color: role.color,
+        position: role.position,
+        isManaged: role.managed,
+      },
+      create: {
+        id: role.id,
+        name: role.name,
+        color: role.color,
+        position: role.position,
+        isManaged: role.managed,
+      },
+    });
+  }
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  // Allow linking Discord account to existing email
-  // This is safe since we verify guild membership
-  allowDangerousEmailAccountLinking: true,
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -75,74 +127,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user, account, profile, trigger }) {
-      // After sign in, sync Discord-specific data and roles
-      if (trigger === "signIn" && account && profile) {
-        try {
-          // Find the user by email (created by adapter)
-          const dbUser = await prisma.user.findUnique({
-            where: { email: profile.email as string },
-          });
-
-          if (dbUser) {
-            // Update Discord-specific fields
-            await prisma.user.update({
-              where: { id: dbUser.id },
-              data: {
-                discordId: profile.id as string,
-                discordUsername: profile.username as string,
-                discordDisplayName: (profile as any).global_name || null,
-                avatarUrl: profile.image as string,
-                lastLoginAt: new Date(),
-              },
-            });
-
-            // Fetch and sync Discord roles
-            const memberResponse = await fetch(
-              `https://discord.com/api/users/@me/guilds/${process.env.DISCORD_GUILD_ID}/member`,
-              {
-                headers: {
-                  Authorization: `Bearer ${account.access_token}`,
-                },
-              }
-            );
-
-            if (memberResponse.ok) {
-              const member = await memberResponse.json();
-
-              if (member.roles) {
-                // Remove old role assignments
-                await prisma.userRole.deleteMany({
-                  where: { userId: dbUser.id },
-                });
-
-                // Add current roles
-                for (const roleId of member.roles) {
-                  // Ensure role exists in database
-                  await prisma.discordRole.upsert({
-                    where: { id: roleId },
-                    update: {},
-                    create: {
-                      id: roleId,
-                      name: "Unknown Role",
-                    },
-                  });
-
-                  // Create user-role assignment
-                  await prisma.userRole.create({
-                    data: {
-                      userId: dbUser.id,
-                      discordRoleId: roleId,
-                    },
-                  });
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error syncing Discord data:", error);
-        }
-      }
-
+      // JWT callback is primarily for adding custom claims to the token
+      // Role syncing is handled in the signIn event to avoid duplication
       return token;
     },
 
@@ -173,20 +159,84 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           session.user.id = dbUser.id;
           session.user.discordId = dbUser.discordId;
           session.user.discordUsername = dbUser.discordUsername;
+          session.user.isActive = dbUser.isActive;
 
-          // Flatten permissions from all roles
-          const permissions = new Set<string>();
-          dbUser.roles.forEach((userRole) => {
-            userRole.discordRole.permissions.forEach((rolePermission) => {
-              permissions.add(rolePermission.permission.key);
-            });
-          });
-
+          // Derive permissions using centralized logic
+          const permissions = deriveUserPermissions(dbUser.roles);
           session.user.permissions = Array.from(permissions);
         }
       }
 
       return session;
+    },
+  },
+  events: {
+    async signIn({ user, account, profile }) {
+      if (!account?.access_token || !user?.id) return;
+
+      try {
+        // Refresh Discord profile details and last login timestamp
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            discordId: (profile as any)?.id ?? undefined,
+            discordUsername: (profile as any)?.username ?? undefined,
+            discordDisplayName: (profile as any)?.global_name ?? null,
+            avatarUrl: (profile as any)?.avatar
+              ? `https://cdn.discordapp.com/avatars/${(profile as any).id}/${
+                  (profile as any).avatar
+                }.png`
+              : undefined,
+            lastLoginAt: new Date(),
+          },
+        });
+
+        // Sync guild roles from Discord
+        const guildId = process.env.DISCORD_GUILD_ID;
+        if (!guildId) return;
+
+        await syncGuildRolesMetadata(guildId, process.env.DISCORD_BOT_TOKEN);
+
+        const memberResponse = await fetch(
+          `https://discord.com/api/users/@me/guilds/${guildId}/member`,
+          {
+            headers: {
+              Authorization: `Bearer ${account.access_token}`,
+            },
+          }
+        );
+
+        if (!memberResponse.ok) {
+          console.error("Failed to fetch guild member for role sync");
+          return;
+        }
+
+        const member = await memberResponse.json();
+        const roleIds: string[] = member.roles ?? [];
+
+        // Replace role assignments with current Discord roles
+        await prisma.userRole.deleteMany({ where: { userId: user.id } });
+
+        for (const roleId of roleIds) {
+          await prisma.discordRole.upsert({
+            where: { id: roleId },
+            update: {},
+            create: {
+              id: roleId,
+              name: "Unknown Role",
+            },
+          });
+
+          await prisma.userRole.create({
+            data: {
+              userId: user.id,
+              discordRoleId: roleId,
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error syncing Discord data on signIn event:", error);
+      }
     },
   },
   pages: {
