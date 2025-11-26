@@ -5,6 +5,7 @@ import { deriveUserPermissions } from "@/lib/derive-permissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Ban, CheckCircle2, FileText, Shield, UserCog } from "lucide-react";
+import ApprovedDossiersSection from "./components/ApprovedDossiersSection";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -126,6 +127,72 @@ async function revertDossierAction(formData: FormData) {
   redirect("/dashboard/admin?tab=dossiers");
 }
 
+async function editDossierAction(formData: FormData) {
+  "use server";
+
+  const session = await auth();
+  if (
+    !session?.user ||
+    !session.user.permissions.includes(PERMISSIONS.DOSSIER_ADMIN)
+  ) {
+    redirect("/dashboard");
+  }
+
+  const dossierId = formData.get("dossierId");
+  const characterName = formData.get("characterName");
+  const bio = formData.get("bio");
+  const divisionId = formData.get("divisionId");
+  const subdivisionId = formData.get("subdivisionId");
+
+  if (!dossierId || typeof dossierId !== "string") {
+    throw new Error("Invalid dossier");
+  }
+  if (!characterName || typeof characterName !== "string") {
+    throw new Error("Character name is required");
+  }
+  if (!bio || typeof bio !== "string") {
+    throw new Error("Bio is required");
+  }
+  if (!divisionId || typeof divisionId !== "string") {
+    throw new Error("Division is required");
+  }
+
+  await prisma.mercenaryProfile.update({
+    where: { id: dossierId },
+    data: {
+      characterName: characterName.trim(),
+      bio: bio.trim(),
+      divisionId: parseInt(divisionId),
+      subdivisionId: subdivisionId && subdivisionId !== "" ? parseInt(subdivisionId as string) : null,
+    },
+  });
+
+  redirect("/dashboard/admin?tab=dossiers");
+}
+
+async function deleteDossierAction(formData: FormData) {
+  "use server";
+
+  const session = await auth();
+  if (
+    !session?.user ||
+    !session.user.permissions.includes(PERMISSIONS.DOSSIER_ADMIN)
+  ) {
+    redirect("/dashboard");
+  }
+
+  const dossierId = formData.get("dossierId");
+  if (!dossierId || typeof dossierId !== "string") {
+    throw new Error("Invalid dossier");
+  }
+
+  await prisma.mercenaryProfile.delete({
+    where: { id: dossierId },
+  });
+
+  redirect("/dashboard/admin?tab=dossiers");
+}
+
 export default async function AdminPanelPage({
   searchParams,
 }: {
@@ -184,6 +251,23 @@ export default async function AdminPanelPage({
           user: true,
           division: true,
           subdivision: true,
+        },
+      })
+    : [];
+
+  const divisions = hasDossierAdmin
+    ? await prisma.division.findMany({
+        orderBy: { sortOrder: "asc" },
+      })
+    : [];
+
+  const subdivisions = hasDossierAdmin
+    ? await prisma.subdivision.findMany({
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          name: true,
+          divisionId: true,
         },
       })
     : [];
@@ -458,51 +542,14 @@ export default async function AdminPanelPage({
                   </span>
                 </div>
 
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {dossiers.filter((d) => d.status === "APPROVED").length === 0 ? (
-                    <p className="text-sm text-[var(--foreground-muted)]">
-                      No approved dossiers yet.
-                    </p>
-                  ) : (
-                    dossiers
-                      .filter((d) => d.status === "APPROVED")
-                      .map((dossier) => (
-                        <div
-                          key={dossier.id}
-                          className="p-3 rounded-lg border border-[var(--border-soft)] bg-[var(--background-elevated)]/70"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-[var(--foreground)]">
-                                {dossier.characterName}
-                              </p>
-                              <p className="text-xs text-[var(--foreground-muted)]">
-                                @{dossier.user.discordUsername}
-                              </p>
-                            </div>
-                            <span className="text-xs text-[var(--foreground-muted)]">
-                              {dossier.division?.name}
-                              {dossier.subdivision ? ` • ${dossier.subdivision.name}` : ""}
-                            </span>
-                          </div>
-                          <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-hidden">
-                            {dossier.bio}
-                          </p>
-                          <div className="flex items-center gap-2 mt-3">
-                            <form action={revertDossierAction}>
-                              <input type="hidden" name="dossierId" value={dossier.id} />
-                              <button
-                                type="submit"
-                                className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/10 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)]"
-                              >
-                                Unapprove
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-                      ))
-                  )}
-                </div>
+                <ApprovedDossiersSection
+                  dossiers={dossiers.filter((d) => d.status === "APPROVED")}
+                  divisions={divisions}
+                  subdivisions={subdivisions}
+                  onEdit={editDossierAction}
+                  onDelete={deleteDossierAction}
+                  onUnapprove={revertDossierAction}
+                />
               </div>
             </div>
           </>
