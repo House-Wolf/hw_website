@@ -428,26 +428,15 @@ export default async function AdminPanelPage({
                           <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-hidden">
                             {dossier.bio}
                           </p>
-                          <div className="flex items-center gap-2 mt-3">
-                            <form action={approveDossierAction}>
-                              <input type="hidden" name="dossierId" value={dossier.id} />
-                              <button
-                                type="submit"
-                                className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
-                              >
-                                Approve
-                              </button>
-                            </form>
-                            <form action={revertDossierAction}>
-                              <input type="hidden" name="dossierId" value={dossier.id} />
-                              <button
-                                type="submit"
-                                className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/10 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)]"
-                              >
-                                Keep Pending
-                              </button>
-                            </form>
-                          </div>
+                          <form action={approveDossierAction} className="mt-3">
+                            <input type="hidden" name="dossierId" value={dossier.id} />
+                            <button
+                              type="submit"
+                              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                            >
+                              Approve
+                            </button>
+                          </form>
                         </div>
                       ))
                   )}
