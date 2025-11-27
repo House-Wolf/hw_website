@@ -54,3 +54,12 @@ hw_project_breakdown.txt
 package-lock.json
 
 localhostlinks.txt
+
+# AI assistant review/research files
+*.review.txt
+research.txt
+
+# Documentation files (per user preference)
+docs/VERCEL_POSTGRES_QUICKSTART.md
+docs/VERCEL_POSTGRES_SETUP.md
+AUTH_IMPLEMENTATION_SUMMARY.md

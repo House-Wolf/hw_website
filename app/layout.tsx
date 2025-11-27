@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     siteName: "House Wolf",
     images: [
       {
-        url: "/HWpic1.png",
+        url: "/images/global/Websitebgnew.png",
         width: 1200,
         height: 630,
         alt: "House Wolf - Home of the Dragoons",
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     title: "House Wolf - Home of the Dragoons",
     description:
       "Mercenary Star Citizen organization specializing in tactical operations, logistics, and special operations.",
-    images: ["/HWpic1.png"],
+    images: ["/images/global/Websitebgnew.png"],
   },
 
   // Additional Meta

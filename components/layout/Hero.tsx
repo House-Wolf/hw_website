@@ -40,7 +40,7 @@ interface HeroProps {
 
 const fallbackPhoto: FeaturedPhoto = {
   id: "fallback",
-  url: "/images/global/HWpic1.png",
+  url: "/images/global/Websitebgnew.png",
   alt: "House Wolf featured image",
 };
 
