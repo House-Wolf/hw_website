@@ -85,7 +85,7 @@ export default function EpicCTA() {
             </div>
             <div className="animate-float" style={{ animationDelay: "0.6s" }}>
               <SafeImage
-                src="/images/divisions/arcops/arcops.png"
+                src="/images/divisions/arccops/arcops.png"
                 alt="ARCOPS Division"
                 width={65}
                 height={65}
