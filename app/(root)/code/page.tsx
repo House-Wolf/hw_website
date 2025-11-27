@@ -1,30 +1,37 @@
-import React from "react";
+import { JSX }from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function DragoonCodePage() {
+export const metadata = {
+  title: "The Dragoon Code | House Wolf Dragoons",
+  description:
+    "Explore the warrior creed of the Kamposian Dragoons—Strength, Honor, Death. Learn the sacred principles that shape House Wolf.",
+  openGraph: {
+    title: "The Dragoon Code | House Wolf Dragoons",
+    description:
+      "Explore the warrior creed of the Kamposian Dragoons—Strength, Honor, Death.",
+    images: ["/images/global/HWiconnew.png"],
+  },
+};
+
+export default function DragoonCodePage(): JSX.Element {
   return (
     <div className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
       {/* Hero Section */}
       <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/images/global/Websitebgnew.png"
-            alt="House Wolf Background"
-            fill
-            className="opacity-90 object-cover object-center"
-            priority
-          />
           <div className="absolute inset-0 bg-linear-to-b from-crimson-dark/40 via-transparent to-obsidian/90" />
         </div>
+        {/* Bottom Border */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-30 z-10" />
 
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <div className="mb-8">
             <Image
               src="/images/global/HWiconnew.png"
-              alt="House Wolf Icon"
+              alt="House Wolf Dragoons Emblem"
               width={120}
               height={120}
               className="mx-auto filter drop-shadow-[0_0_30px_rgba(71,0,0,0.8)]"
@@ -33,7 +40,7 @@ export default function DragoonCodePage() {
           <h1 className="text-5xl md:text-7xl font-bold text-crimson-light mb-6 tracking-wider uppercase font-mono">
             The Dragoon Code
           </h1>
-          <div className="h-1 w-32 bg-gradient-to-r from-transparent via-crimson to-transparent mx-auto mb-8" />
+          <div className="h-1 w-32 bg-linear-to-r from-transparent via-crimson to-transparent mx-auto mb-8" />
           <p className="text-xl md:text-2xl text-foreground-muted italic leading-relaxed">
             A warrior culture centered on armor, weapons, and war
           </p>
@@ -43,7 +50,7 @@ export default function DragoonCodePage() {
       {/* Main Code Statement */}
       <section className="py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-linear-to-br from-crimson-dark/20 via-steel-dark/10 to-obsidian border-2 border-accent-secondary rounded-lg p-12 md:p-16 shadow-[0_0_50px_rgba(71,0,0,0.3)]">
+          <div className="bg-linear-to-br from-crimson-dark/20 via-steel-dark/10 to-obsidian border-2 border-accent-main rounded-lg p-12 md:p-16 shadow-[0_0_50px_rgba(71,0,0,0.3)]">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-crimson tracking-widest uppercase">
               Code of Honor
             </h2>
@@ -57,7 +64,7 @@ export default function DragoonCodePage() {
                 </p>
               </div>
 
-              <div className="h-px w-3/4 mx-auto bg-gradient-to-r from-transparent via-steel to-transparent" />
+              <div className="h-px w-3/4 mx-auto bg-linear-to-r from-transparent via-steel to-transparent" />
 
               <div className="group">
                 <p className="text-2xl md:text-3xl font-bold text-foreground mb-2 group-hover:text-steel-light transition-colors duration-300">
@@ -68,7 +75,7 @@ export default function DragoonCodePage() {
                 </p>
               </div>
 
-              <div className="h-px w-3/4 mx-auto bg-gradient-to-r from-transparent via-steel to-transparent" />
+              <div className="h-px w-3/4 mx-auto bg-linear-to-r from-transparent via-steel to-transparent" />
 
               <div className="group">
                 <p className="text-2xl md:text-3xl font-bold text-foreground mb-2 group-hover:text-crimson-light transition-colors duration-300">
@@ -93,7 +100,7 @@ export default function DragoonCodePage() {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Strength */}
             <div className="group relative bg-linear-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_0_40px_rgb(255,223,0,0.4)] transition-all duration-300">
                 <Image
@@ -124,7 +131,7 @@ export default function DragoonCodePage() {
 
             {/* Honor */}
             <div className="group relative bg-linear-to-br from-steel-dark/30 to-obsidian border border-steel/40 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_40px_rgba(17,78,98,0.4)] transition-all duration-500">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-steel via-steel-light to-steel opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-steel via-steel-light to-steel opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(17,78,98,0.5)] transition-all duration-300">
                 <Image
@@ -154,7 +161,7 @@ export default function DragoonCodePage() {
 
             {/* Death */}
             <div className="group relative bg-linear-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(71,0,0,0.5)] transition-all duration-300">
                 <Image
@@ -162,7 +169,7 @@ export default function DragoonCodePage() {
                   alt="Death"
                   width={300}
                   height={300}
-                  className="w-full h-72 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-[0_4px_20px_rgba(71,0,0,0.4)]"
+                  className="w-full h-72 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-[0_4px_20px_rgba(71,0,0,0.8)]"
                 />
               </div>
 
@@ -201,7 +208,7 @@ export default function DragoonCodePage() {
             {/* Principle 1 */}
             <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -219,7 +226,7 @@ export default function DragoonCodePage() {
             {/* Principle 2 */}
             <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -237,7 +244,7 @@ export default function DragoonCodePage() {
             {/* Principle 3 */}
             <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -255,7 +262,7 @@ export default function DragoonCodePage() {
             {/* Principle 4 */}
             <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -273,7 +280,7 @@ export default function DragoonCodePage() {
             {/* Principle 5 */}
             <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -291,7 +298,7 @@ export default function DragoonCodePage() {
             {/* Principle 6 */}
             <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -324,13 +331,13 @@ export default function DragoonCodePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="https://robertsspaceindustries.com/en/orgs/CUTTERWOLF"
-                className="px-8 py-4 bg-gradient-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(71,0,0,0.6)] transition-all duration-300 uppercase tracking-wider"
+                className="px-8 py-4 bg-linear-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(71,0,0,0.6)] transition-all duration-300 uppercase tracking-wider"
               >
                 Join Our Ranks
               </Link>
               <Link
                 href="/origins"
-                className="px-8 py-4 bg-gradient-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.6)] transition-all duration-300 uppercase tracking-wider"
+                className="px-8 py-4 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.6)] transition-all duration-300 uppercase tracking-wider"
               >
                 Learn Our History
               </Link>
