@@ -44,7 +44,7 @@ const fallbackPhoto: FeaturedPhoto = {
   alt: "House Wolf featured image",
 };
 
-const HERO_HEIGHT = "400px";
+const HERO_HEIGHT = "450px";
 
 export default function Hero({
   events,
@@ -78,8 +78,8 @@ export default function Hero({
             priority
           />
 
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          {/* linear overlay */}
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent" />
 
           {/* Crimson accent overlay on hover */}
           <div className="absolute inset-0 bg-crimson/10 opacity-0 group-hover:opacity-100 transition-opacity duration-base" />
@@ -130,7 +130,7 @@ export default function Hero({
           />
 
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30 group-hover:from-black/80 transition-all" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/50 to-black/30 group-hover:from-black/80 transition-all" />
 
           {/* Steel teal accent on hover */}
           <div className="absolute inset-0 bg-steel/10 opacity-0 group-hover:opacity-100 transition-opacity duration-base" />
@@ -144,24 +144,24 @@ export default function Hero({
               {featuredVideo.title}
             </h3>
 
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-crimson to-crimson-light rounded-full text-foreground shadow-lg group-hover:shadow-crimson transition-all group-hover:scale-110">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-linear-to-br from-crimson to-crimson-light rounded-full text-foreground shadow-lg group-hover:shadow-crimson transition-all group-hover:scale-110">
               <Play size={24} className="ml-1" fill="currentColor" />
             </div>
           </div>
         </a>
 
         {/* RIGHT — ANNOUNCEMENTS + EVENTS (STACKED) */}
-        <div className="flex flex-col h-full bg-background-soft">
+        <div className="flex-1 flex-col h-full bg-background-soft">
           {/* Announcements */}
-          <div className="flex-2 border-b border-border-subtle p-5 overflow-auto">
-            <header className="flex items-center justify-between mb-4">
+          <div className="flex-1 border-b border-border-subtle p-2 overflow-auto ">
+            <header className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-bold uppercase tracking-widest text-crimson-light">
                 Announcements
               </h2>
               <Bell size={18} className="text-crimson-light" />
             </header>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {announcements.length ? (
                 announcements.slice(0, 2).map((a) => (
                   <div
@@ -187,8 +187,8 @@ export default function Hero({
 
           {/* Events */}
           <div className="flex-1 p-5 overflow-auto">
-            <header className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-steel-light">
+            <header className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-steel-light mb-3">
                 Upcoming Events
               </h2>
               <CalendarDays size={18} className="text-steel-light" />

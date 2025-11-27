@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorBoundary from "@/components/utils/ErrorBoundary";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import Header from "@/components/layout/Header";
 import Navbar from "@/components/layout/Navbar";
