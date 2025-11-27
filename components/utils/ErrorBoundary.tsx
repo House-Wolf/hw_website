@@ -13,9 +13,20 @@ interface State {
 }
 
 /**
- * Error Boundary Component
- * Catches JavaScript errors in child component tree and displays fallback UI
+ * @component ErrorBoundary - A component that catches JavaScript errors in its child component tree.
+ * @description This ErrorBoundary component is designed to catch JavaScript errors anywhere in its child component tree,
+ * log those errors, and display a fallback UI instead of the component tree that crashed. It helps to prevent the entire application
+ * from crashing due to unhandled errors in specific components.
+ * @param {ReactNode} children - The child components to be wrapped by the ErrorBoundary.
+ * @param {ReactNode} [fallback] - Optional custom fallback UI to display when an error is caught.
+ * @returns {JSX.Element} The rendered ErrorBoundary component.
+ * @example
+ * <ErrorBoundary fallback={<CustomErrorComponent />}>
+ *  <MyComponent />
+ * </ErrorBoundary>
+ * @author House Wolf Dev Team
  */
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);

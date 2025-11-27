@@ -1,7 +1,8 @@
 import { JSX } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import { ExternalLink } from "lucide-react";
+import { SafeImage } from "@/components/utils/SafeImage";
 
 /**
  * @component OriginsPage
@@ -69,7 +70,7 @@ export default function OriginsPage(): JSX.Element {
             {/* Image */}
             <div className="relative">
               <div className="bg-linear-to-br from-steel-dark/30 to-obsidian rounded-lg overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
-                <Image
+                <SafeImage
                   src="/images/origins/kamposi-magnus.png"
                   alt="Kampos - Birthplace of the Dragoons"
                   width={600}
@@ -127,7 +128,7 @@ export default function OriginsPage(): JSX.Element {
             {/* Expansion Card 1 */}
             <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
-                <Image
+                <SafeImage
                   src="/images/origins/wars.png"
                   alt="Wars of Expansion"
                   width={600}
@@ -150,7 +151,7 @@ export default function OriginsPage(): JSX.Element {
             {/* Expansion Card 2 */}
             <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_40px_rgba(17,78,98,0.4)] transition-all duration-500">
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
-                <Image
+                <SafeImage
                   src="/images/divisions/HWdivisionsandunits.png"
                   alt="Dragoon Space"
                   width={400}
