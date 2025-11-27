@@ -1,4 +1,5 @@
 import Hero from "@/components/layout/Hero";
+import CTA from "@/components/layout/CTA";
 import {
   getUpcomingEvents,
   getAnnouncements,
@@ -23,6 +24,7 @@ export default async function Home() {
         featuredPhotos={featuredPhotos}
         featuredVideo={featuredVideo}
       />
+      <CTA />
     </main>
   );
 }
