@@ -108,11 +108,11 @@ export default async function DashboardHomePage() {
   return (
     <div className="space-y-6">
       <section className="card relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none opacity-60 bg-gradient-to-r from-[var(--accent-soft)]/10 via-transparent to-[var(--accent-strong)]/15" />
+        <div className="absolute inset-0 pointer-events-none opacity-60 bg-gradient-to-r from-[var(--accent-secondary)]/10 via-transparent to-[var(--accent-primary)]/15" />
         <div className="relative flex flex-col gap-6">
           <div className="flex items-center gap-4 md:gap-6">
             <div className="relative">
-              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border border-[var(--border-strong)] shadow-[var(--shadow-soft)]">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border border-[var(--border-strong)] shadow-[var(--shadow-md)]">
                 <Image
                   src={avatarUrl}
                   alt={`${displayName}'s avatar`}
@@ -121,93 +121,93 @@ export default async function DashboardHomePage() {
                   sizes="80px"
                 />
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-[var(--accent-strong)] text-[var(--graphite-50)] rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-md">
+              <div className="absolute -bottom-1 -right-1 bg-[var(--accent-primary)] text-[var(--text-primary)] rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-md">
                 You
               </div>
             </div>
 
             <div className="flex-1 min-w-0">
               {rank && (
-                <p className="text-sm text-[var(--foreground-muted)] uppercase tracking-[0.08em]">
+                <p className="text-sm text-[var(--text-secondary)] uppercase tracking-[0.08em]">
                   {rank}
                 </p>
               )}
-              <h1 className="text-2xl md:text-3xl font-bold text-[var(--foreground)] leading-tight truncate">
+              <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] leading-tight truncate">
                 {displayName}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--foreground-muted)]">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <span className="flex items-center gap-2">
                   <UserCircle2 size={16} />
                   @{user.discordUsername}
                 </span>
-                <span className="text-[var(--border)]">|</span>
+                <span className="text-[var(--border-default)]">|</span>
                 <span className="flex items-center gap-2">
                   <Clock3 size={16} />
                   Account created:{" "}
-                  <span className="text-[var(--foreground)]">{accountCreated}</span>
+                  <span className="text-[var(--text-primary)]">{accountCreated}</span>
                 </span>
               </div>
             </div>
 
             <div className="hidden md:flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2 text-sm text-[var(--foreground-muted)]">
-                <BadgeCheck size={16} className="text-[var(--accent-main)]" />
+              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <BadgeCheck size={16} className="text-[var(--accent-primary)]" />
                 <span className="uppercase tracking-[0.08em] text-xs">
                   Synced Discord Roles
                 </span>
               </div>
-              <div className="text-2xl font-semibold text-[var(--foreground)]">
+              <div className="text-2xl font-semibold text-[var(--text-primary)]">
                 {roles.length}
               </div>
-              <p className="text-xs text-[var(--foreground-muted)]">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Highest rank first, pulled from Discord
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-strong)]/15 border border-[var(--border)] flex items-center justify-center">
-                <Shield className="text-[var(--accent-strong)]" size={18} />
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/15 border border-[var(--border-default)] flex items-center justify-center">
+                <Shield className="text-[var(--accent-primary)]" size={18} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--foreground-muted)]">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Roles
                 </p>
-                <p className="text-lg font-semibold text-[var(--foreground)]">
+                <p className="text-lg font-semibold text-[var(--text-primary)]">
                   {roles.length}
                 </p>
-                <p className="text-xs text-[var(--foreground-muted)]">In role order</p>
+                <p className="text-xs text-[var(--text-secondary)]">In role order</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-main)]/15 border border-[var(--border)] flex items-center justify-center">
-                <KeyRound className="text-[var(--accent-main)]" size={18} />
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/15 border border-[var(--border-default)] flex items-center justify-center">
+                <KeyRound className="text-[var(--accent-primary)]" size={18} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--foreground-muted)]">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Site Permissions
                 </p>
-                <p className="text-lg font-semibold text-[var(--foreground)]">
+                <p className="text-lg font-semibold text-[var(--text-primary)]">
                   {permissions.length}
                 </p>
-                <p className="text-xs text-[var(--foreground-muted)]">Derived from roles</p>
+                <p className="text-xs text-[var(--text-secondary)]">Derived from roles</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-soft)]/15 border border-[var(--border)] flex items-center justify-center">
-                <Clock3 className="text-[var(--accent-soft)]" size={18} />
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[var(--accent-secondary)]/15 border border-[var(--border-default)] flex items-center justify-center">
+                <Clock3 className="text-[var(--accent-secondary)]" size={18} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.08em] text-[var(--foreground-muted)]">
+                <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Last Login
                 </p>
-                <p className="text-lg font-semibold text-[var(--foreground)]">
+                <p className="text-lg font-semibold text-[var(--text-primary)]">
                   {lastLogin}
                 </p>
-                <p className="text-xs text-[var(--foreground-muted)]">UTC timestamp</p>
+                <p className="text-xs text-[var(--text-secondary)]">UTC timestamp</p>
               </div>
             </div>
           </div>
@@ -218,19 +218,19 @@ export default async function DashboardHomePage() {
         <div className="card space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.1em] text-[var(--foreground-muted)]">
+              <p className="text-xs uppercase tracking-[0.1em] text-[var(--text-secondary)]">
                 House Wolf
               </p>
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 Discord Roles
               </h2>
             </div>
-            <Shield className="text-[var(--accent-strong)]" size={20} />
+            <Shield className="text-[var(--accent-primary)]" size={20} />
           </div>
 
           <div className="space-y-3">
             {roles.length === 0 ? (
-              <p className="text-sm text-[var(--foreground-muted)]">
+              <p className="text-sm text-[var(--text-secondary)]">
                 No Discord roles are synced to your account yet.
               </p>
             ) : (
@@ -239,33 +239,33 @@ export default async function DashboardHomePage() {
                 return (
                   <div
                     key={userRole.discordRole.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 px-3 py-3"
+                    className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 px-3 py-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs text-[var(--foreground-muted)] w-8 text-center">
+                      <span className="text-xs text-[var(--text-secondary)] w-8 text-center">
                         #{index + 1}
                       </span>
                       <div className="flex items-center gap-2 min-w-0">
                         <span
-                          className="inline-block h-3 w-3 rounded-full border border-[var(--border)]"
+                          className="inline-block h-3 w-3 rounded-full border border-[var(--border-default)]"
                           style={
                             colorHex
                               ? { backgroundColor: colorHex, borderColor: colorHex }
-                              : { backgroundColor: "var(--accent-main)" }
+                              : { backgroundColor: "var(--accent-primary)" }
                           }
                         />
                         <div className="min-w-0">
-                          <p className="font-semibold text-[var(--foreground)] truncate">
+                          <p className="font-semibold text-[var(--text-primary)] truncate">
                             {userRole.discordRole.name}
                           </p>
-                          <p className="text-xs text-[var(--foreground-muted)]">
+                          <p className="text-xs text-[var(--text-secondary)]">
                             Position {userRole.discordRole.position ?? "N/A"}
                           </p>
                         </div>
                       </div>
                     </div>
                     <BadgeCheck
-                      className="text-[var(--accent-main)] shrink-0"
+                      className="text-[var(--accent-primary)] shrink-0"
                       size={18}
                     />
                   </div>
@@ -278,18 +278,18 @@ export default async function DashboardHomePage() {
         <div className="card space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.1em] text-[var(--foreground-muted)]">
+              <p className="text-xs uppercase tracking-[0.1em] text-[var(--text-secondary)]">
                 Site Permissions
               </p>
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 Capabilities Unlocked
               </h2>
             </div>
-            <KeyRound className="text-[var(--accent-main)]" size={20} />
+            <KeyRound className="text-[var(--accent-primary)]" size={20} />
           </div>
 
           {permissions.length === 0 ? (
-            <p className="text-sm text-[var(--foreground-muted)]">
+            <p className="text-sm text-[var(--text-secondary)]">
               No permissions have been granted yet.
             </p>
           ) : (
@@ -297,12 +297,12 @@ export default async function DashboardHomePage() {
               {permissions.map((permission) => (
                 <div
                   key={permission.key}
-                  className="rounded-lg border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-3 shadow-sm"
+                  className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-3 shadow-sm"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent-main)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent-primary)]">
                     {permission.key}
                   </p>
-                  <p className="text-sm text-[var(--foreground)] mt-1">
+                  <p className="text-sm text-[var(--text-primary)] mt-1">
                     {permission.description || "No description provided."}
                   </p>
                 </div>
