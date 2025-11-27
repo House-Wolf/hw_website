@@ -1,0 +1,1360 @@
+================================================================================
+COMPREHENSIVE CODE REVIEW - HOUSE WOLF WEBSITE
+================================================================================
+Project: House Wolf Next.js Application
+Reviewer: Claude Code (Sonnet 4.5)
+Date: 2025-11-26
+Technologies: Next.js 16.0.4, React 19.2.0, Prisma 7.0.1, NextAuth 5.0.0-beta.30
+================================================================================
+
+EXECUTIVE SUMMARY
+-----------------
+This review identified 43 specific issues across security, performance, type
+safety, and code quality. The codebase is functional but requires hardening
+for production scale. Critical focus areas: database performance, security
+validation, and type safety.
+
+================================================================================
+=4 CRITICAL ISSUES
+================================================================================
+
+1. MISSING DATABASE URL CONFIGURATION
+   Location: lib/prisma.ts:16
+   Severity: CRITICAL
+
+   Issue:
+   DATABASE_URL is read from environment but never validated.
+
+   Current Code:
+   ```typescript
+   connectionString: process.env.DATABASE_URL,
+   ```
+
+   Problem:
+   If DATABASE_URL is undefined, the Pool will silently fail or crash at runtime.
+
+   Fix:
+   ```typescript
+   const connectionString = process.env.DATABASE_URL;
+   if (!connectionString) {
+     throw new Error('DATABASE_URL environment variable is not set');
+   }
+   const pool = globalForPrisma.pool ?? new Pool({ connectionString });
+   ```
+
+--------------------------------------------------------------------------------
+
+2. MISSING PRISMA DATASOURCE URL
+   Location: prisma/schema.prisma:6
+   Severity: CRITICAL
+
+   Issue:
+   Your Prisma schema lacks a url in the datasource.
+
+   Current Code:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+   }
+   ```
+
+   Fix:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+--------------------------------------------------------------------------------
+
+3. AUTHENTICATION ENVIRONMENT VARIABLES NOT VALIDATED
+   Location: lib/auth.ts:65-66
+   Severity: CRITICAL
+
+   Issue:
+   Discord credentials use non-null assertion without validation.
+
+   Current Code:
+   ```typescript
+   clientId: process.env.DISCORD_CLIENT_ID!,
+   clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+   ```
+
+   Problem:
+   Application will crash at runtime if these aren't set.
+
+   Fix:
+   Add startup validation or use a config validation library like Zod.
+
+--------------------------------------------------------------------------------
+
+4. UNPROTECTED SERVER ACTIONS
+   Location: app/(dashboard)/dashboard/admin/page.tsx:13-194
+   Severity: HIGH
+
+   Issue:
+   Server actions in the admin panel redirect on permission failure but
+   don't return properly.
+
+   Current Code:
+   ```typescript
+   async function suspendUserAction(formData: FormData) {
+     "use server";
+     const session = await auth();
+     if (!session?.user || !session.user.permissions.includes(PERMISSIONS.SITE_ADMIN)) {
+       redirect("/dashboard"); // This throws, function doesn't return
+     }
+     // ... rest of code
+   ```
+
+   Problem:
+   While redirect() does throw, it's not immediately clear from the code.
+   Consider explicit returns for clarity.
+
+================================================================================
+=� SECURITY CONCERNS
+================================================================================
+
+5. HARDCODED ROLE IDS
+   Location: lib/role-constants.ts:2-5
+   Severity: HIGH
+
+   Issue:
+   Discord role IDs are hardcoded.
+
+   Current Code:
+   ```typescript
+   export const ROLE_IDS = {
+     SITE_ADMIN: "1442226431747948595",
+     MARKETPLACE_ADMIN: "1443066936337633400",
+   }
+   ```
+
+   Problem:
+   These should be environment variables for flexibility across environments
+   (dev/staging/prod).
+
+   Recommendation:
+   Move to .env and validate at startup.
+
+--------------------------------------------------------------------------------
+
+6. SESSION-BASED AUTH WITH NO SESSION TIMEOUT CONFIGURATION
+   Location: lib/auth.ts:246-248
+   Severity: MEDIUM
+
+   Issue:
+   Database session strategy without visible timeout.
+
+   Current Code:
+   ```typescript
+   session: {
+     strategy: "database",
+   },
+   ```
+
+   Problem:
+   No explicit maxAge set. Uses NextAuth defaults (30 days).
+
+   Recommendation:
+   Explicitly set session lifetime based on security requirements.
+
+--------------------------------------------------------------------------------
+
+7. NO RATE LIMITING ON SERVER ACTIONS
+   Location: Multiple server actions
+   Severity: HIGH
+
+   Issue:
+   Server actions like suspendUserAction, approveDossierAction have no
+   rate limiting.
+
+   Problem:
+   Vulnerable to abuse (spam submissions, DOS).
+
+   Recommendation:
+   Implement rate limiting middleware or use Vercel's rate limiting.
+
+--------------------------------------------------------------------------------
+
+8. DISCORD ACCESS TOKEN NOT REFRESHED
+   Location: lib/auth.ts:174-240
+   Severity: MEDIUM
+
+   Issue:
+   You fetch member data using account.access_token in the signIn event,
+   but there's no token refresh logic.
+
+   Problem:
+   Token may expire, causing role sync to fail silently.
+
+   Recommendation:
+   Implement token refresh or handle expired tokens gracefully.
+
+--------------------------------------------------------------------------------
+
+9. NO CSRF PROTECTION VISIBLE ON FORMS
+   Location: Server actions throughout
+   Severity: MEDIUM
+
+   Issue:
+   Server actions don't explicitly show CSRF tokens (though Next.js may
+   handle this internally).
+
+   Recommendation:
+   Verify Next.js 16 handles CSRF for server actions. Add explicit
+   validation if needed.
+
+================================================================================
+� PERFORMANCE ISSUES
+================================================================================
+
+10. INEFFICIENT DATABASE QUERIES IN ADMIN PANEL
+    Location: app/(dashboard)/dashboard/admin/page.tsx:220-244
+    Severity: HIGH
+
+    Issue:
+    Fetching ALL users without pagination.
+
+    Current Code:
+    ```typescript
+    const users = hasUserAdmin
+      ? await prisma.user.findMany({
+          orderBy: { createdAt: "desc" },
+          include: { /* complex includes */ },
+        })
+      : [];
+    ```
+
+    Problem:
+    As user base grows, this will load entire table into memory.
+
+    Fix:
+    Add pagination with skip and take, or use cursor-based pagination.
+
+--------------------------------------------------------------------------------
+
+11. INEFFICIENT DOSSIER FILTERING
+    Location: app/(dashboard)/dashboard/admin/page.tsx:485-527
+    Severity: MEDIUM
+
+    Issue:
+    Filtering PENDING status in JavaScript after fetching all dossiers.
+
+    Current Code:
+    ```typescript
+    .filter((d) => d.status === "PENDING")
+    ```
+
+    Problem:
+    Fetches approved dossiers unnecessarily when viewing pending.
+
+    Fix:
+    Filter at database level:
+    ```typescript
+    where: { status: activeTab === 'dossiers' ? undefined : 'PENDING' }
+    ```
+
+--------------------------------------------------------------------------------
+
+12. SYNCHRONOUS ROLE DELETION AND RECREATION
+    Location: lib/auth.ts:218-236
+    Severity: HIGH
+
+    Issue:
+    Deleting all user roles then creating them one-by-one.
+
+    Current Code:
+    ```typescript
+    await prisma.userRole.deleteMany({ where: { userId: user.id } });
+    for (const roleId of roleIds) {
+      await prisma.discordRole.upsert({ /* ... */ });
+      await prisma.userRole.create({ /* ... */ });
+    }
+    ```
+
+    Problem:
+    N+1 queries in a loop. Very slow for users with many roles.
+
+    Fix:
+    ```typescript
+    await prisma.userRole.deleteMany({ where: { userId: user.id } });
+    await prisma.$transaction([
+      ...roleIds.map(roleId =>
+        prisma.discordRole.upsert({ where: { id: roleId }, /* ... */ })
+      ),
+    ]);
+    await prisma.userRole.createMany({
+      data: roleIds.map(roleId => ({ userId: user.id, discordRoleId: roleId })),
+      skipDuplicates: true,
+    });
+    ```
+
+--------------------------------------------------------------------------------
+
+13. SESSION CALLBACK FETCHES USER ON EVERY REQUEST
+    Location: lib/auth.ts:135-171
+    Severity: HIGH
+
+    Issue:
+    Every page load queries the database for user + roles.
+
+    Current Code:
+    ```typescript
+    async session({ session, user }) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { /* complex includes */ },
+      });
+    ```
+
+    Problem:
+    Adds latency to every request.
+
+    Fix:
+    Cache permissions in JWT or use Redis for session data.
+
+--------------------------------------------------------------------------------
+
+14. NO DATABASE CONNECTION POOLING LIMITS
+    Location: lib/prisma.ts
+    Severity: MEDIUM
+
+    Issue:
+    Prisma PG adapter creates a Pool without explicit size limits.
+
+    Recommendation:
+    Set max connections in Pool config to prevent exhausting database
+    connections.
+
+--------------------------------------------------------------------------------
+
+15. MISSING NEXT.JS IMAGE OPTIMIZATION FOR AVATARS
+    Location: Multiple locations
+    Severity: LOW
+
+    Issue:
+    Discord avatars loaded directly without Next.js Image component.
+
+    Fix:
+    Use next/image with proper width/height for optimization.
+
+================================================================================
+=� TYPE SAFETY & CODE QUALITY
+================================================================================
+
+16. WEAK TYPESCRIPT CONFIGURATION
+    Location: tsconfig.json:14
+    Severity: LOW
+
+    Issue:
+    JSX runtime set to react-jsx instead of React 19's automatic JSX.
+
+    Current Code:
+    ```json
+    "jsx": "react-jsx",
+    ```
+
+    Note:
+    With React 19.2.0, this is acceptable, but ensure Next.js handles
+    it properly.
+
+--------------------------------------------------------------------------------
+
+17. MISSING TYPE FOR SESSION USER
+    Location: lib/auth.ts
+    Severity: MEDIUM
+
+    Issue:
+    Session user type extensions not explicitly defined in types file.
+
+    Problem:
+    Type safety is implicit. Hard to see what's in session.user.
+
+    Fix:
+    Create types/next-auth.d.ts:
+    ```typescript
+    declare module "next-auth" {
+      interface Session {
+        user: {
+          id: string;
+          discordId: string;
+          discordUsername: string;
+          isActive: boolean;
+          permissions: string[];
+        } & DefaultSession["user"];
+      }
+    }
+    ```
+
+--------------------------------------------------------------------------------
+
+18. UNSAFE TYPE ASSERTIONS
+    Location: lib/auth.ts:113, 182
+    Severity: MEDIUM
+
+    Issue:
+    Using any for guild and profile types.
+
+    Current Code:
+    ```typescript
+    const isMember = guilds.some((guild: any) => guild.id === guildId);
+    discordId: (profile as any)?.id ?? undefined,
+    ```
+
+    Fix:
+    Define proper interfaces for Discord API responses.
+
+--------------------------------------------------------------------------------
+
+19. MISSING INPUT VALIDATION LIBRARY
+    Location: Multiple server actions
+    Severity: MEDIUM
+
+    Issue:
+    Manual validation with string checks.
+
+    Current Code:
+    ```typescript
+    if (!characterName) throw new Error("Character name is required.");
+    if (bio.length > 700) throw new Error("Bio exceeds 700 characters.");
+    ```
+
+    Recommendation:
+    Use Zod for schema validation with better type inference and error
+    handling.
+
+--------------------------------------------------------------------------------
+
+20. ERROR HANDLING IS INCONSISTENT
+    Location: Throughout application
+    Severity: MEDIUM
+
+    Issue:
+    Some places throw generic errors, others redirect. No unified error
+    handling strategy.
+
+    Recommendation:
+    Create error handling middleware or use Next.js error boundaries
+    consistently.
+
+================================================================================
+=5 DATABASE SCHEMA ISSUES
+================================================================================
+
+21. MISSING INDEXES
+    Location: prisma/schema.prisma
+    Severity: CRITICAL
+
+    Issue:
+    Critical missing indexes on frequently queried columns.
+
+    Missing Indexes:
+    - User.discordId - Frequent lookup in auth flow
+    - UserRole.userId - Queried on every session
+    - MercenaryProfile.status - Filtered in admin panel
+    - MarketplaceListings.status - Likely filtered frequently
+    - AuditLog.createdAt - Sorted for display
+
+    Fix:
+    ```prisma
+    model User {
+      discordId String @unique @map("discord_id")
+      @@index([discordId])
+      @@index([isActive])
+    }
+
+    model MercenaryProfile {
+      @@index([status])
+      @@index([userId, status])
+    }
+    ```
+
+--------------------------------------------------------------------------------
+
+22. INEFFICIENT UUID DEFAULT GENERATION
+    Location: prisma/schema.prisma:10
+    Severity: MEDIUM
+
+    Issue:
+    Using @default(uuid()) for UUID generation.
+
+    Current Code:
+    ```prisma
+    id String @id @default(uuid()) @db.Uuid
+    ```
+
+    Problem:
+    This generates UUIDs in application code, not database.
+
+    Fix:
+    Use database-generated UUIDs for better performance:
+    ```prisma
+    id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    ```
+
+--------------------------------------------------------------------------------
+
+23. NO CASCADE DELETE POLICY DOCUMENTED
+    Location: Multiple models in schema
+    Severity: MEDIUM
+
+    Issue:
+    Some relations use onDelete: Cascade, others don't specify.
+
+    Example:
+    MarketplaceListings cascades on user delete, but what about dossiers?
+
+    Recommendation:
+    Document and audit all cascade behaviors. Consider soft deletes for
+    audit trails.
+
+--------------------------------------------------------------------------------
+
+24. DUPLICATE CALL_SIGN FIELD
+    Location: prisma/schema.prisma:212
+    Severity: LOW
+
+    Issue:
+    MercenaryProfile has call_sign String? field not following naming
+    convention.
+
+    Current Code:
+    ```prisma
+    call_sign       String?
+    ```
+
+    Problem:
+    Uses snake_case while other fields use camelCase.
+
+    Fix:
+    Rename to callSign or use @map("call_sign").
+
+--------------------------------------------------------------------------------
+
+25. NO UNIQUE CONSTRAINT ON CHARACTER NAMES
+    Location: prisma/schema.prisma MercenaryProfile model
+    Severity: LOW
+
+    Issue:
+    Multiple users can have same character names.
+
+    Question:
+    Is this intentional? Consider @@unique([userId]) or
+    @@unique([characterName]) based on requirements.
+
+================================================================================
+=� BUILD & DEPLOYMENT
+================================================================================
+
+26. MISSING ERROR BOUNDARY IN CRITICAL PAGES
+    Location: Application routing
+    Severity: MEDIUM
+
+    Issue:
+    Only root layout has ErrorBoundary. Individual routes could benefit too.
+
+    Recommendation:
+    Add error boundaries to dashboard routes for better UX.
+
+--------------------------------------------------------------------------------
+
+27. TURBOPACK CONFIGURATION PRESENT
+    Location: next.config.mjs:10-12
+    Severity: LOW
+
+    Issue:
+    Turbopack is experimental. Using in production?
+
+    Current Code:
+    ```javascript
+    turbopack: {
+      root: __dirname,
+    },
+    ```
+
+    Recommendation:
+    Remove Turbopack config for production unless intentionally using it.
+
+--------------------------------------------------------------------------------
+
+28. MISSING ROBOTS.TXT
+    Location: Project root
+    Severity: LOW
+
+    Issue:
+    No static robots.txt file visible.
+
+    Recommendation:
+    Add app/robots.ts for SEO:
+    ```typescript
+    export default function robots() {
+      return {
+        rules: { userAgent: '*', allow: '/' },
+        sitemap: 'https://www.housewolf.co/sitemap.xml',
+      };
+    }
+    ```
+
+--------------------------------------------------------------------------------
+
+29. NO SITEMAP GENERATION
+    Location: Project root
+    Severity: LOW
+
+    Recommendation:
+    Add dynamic sitemap generation in app/sitemap.ts.
+
+--------------------------------------------------------------------------------
+
+30. MISSING HEALTH CHECK ENDPOINT
+    Location: API routes
+    Severity: MEDIUM
+
+    Issue:
+    No /api/health endpoint for monitoring.
+
+    Recommendation:
+    Add health check that verifies database connectivity.
+
+================================================================================
+<� CODE STYLE & MAINTAINABILITY
+================================================================================
+
+31. MAGIC NUMBERS IN DIVISION DEFINITIONS
+    Location: app/(dashboard)/dashboard/profile/page.tsx:10-47
+    Severity: MEDIUM
+
+    Issue:
+    Division definitions hardcoded in component file.
+
+    Fix:
+    Move to lib/constants.ts or fetch from database.
+
+--------------------------------------------------------------------------------
+
+32. DUPLICATE PERMISSION LOGIC
+    Location: Multiple files
+    Severity: MEDIUM
+
+    Issue:
+    Permission checking happens in multiple places (callbacks, server actions).
+
+    Current:
+    deriveUserPermissions centralizes derivation, but permission checking
+    is scattered.
+
+    Recommendation:
+    Create @requirePermission decorator or HOC for server actions.
+
+--------------------------------------------------------------------------------
+
+33. CONSOLE.LOG STATEMENTS IN PRODUCTION
+    Location: lib/auth.ts:24, 34, 116
+    Severity: MEDIUM
+
+    Issue:
+    Console logs for missing tokens and unauthorized users.
+
+    Current Code:
+    ```typescript
+    console.warn("DISCORD_BOT_TOKEN missing; cannot sync role metadata");
+    console.error("Failed to fetch guild roles for metadata sync");
+    ```
+
+    Recommendation:
+    Use proper logging library (Winston, Pino) with levels and log
+    aggregation.
+
+--------------------------------------------------------------------------------
+
+34. CSS VARIABLE NAMING INCONSISTENCY
+    Location: components/ErrorBoundary.tsx vs app/globals.css
+    Severity: LOW
+
+    Issue:
+    Mix of --wolf-* and generic --color-* variables in ErrorBoundary vs
+    globals.css.
+
+    Fix:
+    Standardize on one naming convention.
+
+--------------------------------------------------------------------------------
+
+35. MISSING API DOCUMENTATION
+    Location: API routes
+    Severity: LOW
+
+    Issue:
+    No OpenAPI/Swagger docs for any API routes.
+
+    Recommendation:
+    Document auth flow and any public APIs.
+
+================================================================================
+=� OPTIMIZATION OPPORTUNITIES
+================================================================================
+
+36. STATIC PAGE GENERATION OPPORTUNITIES
+    Location: Multiple pages
+    Severity: MEDIUM
+
+    Issue:
+    Many pages use dynamic = "force-dynamic" unnecessarily.
+
+    Examples:
+    Public pages like origins, marketplace could be ISR (Incremental
+    Static Regeneration).
+
+    Fix:
+    Remove force-dynamic and use revalidate:
+    ```typescript
+    export const revalidate = 60; // Revalidate every 60 seconds
+    ```
+
+--------------------------------------------------------------------------------
+
+37. MISSING REACT SUSPENSE BOUNDARIES
+    Location: Async components
+    Severity: LOW
+
+    Recommendation:
+    Wrap async components in Suspense for better loading states.
+
+--------------------------------------------------------------------------------
+
+38. NO BUNDLE ANALYSIS SETUP
+    Location: Build configuration
+    Severity: LOW
+
+    Recommendation:
+    Add @next/bundle-analyzer to identify large dependencies.
+
+--------------------------------------------------------------------------------
+
+39. TAILWIND CSS PURGE NOT OPTIMIZED
+    Location: tailwind.config.ts
+    Severity: LOW
+
+    Issue:
+    Tailwind config content paths might miss some files.
+
+    Current:
+    ```javascript
+    content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+    ```
+
+    Fix:
+    Add "./lib/**/*.{ts,tsx}" if any components there use Tailwind.
+
+--------------------------------------------------------------------------------
+
+40. NO IMAGE OPTIMIZATION STRATEGY
+    Location: Image handling throughout
+    Severity: MEDIUM
+
+    Issue:
+    portraitUrl and other images stored as raw URLs without format
+    optimization.
+
+    Recommendation:
+    Use Next.js Image optimization with WebP conversion.
+
+================================================================================
+>� TESTING & MONITORING
+================================================================================
+
+41. NO TESTS VISIBLE
+    Location: Project root
+    Severity: HIGH
+
+    Issue:
+    No test files found in project.
+
+    Recommendation:
+    Add unit tests for:
+    - Permission derivation logic
+    - Server actions
+    - Database queries
+
+--------------------------------------------------------------------------------
+
+42. NO ERROR MONITORING
+    Location: Application configuration
+    Severity: MEDIUM
+
+    Recommendation:
+    Integrate Sentry or similar for production error tracking.
+
+--------------------------------------------------------------------------------
+
+43. NO PERFORMANCE MONITORING
+    Location: Application configuration
+    Severity: LOW
+
+    Recommendation:
+    Add Vercel Analytics or similar for Core Web Vitals tracking.
+
+================================================================================
+<� PRIORITY SUMMARY
+================================================================================
+
+FIX IMMEDIATELY (Critical):
+1. Add url to Prisma datasource (Issue #2)
+2. Validate DATABASE_URL (Issue #1)
+3. Add database indexes (Issue #21)
+4. Fix role sync performance (Issue #12)
+5. Add pagination to admin panel (Issue #10)
+
+FIX SOON (High Priority):
+6. Move role IDs to environment variables (Issue #5)
+7. Add session caching/optimization (Issue #13)
+8. Implement rate limiting (Issue #7)
+9. Add proper type definitions (Issue #17-18)
+10. Add health check endpoint (Issue #30)
+
+CONSIDER (Medium Priority):
+- Input validation with Zod (Issue #19)
+- Proper logging infrastructure (Issue #33)
+- Static generation for public pages (Issue #36)
+- Testing infrastructure (Issue #41)
+
+NICE TO HAVE (Low Priority):
+- Bundle analysis (Issue #38)
+- Sitemap & robots.txt (Issues #28-29)
+- Error monitoring (Issue #42)
+- Performance monitoring (Issue #43)
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Total Issues Identified: 43
+- Critical: 5
+- High: 8
+- Medium: 17
+- Low: 13
+
+The codebase is functional but needs hardening for production scale. Focus on
+database performance, security validation, and type safety first. The
+architecture is sound, but implementation details require attention to ensure
+scalability, security, and maintainability.
+
+Primary Recommendations:
+1. Fix Prisma configuration and add database indexes immediately
+2. Implement proper environment variable validation
+3. Optimize database queries with pagination and caching
+4. Add comprehensive testing coverage
+5. Implement proper monitoring and logging infrastructure
+
+================================================================================
+CROSS-REVIEW ANALYSIS: CODEX & GEMINI FINDINGS
+================================================================================
+
+This section analyzes findings from Codex and Gemini AI reviews, identifies
+overlaps with Claude's review, and highlights critical issues that were missed.
+
+--------------------------------------------------------------------------------
+CODEX REVIEW ANALYSIS
+--------------------------------------------------------------------------------
+
+Codex identified 7 findings (2 High, 4 Medium, 1 Low). Analysis below:
+
+CODEX-1: [HIGH] Middleware Edge Runtime Issue
+Location: middleware.ts
+Status: CRITICAL - MISSED BY CLAUDE
+
+Finding:
+Next.js middleware ALWAYS runs on Edge runtime. The `export const runtime =
+"nodejs"` declaration (line 5) is IGNORED for middleware. Calling auth() which
+uses Prisma/pg adapter will FAIL at runtime.
+
+Current Code:
+```typescript
+export const runtime = "nodejs"; // THIS IS IGNORED!
+export default auth((req) => {
+  // This will throw because Prisma doesn't work on Edge
+```
+
+Impact:
+- Application will crash when middleware executes
+- Build may succeed but runtime will fail
+- This is a BREAKING BUG for production
+
+Solution Options:
+1. Move auth checks to layout.tsx (Server Component) - RECOMMENDED
+2. Use NextAuth.js Edge-compatible session strategy
+3. Create API route for auth checks and call from middleware
+
+Priority: CRITICAL - Must fix before deployment
+
+Agreement: This is the MOST CRITICAL issue found across all three reviews.
+
+--------------------------------------------------------------------------------
+
+CODEX-2: [HIGH] Discord API Rate Limiting
+Location: lib/auth.ts:174-240 (signIn event)
+Status: Partially covered by Claude #12, but missing rate limit specifics
+
+Finding:
+SignIn event makes multiple Discord API calls sequentially:
+1. Fetch guild roles (line 198)
+2. Fetch member data (line 200-212)
+3. Multiple upserts in loop (line 220-236)
+
+No timeout, no backoff, no rate limit handling for Discord 429 responses.
+
+Additional Context:
+- Discord rate limit: ~50 requests per second per bot
+- During mass login events (e.g., deployment), could hit limits
+- Failed Discord calls cause silent role sync failure
+
+Enhanced Fix:
+```typescript
+// Add timeout and retry logic
+const fetchWithRetry = async (url: string, options: any, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(5000) // 5s timeout
+      });
+
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        await new Promise(r => setTimeout(r, (retryAfter || 1) * 1000));
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+    }
+  }
+};
+```
+
+Priority: HIGH
+
+Agreement: Codex is correct. This should be addressed immediately.
+
+--------------------------------------------------------------------------------
+
+CODEX-3: [HIGH] Hardcoded Role IDs
+Location: lib/role-constants.ts:2-5
+Status: Covered by Claude #5
+
+Agreement: Both reviews identified this. Claude's recommendation stands.
+
+--------------------------------------------------------------------------------
+
+CODEX-4: [MEDIUM] Session Callback Performance
+Location: lib/auth.ts:135-171
+Status: Covered by Claude #13
+
+Agreement: Both reviews identified this. Claude's recommendation stands.
+
+--------------------------------------------------------------------------------
+
+CODEX-5: [MEDIUM] Role Sync Without Transaction
+Location: lib/auth.ts:218-236
+Status: Covered by Claude #12
+
+Additional Context from Codex:
+Without transaction, if DELETE succeeds but INSERT fails, user is left with
+NO roles until next login. This is a security issue - user could lose admin
+permissions mid-session.
+
+Enhanced Fix:
+Wrap in Prisma transaction:
+```typescript
+await prisma.$transaction(async (tx) => {
+  await tx.userRole.deleteMany({ where: { userId: user.id } });
+
+  // Upsert roles
+  for (const roleId of roleIds) {
+    await tx.discordRole.upsert({ /* ... */ });
+  }
+
+  // Bulk create
+  await tx.userRole.createMany({
+    data: roleIds.map(roleId => ({ userId: user.id, discordRoleId: roleId })),
+    skipDuplicates: true,
+  });
+});
+```
+
+Priority: MEDIUM → HIGH (elevated due to security impact)
+
+Agreement: Codex provides important security context. Fix is critical.
+
+--------------------------------------------------------------------------------
+
+CODEX-6: [MEDIUM] Missing DISCORD_GUILD_ID Validation
+Location: lib/auth.ts:110-118
+Status: Partially covered by Claude #3
+
+Additional Context:
+Line 110: `const guildId = process.env.DISCORD_GUILD_ID;`
+Line 113: Silently fails if undefined, blocks ALL logins
+
+Enhanced Fix:
+```typescript
+const guildId = process.env.DISCORD_GUILD_ID;
+if (!guildId) {
+  console.error('DISCORD_GUILD_ID environment variable is not set');
+  throw new Error('Server configuration error. Please contact administrator.');
+}
+```
+
+Priority: MEDIUM
+
+Agreement: Should be part of startup validation.
+
+--------------------------------------------------------------------------------
+
+CODEX-7: [LOW] Garbled Characters in UI
+Location: app/auth/signin/page.tsx, components/ErrorBoundary.tsx
+Status: NOT FOUND BY CLAUDE - Requires verification
+
+Finding:
+Codex reports strings like "dY?", "f+?", "fs??" in rendered output.
+
+Investigation:
+Reviewed signin page - uses emoji "🐺 House Wolf" which could render
+incorrectly depending on encoding. ErrorBoundary uses "⚠️" emoji.
+
+Likely Cause:
+- File encoding issues (UTF-8 vs other)
+- Missing charset meta tag
+- Font rendering issues
+
+Recommendation:
+1. Verify file encoding is UTF-8
+2. Add charset meta tag to layout.tsx
+3. Test emoji rendering across browsers
+
+Priority: LOW (cosmetic, but impacts UX)
+
+Status: NEEDS VERIFICATION
+
+--------------------------------------------------------------------------------
+GEMINI REVIEW ANALYSIS
+--------------------------------------------------------------------------------
+
+Gemini provided 6 main recommendations. Analysis below:
+
+GEMINI-1: Database Indexing
+Status: Covered extensively by Claude #21
+
+Agreement: Both reviews identified this critical issue.
+
+--------------------------------------------------------------------------------
+
+GEMINI-2: Use Enums for Status Fields
+Location: prisma/schema.prisma
+Status: NOT COVERED BY CLAUDE - VALID RECOMMENDATION
+
+Finding:
+Multiple String fields used for status with no type safety:
+- MercenaryProfile.status (likely "PENDING", "APPROVED", "REJECTED")
+- MarketplaceListings.status
+- MarketplaceListings.visibility
+- MarketplaceListings.condition
+- MercenaryProfileApprovalHistory.action
+
+Current Issue:
+No validation, can insert any string value. Risk of typos, inconsistent data.
+
+Recommended Fix:
+```prisma
+enum ProfileStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  EXPIRED
+  DELETED
+}
+
+enum ListingVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+model MercenaryProfile {
+  status ProfileStatus @default(PENDING)
+  // ...
+}
+```
+
+Benefits:
+- Type safety in TypeScript
+- Database-level validation
+- Prevents typos and invalid values
+- Better autocomplete in IDE
+
+Priority: MEDIUM
+
+Agreement: Excellent recommendation. Should be implemented.
+
+--------------------------------------------------------------------------------
+
+GEMINI-3: Refactor Caching Strategy
+Location: Multiple pages with force-dynamic
+Status: Covered by Claude #36
+
+Additional Context from Gemini:
+Dashboard page could use time-based revalidation instead of no caching.
+
+Recommendation:
+```typescript
+export const revalidate = 60; // Cache for 60 seconds
+// Remove: export const dynamic = "force-dynamic"
+```
+
+Agreement: Both reviews identified this optimization.
+
+--------------------------------------------------------------------------------
+
+GEMINI-4: Move Utility Functions to lib/
+Location: app/(dashboard)/dashboard/page.tsx
+Status: NOT COVERED BY CLAUDE - CODE ORGANIZATION
+
+Finding:
+Functions like `discordColorToHex` and `formatDate` defined inline in
+components. Should be in lib/utils.ts.
+
+Impact:
+- Code duplication
+- Harder to test
+- Not reusable
+
+Priority: LOW (code quality)
+
+Agreement: Valid but low priority.
+
+--------------------------------------------------------------------------------
+
+GEMINI-5: NextAuth Beta Version Warning
+Location: package.json:23
+Status: NOT COVERED BY CLAUDE - DEPENDENCY MANAGEMENT
+
+Finding:
+Using next-auth@5.0.0-beta.30 in production.
+
+Risk:
+- Breaking changes in future versions
+- Security patches may not be backported to beta
+- API instability
+
+Recommendation:
+Monitor for stable release and update ASAP.
+
+Priority: LOW (awareness issue)
+
+Agreement: Valid concern for production readiness.
+
+--------------------------------------------------------------------------------
+
+GEMINI-6: Model Naming Consistency
+Location: prisma/schema.prisma:349
+Status: NOT COVERED BY CLAUDE - SCHEMA CONSISTENCY
+
+Finding:
+```prisma
+model notifications {  // lowercase
+  // Should be:
+  // model Notification {
+```
+
+All other models use PascalCase. This is inconsistent.
+
+Fix:
+```prisma
+model Notification {
+  // ...
+  @@map("notifications")
+}
+```
+
+Priority: LOW (consistency)
+
+Agreement: Valid consistency issue.
+
+================================================================================
+CONSOLIDATED CRITICAL FINDINGS
+================================================================================
+
+After reviewing all three AI agents, the following CRITICAL issues require
+immediate attention:
+
+1. MIDDLEWARE EDGE RUNTIME BUG [CODEX]
+   - Most critical issue found
+   - Will break application in production
+   - Must be fixed before deployment
+
+2. MISSING PRISMA DATASOURCE URL [CLAUDE]
+   - Schema won't work without this
+   - Build may fail
+
+3. DATABASE INDEXES [CLAUDE + GEMINI]
+   - Performance will degrade rapidly without indexes
+   - Multiple foreign keys unindexed
+
+4. ROLE SYNC WITHOUT TRANSACTION [CODEX + CLAUDE]
+   - Security issue: users can lose permissions mid-sync
+   - Data integrity issue
+
+5. DISCORD RATE LIMITING [CODEX]
+   - Will fail during mass login events
+   - No timeout/retry logic
+
+================================================================================
+NEW ISSUES IDENTIFIED BY OTHER AGENTS
+================================================================================
+
+Issues NOT in Claude's original review:
+
+44. MIDDLEWARE EDGE RUNTIME INCOMPATIBILITY [CODEX]
+    Severity: CRITICAL
+    Location: middleware.ts:5
+
+    The runtime export is ignored for middleware. Prisma will fail on Edge.
+
+    Fix: Move auth to Server Components or use Edge-compatible auth.
+
+--------------------------------------------------------------------------------
+
+45. ENUM FOR STATUS FIELDS [GEMINI]
+    Severity: MEDIUM
+    Location: prisma/schema.prisma (multiple models)
+
+    Replace String status fields with proper enums for type safety.
+
+    Models affected:
+    - MercenaryProfile.status
+    - MarketplaceListings.status
+    - MarketplaceListings.visibility
+    - MarketplaceListings.condition
+
+--------------------------------------------------------------------------------
+
+46. DISCORD API TIMEOUT/RETRY LOGIC [CODEX]
+    Severity: HIGH
+    Location: lib/auth.ts:174-240
+
+    Add timeout, retry logic, and 429 rate limit handling to Discord API calls.
+
+--------------------------------------------------------------------------------
+
+47. MODEL NAMING INCONSISTENCY [GEMINI]
+    Severity: LOW
+    Location: prisma/schema.prisma:349
+
+    Rename `notifications` model to `Notification` (PascalCase).
+
+--------------------------------------------------------------------------------
+
+48. UTILITY FUNCTION ORGANIZATION [GEMINI]
+    Severity: LOW
+    Location: app/(dashboard)/dashboard/page.tsx
+
+    Move `discordColorToHex` and `formatDate` to lib/utils.ts.
+
+--------------------------------------------------------------------------------
+
+49. NEXTAUTH BETA VERSION [GEMINI]
+    Severity: LOW
+    Location: package.json:23
+
+    Monitor for stable next-auth v5 release and update.
+
+================================================================================
+FINAL IMPLEMENTATION PRIORITY
+================================================================================
+
+Based on all three reviews, implement fixes in this order:
+
+PHASE 1: CRITICAL (Must fix before deployment)
+1. Fix middleware Edge runtime issue (#44) - BREAKING BUG
+2. Add Prisma datasource URL (#2)
+3. Add database indexes (#21)
+4. Wrap role sync in transaction (#12, enhanced by Codex)
+5. Add Discord rate limiting (#46)
+
+PHASE 2: HIGH PRIORITY (Fix within 1 week)
+6. Validate environment variables (#1, #3, enhanced)
+7. Optimize session callback (#13)
+8. Add pagination to admin (#10)
+9. Move role IDs to env (#5)
+10. Add proper type definitions (#17-18)
+
+PHASE 3: MEDIUM PRIORITY (Fix within 1 month)
+11. Add status field enums (#45)
+12. Implement rate limiting on server actions (#7)
+13. Add input validation with Zod (#19)
+14. Add health check endpoint (#30)
+15. Implement proper logging (#33)
+
+PHASE 4: LOW PRIORITY (Code quality improvements)
+16. Fix model naming consistency (#47)
+17. Move utility functions (#48)
+18. Add tests (#41)
+19. Add monitoring (#42-43)
+20. SEO improvements (#28-29)
+
+================================================================================
+AGREEMENT MATRIX
+================================================================================
+
+Issues identified by multiple agents:
+✓ Database indexes - Claude + Gemini
+✓ Session callback performance - Claude + Codex
+✓ Role sync transaction - Claude + Codex
+✓ Hardcoded role IDs - Claude + Codex
+✓ Caching strategy - Claude + Gemini
+
+Critical issues unique to each agent:
+✓ Middleware Edge runtime - Codex ONLY (MOST CRITICAL)
+✓ Status field enums - Gemini ONLY (EXCELLENT)
+✓ Prisma datasource URL - Claude ONLY
+✓ Discord rate limits - Codex ONLY (CRITICAL)
+
+Total issues across all reviews: 49
+- Critical: 7
+- High: 10
+- Medium: 19
+- Low: 13
+
+================================================================================
+CONCLUSION
+================================================================================
+
+The three-agent review process identified critical issues that individual
+reviews missed:
+
+1. Codex caught the BREAKING middleware bug that would crash production
+2. Gemini provided excellent schema improvements (enums, naming)
+3. Claude provided the most comprehensive breadth of issues
+
+The middleware Edge runtime issue is the most critical finding and must be
+fixed immediately. Without this fix, the application cannot run in production.
+
+All PHASE 1 issues should be resolved before production deployment.
+
+READY FOR IMPLEMENTATION: YES
+Next step: Implement fixes in priority order, starting with middleware.
+
+================================================================================
+END OF CONSOLIDATED REVIEW
+================================================================================

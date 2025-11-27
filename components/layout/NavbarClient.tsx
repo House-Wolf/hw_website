@@ -55,6 +55,7 @@ const navItems: NavItem[] = [
 export default function NavbarClient() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -69,12 +70,28 @@ export default function NavbarClient() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Detect scroll for glass effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const toggleDropdown = (index: number) => {
     setActiveDropdown(activeDropdown === index ? null : index);
   };
 
   return (
-    <nav className="sticky top-16 md:top-20 z-sticky z-10 bg-red-950 backdrop-blur-md border-b border-border-subtle shadow-md">
+    <nav
+      className={`sticky top-16 md:top-20 z-40 transition-all duration-300 border-b ${
+        isScrolled
+          ? "bg-background-card/30 backdrop-blur-xl border-white/20 shadow-xl"
+          : "bg-red-950 backdrop-blur-md border-border-subtle shadow-md"
+      }`}
+    >
       <div className="w-full flex justify-center">
         <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between h-14 md:h-16">

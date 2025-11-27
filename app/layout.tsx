@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/utils/ErrorBoundary";
 import { SessionProvider } from "@/components/auth/SessionProvider";
-import Header from "@/components/layout/Header";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import Navbar from "@/components/layout/Navbar";
 
 const inter = Inter({
@@ -83,7 +83,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <SessionProvider>
-          <Header />
+          <HeaderWrapper />
           <Navbar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </SessionProvider>

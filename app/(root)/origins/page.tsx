@@ -1,6 +1,5 @@
 import { JSX } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import { SafeImage } from "@/components/utils/SafeImage";
 
@@ -20,14 +19,17 @@ export default function OriginsPage(): JSX.Element {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-linear-to-b from-steel-dark/60 via-obsidian/40 to-obsidian/95" />
+          {/* Subtle color orbs */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         {/* Bottom Border */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-30 z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-steel-light to-transparent opacity-50 z-10 shadow-[0_0_10px_rgba(17,78,98,0.6)]" />
 
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-7xl mx-auto">
           <div className="mb-8">
-            <Image
+            <SafeImage
               src="/images/global/HWiconnew.png"
               alt="House Wolf Icon"
               width={120}
@@ -35,10 +37,10 @@ export default function OriginsPage(): JSX.Element {
               className="mx-auto filter drop-shadow-[0_0_30px_rgba(17,78,98,0.8)]"
             />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold text-steel-light mb-6 tracking-wider uppercase font-mono">
+          <h1 className="text-5xl md:text-7xl font-bold text-steel-light mb-6 tracking-wider uppercase font-mono drop-shadow-[0_0_20px_rgba(17,78,98,0.8)]">
             Our Origins
           </h1>
-          <div className="h-1 w-32 bg-linear-to-r from-transparent via-steel to-transparent mx-auto mb-8" />
+          <div className="h-1 w-32 bg-linear-to-r from-transparent via-steel-light to-transparent mx-auto mb-8 shadow-[0_0_15px_rgba(17,78,98,0.8)]" />
           <p className="text-xl md:text-2xl text-foreground-muted italic leading-relaxed">
             The legendary history of the Kamposian Dragoons
           </p>
@@ -46,9 +48,12 @@ export default function OriginsPage(): JSX.Element {
       </section>
 
       {/* Introduction */}
-      <section className="py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-linear-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.3)]">
+      <section className="relative py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute inset-0 bg-[radial-linear(ellipse_at_center,var(--tw-linear-stops))] from-steel/10 via-transparent to-transparent opacity-30" />
+
+        <div className="max-w-4xl mx-auto relative z-10">
+          <div className="bg-linear-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)] hover:shadow-[0_0_60px_rgba(17,78,98,0.5)] hover:border-steel/50 transition-all duration-500">
             <p className="text-xl md:text-2xl text-foreground leading-relaxed mb-6">
               The <span className="text-steel-light font-bold">Kamposian Dragoons</span> were
               a clan-based culture composed of members from multiple species and bound by a
@@ -73,20 +78,21 @@ export default function OriginsPage(): JSX.Element {
                 <SafeImage
                   src="/images/origins/kamposi-magnus.png"
                   alt="Kampos - Birthplace of the Dragoons"
-                  width={600}
-                  height={400}
+                  width={800}
+                  height={600}
                   className="w-full h-80 object-contain"
                 />
               </div>
-              <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-steel/20 rounded-lg -z-10 blur-xl" />
+              <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-steel/30 rounded-lg -z-10 blur-xl animate-pulse" />
+              <div className="absolute -top-6 -left-6 w-48 h-48 bg-crimson/20 rounded-lg -z-10 blur-xl animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
 
             {/* Content */}
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-6 uppercase tracking-wider">
+              <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-6 uppercase tracking-wider drop-shadow-[0_0_15px_rgba(17,78,98,0.6)]">
                 Kampos
               </h2>
-              <div className="h-1 w-24 bg-linear-to-r from-steel to-transparent mb-6" />
+              <div className="h-1 w-24 bg-linear-to-r from-steel-light to-transparent mb-6 shadow-[0_0_10px_rgba(17,78,98,0.8)]" />
 
               <p className="text-lg text-foreground-muted leading-relaxed mb-4">
                 Originating on the planet of <span className="text-steel-light font-semibold">Kampos (Ellis IV)</span>,
@@ -102,10 +108,19 @@ export default function OriginsPage(): JSX.Element {
                 href="https://robertsspaceindustries.com/galactapedia/article/RAXxrxr7M5-kampos-ellis-iv"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.6)] transition-all duration-300 uppercase tracking-wider text-sm"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.8)] hover:scale-105 transition-all duration-300 uppercase tracking-wider text-sm mr-4 mb-4"
               >
                 <ExternalLink size={18} />
                 View Galactapedia Entry
+              </Link>
+              <Link
+                href="https://robertsspaceindustries.com/en/starmap?location=ELLIS.PLANETS.ELLISIVKAMPOS&system=ELLIS&camera=59.08,0.08,0.0004,0,0#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.8)] hover:scale-105 transition-all duration-300 uppercase tracking-wider text-sm"
+              >
+                <ExternalLink size={18} />
+                View Star Map Entry
               </Link>
             </div>
           </div>
@@ -113,10 +128,13 @@ export default function OriginsPage(): JSX.Element {
       </section>
 
       {/* Expansion Section */}
-      <section className="py-20 px-4 bg-linear-to-b from-obsidian to-night-deep">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative py-20 px-4 bg-linear-to-b from-obsidian to-night-deep overflow-hidden">
+        {/* Animated background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-crimson/10 rounded-full blur-[150px] animate-pulse" />
+
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-crimson-light mb-4 uppercase tracking-wider">
+            <h2 className="text-4xl md:text-5xl font-bold text-crimson-light mb-4 uppercase tracking-wider drop-shadow-[0_0_20px_rgba(220,38,38,0.6)]">
               The Great Expansion
             </h2>
             <p className="text-xl text-foreground-muted italic">
@@ -126,14 +144,14 @@ export default function OriginsPage(): JSX.Element {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Expansion Card 1 */}
-            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
+            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_50px_rgba(220,38,38,0.5)] hover:scale-105 transition-all duration-500">
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
                 <SafeImage
                   src="/images/origins/wars.png"
                   alt="Wars of Expansion"
-                  width={600}
-                  height={500}
-                  className="w-full h-64 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                  width={900}
+                  height={700}
+                  className="w-full h-64 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300 brightness-150"
                 />
               </div>
 
@@ -149,14 +167,14 @@ export default function OriginsPage(): JSX.Element {
             </div>
 
             {/* Expansion Card 2 */}
-            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_40px_rgba(17,78,98,0.4)] transition-all duration-500">
+            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_50px_rgba(17,78,98,0.5)] hover:scale-105 transition-all duration-500">
               <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
                 <SafeImage
-                  src="/images/divisions/HWdivisionsandunits.png"
+                  src="/images/origins/dragoonSpace.png"
                   alt="Dragoon Space"
-                  width={400}
-                  height={300}
-                  className="w-full h-64 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                  width={900}
+                  height={700}
+                  className="w-full h-64 object-contain rounded-lg opacity-80 group-hover:opacity-100 transition-opacity duration-300 brightness-150"
                 />
               </div>
 
@@ -174,20 +192,24 @@ export default function OriginsPage(): JSX.Element {
       </section>
 
       {/* Civil War Section */}
-      <section className="py-20 px-4 bg-linear-to-b from-night-deep to-shadow">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-linear-to-br from-crimson-dark/30 via-steel-dark/20 to-obsidian border-2 border-crimson/50 rounded-lg p-12 md:p-16 shadow-[0_0_60px_rgba(71,0,0,0.4)]">
-            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 text-crimson-light uppercase tracking-wider">
+      <section className="relative py-20 px-4 bg-linear-to-b from-night-deep to-shadow overflow-hidden">
+        {/* Dual color glows representing the divide */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="bg-linear-to-br from-crimson-dark/30 via-steel-dark/20 to-obsidian border-2 border-crimson/50 rounded-lg p-12 md:p-16 shadow-[0_0_70px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.5)] transition-all duration-500">
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 text-crimson-light uppercase tracking-wider drop-shadow-[0_0_25px_rgba(220,38,38,0.8)]">
               The Great Divide
             </h2>
 
             <div className="space-y-8">
               <div className="grid md:grid-cols-2 gap-8">
                 {/* Traditionalists */}
-                <div className="bg-linear-to-br from-crimson-dark/40 to-obsidian border border-crimson/40 rounded-lg p-6">
+                <div className="bg-linear-to-br from-crimson-dark/40 to-obsidian border border-crimson/40 rounded-lg p-6 hover:border-crimson hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] transition-all duration-300">
                   <div className="mb-4">
                     <h3 className="text-2xl font-bold text-crimson-light mb-2 flex items-center gap-2">
-                      <span className="w-3 h-3 bg-crimson rounded-full"></span>
+                      <span className="w-3 h-3 bg-crimson rounded-full shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse"></span>
                       Traditionalist Warriors
                     </h3>
                   </div>
@@ -199,10 +221,10 @@ export default function OriginsPage(): JSX.Element {
                 </div>
 
                 {/* New Dragoons */}
-                <div className="bg-linear-to-br from-steel-dark/40 to-obsidian border border-steel/40 rounded-lg p-6">
+                <div className="bg-linear-to-br from-steel-dark/40 to-obsidian border border-steel/40 rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.4)] transition-all duration-300">
                   <div className="mb-4">
                     <h3 className="text-2xl font-bold text-steel-light mb-2 flex items-center gap-2">
-                      <span className="w-3 h-3 bg-steel rounded-full"></span>
+                      <span className="w-3 h-3 bg-steel-light rounded-full shadow-[0_0_10px_rgba(17,78,98,0.8)] animate-pulse" style={{ animationDelay: '0.5s' }}></span>
                       The New Dragoons
                     </h3>
                   </div>
@@ -227,9 +249,12 @@ export default function OriginsPage(): JSX.Element {
       </section>
 
       {/* Legacy Section */}
-      <section className="py-20 px-4 bg-linear-to-b from-shadow to-obsidian">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-8 uppercase tracking-wider">
+      <section className="relative py-20 px-4 bg-linear-to-b from-shadow to-obsidian overflow-hidden">
+        {/* Central glow effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-linear-radial from-steel/20 via-crimson/10 to-transparent rounded-full blur-[100px]" />
+
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-8 uppercase tracking-wider drop-shadow-[0_0_20px_rgba(17,78,98,0.6)]">
             Our Legacy Continues
           </h2>
 
@@ -241,13 +266,13 @@ export default function OriginsPage(): JSX.Element {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/code"
-              className="px-8 py-4 bg-linear-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(71,0,0,0.6)] transition-all duration-300 uppercase tracking-wider"
+              className="px-8 py-4 bg-linear-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_40px_rgba(220,38,38,0.6)] hover:scale-105 transition-all duration-300 uppercase tracking-wider"
             >
               The Dragoon Code
             </Link>
             <Link
               href="/commands"
-              className="px-8 py-4 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_30px_rgba(17,78,98,0.6)] transition-all duration-300 uppercase tracking-wider"
+              className="px-8 py-4 bg-linear-to-r from-steel to-steel-light text-foreground font-bold rounded-lg hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] hover:scale-105 transition-all duration-300 uppercase tracking-wider"
             >
               Our Commands
             </Link>
