@@ -43,7 +43,7 @@ export default function DragoonCodePage() {
       {/* Main Code Statement */}
       <section className="py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-gradient-to-br from-crimson-dark/20 via-steel-dark/10 to-obsidian border-2 border-accent-secondary rounded-lg p-12 md:p-16 shadow-[0_0_50px_rgba(71,0,0,0.3)]">
+          <div className="bg-linear-to-br from-crimson-dark/20 via-steel-dark/10 to-obsidian border-2 border-accent-secondary rounded-lg p-12 md:p-16 shadow-[0_0_50px_rgba(71,0,0,0.3)]">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-crimson tracking-widest uppercase">
               Code of Honor
             </h2>
@@ -92,10 +92,10 @@ export default function DragoonCodePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Strength */}
-            <div className="group relative bg-gradient-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
+            <div className="group relative bg-linear-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
-              <div className="relative mb-6 bg-gradient-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(71,0,0,0.5)] transition-all duration-300">
+              <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_0_40px_rgb(255,223,0,0.4)] transition-all duration-300">
                 <Image
                   src="/images/code/strength.png"
                   alt="Strength"
@@ -123,10 +123,10 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Honor */}
-            <div className="group relative bg-gradient-to-br from-steel-dark/30 to-obsidian border border-steel/40 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_40px_rgba(17,78,98,0.4)] transition-all duration-500">
+            <div className="group relative bg-linear-to-br from-steel-dark/30 to-obsidian border border-steel/40 rounded-lg p-8 hover:border-steel-light hover:shadow-[0_0_40px_rgba(17,78,98,0.4)] transition-all duration-500">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-steel via-steel-light to-steel opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
-              <div className="relative mb-6 bg-gradient-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(17,78,98,0.5)] transition-all duration-300">
+              <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(17,78,98,0.5)] transition-all duration-300">
                 <Image
                   src="/images/code/honor.png"
                   alt="Honor"
@@ -153,10 +153,10 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Death */}
-            <div className="group relative bg-gradient-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
+            <div className="group relative bg-linear-to-br from-crimson-dark/30 to-obsidian border border-crimson/40 rounded-lg p-8 hover:border-crimson hover:shadow-[0_0_40px_rgba(71,0,0,0.4)] transition-all duration-500">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crimson via-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-lg" />
 
-              <div className="relative mb-6 bg-gradient-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(71,0,0,0.5)] transition-all duration-300">
+              <div className="relative mb-6 bg-linear-to-br from-obsidian to-shadow rounded-lg p-4 shadow-[0_8px_30px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_40px_rgba(71,0,0,0.5)] transition-all duration-300">
                 <Image
                   src="/images/code/death.png"
                   alt="Death"
@@ -199,9 +199,9 @@ export default function DragoonCodePage() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Principle 1 */}
-            <div className="group bg-gradient-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -217,9 +217,9 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Principle 2 */}
-            <div className="group bg-gradient-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -235,9 +235,9 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Principle 3 */}
-            <div className="group bg-gradient-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -253,9 +253,9 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Principle 4 */}
-            <div className="group bg-gradient-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -271,9 +271,9 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Principle 5 */}
-            <div className="group bg-gradient-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-steel-light mb-2">
@@ -289,9 +289,9 @@ export default function DragoonCodePage() {
             </div>
 
             {/* Principle 6 */}
-            <div className="group bg-gradient-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
+            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-accent-main rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.3)] transition-all duration-300">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-linear-to-br from-crimson to-crimson-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300">
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-crimson-light mb-2">
@@ -312,7 +312,7 @@ export default function DragoonCodePage() {
       {/* Call to Action */}
       <section className="py-20 px-4 bg-linear-to-b from-shadow to-obsidian">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-gradient-to-br from-crimson-dark/30 via-steel-dark/20 to-obsidian border-2 border-crimson/50 rounded-lg p-12 shadow-[0_0_60px_rgba(71,0,0,0.4)]">
+          <div className="bg-linear-to-br from-crimson-dark/30 via-steel-dark/20 to-obsidian border-2 border-crimson/50 rounded-lg p-12 shadow-[0_0_60px_rgba(71,0,0,0.4)]">
             <h2 className="text-3xl md:text-4xl font-bold text-crimson-light mb-6 uppercase tracking-wider">
               Walk the Path of the Dragoon
             </h2>

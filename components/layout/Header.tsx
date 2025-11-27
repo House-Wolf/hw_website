@@ -8,7 +8,7 @@ export default async function Header() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-sticky bg-[#252933] backdrop-blur-sm border-b border-border shadow-lg">
+    <header className="sticky top-0 z-[1100] bg-[#252933] backdrop-blur-sm border-b border-border shadow-lg">
       <div className="container mx-auto">
         <div className="flex items-center justify-between h-16 md:h-20">
 
