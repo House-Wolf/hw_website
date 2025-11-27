@@ -16,17 +16,24 @@ export default function Header() {
               height={60}
               className="group-hover:scale-110 transition-transform"
             />
+            {/* TEXT STACK */}
+            <div className="flex flex-col ml-3 leading-tight">
+              <span className="text-white font-bold text-lg md:text-2xl">
+                House Wolf
+              </span>
+              <span className="text-sm text-gray-400">
+                Home of the Dragoons
+              </span>
+            </div>
           </Link>
 
-          {/* Slogan - Center */}
-          <div className="absolute left-1/2 -translate-x-1/2 hidden md:block">
-            <h1 className="text-2xl md:text-3xl text-orange-600 font-bold text-shadow-2xs tracking-wide">
-              This is the Way!
-            </h1>
-          </div>
-
-          {/* User Button - Right (shows Sign In or User Profile) */}
-          <UserButton />
+          {/* Sign In Button - Right */}
+          <Link
+            href="/dashboard"
+            className="btn btn-secondary text-sm md:text-base"
+          >
+            Sign In
+          </Link>
         </div>
       </div>
     </nav>
