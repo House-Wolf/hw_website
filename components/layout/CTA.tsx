@@ -85,8 +85,8 @@ export default function EpicCTA() {
             </div>
             <div className="animate-float" style={{ animationDelay: "0.6s" }}>
               <SafeImage
-                src="/images/divisions/arcops/arcops.png"
-                alt="ARCOPS Division"
+                src="/images/divisions/arccops/arcops.png"
+                alt="ARCCOPS Division"
                 width={65}
                 height={65}
                 className="object-contain brightness-150"
