@@ -63,3 +63,6 @@ research.txt
 docs/VERCEL_POSTGRES_QUICKSTART.md
 docs/VERCEL_POSTGRES_SETUP.md
 AUTH_IMPLEMENTATION_SUMMARY.md
+
+# User uploaded files
+/public/uploads/
