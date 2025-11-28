@@ -7,19 +7,10 @@ import { ArrowRight } from "lucide-react";
 export default function DivisionsPage() {
   const divisions = [
     {
-      name: "Leadership Core",
-      slug: "LEADERSHIP",
-      patch: "/images/divisions/leadership.png",
-      tagline: "Command & Strategic Oversight",
-      description:
-        "House Wolf Command is the central authority responsible for the coordination and oversight of all operations. Serving as the guiding force behind every division, they ensure seamless collaboration and strategic alignment across the organization.",
-      color: "crimson",
-    },
-    {
       name: "ARCCOPS",
       slug: "ARCCOPS",
       patch: "/images/divisions/arccops/arccops.png",
-      tagline: "Advanced Reconnaissance & Exploration",
+      tagline: "Advanced Research & Cartography Operations Division",
       description:
         "The eyes and ears of House Wolf. ARCCOPS charts unknown territories, gathers critical intelligence, and provides reconnaissance support for all operations. When the unknown beckons, ARCCOPS answers.",
       color: "steel",
@@ -28,7 +19,7 @@ export default function DivisionsPage() {
       name: "LOCOPS",
       slug: "LOCOPS",
       patch: "/images/divisions/locops/locops.png",
-      tagline: "Logistics Operations Corps",
+      tagline: "Logistics and Command Operations Command",
       description:
         "The backbone of House Wolf. LOCOPS ensures the flow of resources, manages mining operations, and coordinates salvage recovery across all theaters. Without logistics, there is no war.",
       color: "steel",
@@ -37,7 +28,7 @@ export default function DivisionsPage() {
       name: "SPECOPS",
       slug: "SPECOPS",
       patch: "/images/divisions/specops/specops.png",
-      tagline: "Special Operations Division",
+      tagline: "Special Operations Command",
       description:
         "The elite specialists of House Wolf. SPECOPS executes high-risk missions, provides critical medical support, and operates in the shadows where conventional forces cannot tread.",
       color: "crimson",
@@ -46,7 +37,7 @@ export default function DivisionsPage() {
       name: "TACOPS",
       slug: "TACOPS",
       patch: "/images/divisions/tacops/tacops.png",
-      tagline: "Tactical Operations Division",
+      tagline: "Tactical Air Control Operations Command",
       description:
         "The frontline warriors of House Wolf. TACOPS executes combat missions and tactical engagements with precision and overwhelming force. Where the battle rages, TACOPS leads the charge.",
       color: "crimson",
@@ -63,7 +54,7 @@ export default function DivisionsPage() {
             src="/images/divisions/HWdivisionsandunits.png"
             alt="House Wolf Divisions"
             fill
-            className="object-cover opacity-30"
+            className="object-center opacity-50"
           />
           <div className="absolute inset-0 bg-linear-to-b from-obsidian/80 via-obsidian/60 to-obsidian/95" />
           {/* Subtle color orbs */}
@@ -127,7 +118,7 @@ export default function DivisionsPage() {
             <div className="h-1 w-32 bg-linear-to-r from-transparent via-crimson to-transparent mx-auto" />
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {divisions.map((division, index) => (
               <Link
                 key={division.slug}
