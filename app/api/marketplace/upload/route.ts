@@ -16,10 +16,8 @@ async function formidablePromise(
   req: NextRequest
 ): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise(async (resolve, reject) => {
-    // Convert the request body to a Node.js readable stream
-    const bodyStream = Readable.from(
-      req.body as ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>
-    );
+    // Convert the Web ReadableStream to a Node.js readable stream
+    const bodyStream = Readable.fromWeb(req.body as any);
 
     // Create formidable form
     const form = formidable({
