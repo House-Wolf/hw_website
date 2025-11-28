@@ -24,8 +24,7 @@ export default function OriginsPage(): JSX.Element {
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         {/* Bottom Border */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-steel-light to-transparent opacity-50 z-10 shadow-[0_0_10px_rgba(17,78,98,0.6)]" />
-
+         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-30 z-10" />
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-7xl mx-auto">
           <div className="mb-8">
