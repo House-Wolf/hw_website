@@ -1,15 +1,23 @@
 "use client";
 
+import { Dispatch, SetStateAction } from "react";
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  itemsPerPage?: number;
+  setItemsPerPage?: Dispatch<SetStateAction<number>>;
+  totalItems?: number;
 }
 
 export default function Pagination({
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  itemsPerPage,
+  setItemsPerPage,
+  totalItems
 }: PaginationProps) {
   const createPageArray = () => {
     const pages = [];
@@ -37,7 +45,7 @@ export default function Pagination({
   const pages = createPageArray();
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-10">
+    <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
       {/* PREVIOUS */}
       <button
         disabled={currentPage === 1}
@@ -84,6 +92,27 @@ export default function Pagination({
       >
         Next
       </button>
+
+      {typeof itemsPerPage === "number" &&
+        setItemsPerPage && (
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            className="ml-4 px-2 py-1 rounded border border-accent-main/20 bg-night-deep text-sm text-foreground"
+          >
+            {[12, 24, 48].map((count) => (
+              <option key={count} value={count}>
+                {count} / page
+              </option>
+            ))}
+          </select>
+        )}
+
+      {typeof totalItems === "number" && (
+        <span className="text-sm text-foreground-muted ml-2">
+          Total: {totalItems}
+        </span>
+      )}
     </div>
   );
 }

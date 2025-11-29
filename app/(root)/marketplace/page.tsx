@@ -20,12 +20,15 @@ export default function MarketplacePage() {
   const { data: session } = useSession();
 
   type Listing = {
-    id?: string | number;
+    id: string;
     title: string;
+    description?: string;
     price: number;
+    quantity?: number;
     category: string;
     discordId?: string | null;
-    imageUrl?: string | null;
+    imageUrl?: string;
+    images?: { imageUrl: string }[];
     sellerUsername?: string | null;
   };
 
@@ -34,9 +37,8 @@ export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("price-desc");
 
-  const [presence, setPresence] = useState<Record<string, any>>({});
   const [contactedListings, setContactedListings] =
-    useState<Record<string, any>>({});
+    useState<Record<string, { inviteUrl?: string; needsInvite?: boolean; threadUrl?: string; threadName?: string; }>>({});
 
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminControls, setShowAdminControls] = useState(false);
@@ -44,8 +46,8 @@ export default function MarketplacePage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, ] = useState(0);
+  const [totalItems, ] = useState(0);
 
   // Modal
   type ModalData = {
@@ -73,7 +75,7 @@ export default function MarketplacePage() {
 
 
   const handleContactSeller = useCallback(
-    (listingId: string, discordId: string | undefined, title: string, price: number, imageUrl: string, sellerUsername: string) => {
+    (listingId: string, discordId: string | null | undefined, title: string, price: number, imageUrl: string, sellerUsername: string) => {
       // run async work but return void (matches ListingsGrid prop signature)
       (async () => {
         if (!session?.user) {
@@ -158,43 +160,28 @@ export default function MarketplacePage() {
   );
 
   useEffect(() => {
-    let mounted = true;
-
     const loadListings = async () => {
       try {
         setIsLoading(true);
-
-        const res = await fetch(
-          `/api/marketplace/listings?page=${currentPage}&limit=${itemsPerPage}`
-        );
+        const res = await fetch('/api/marketplace');
         const data = await res.json();
-
-        if (!mounted) return;
-
-        setListings(data.listings ?? data);
-        setTotalItems(data.pagination?.total ?? data.listings.length);
-        setTotalPages(data.pagination?.totalPages ?? 1);
+        setListings(data);
       } catch (err) {
         console.error("Fetch listings error:", err);
       } finally {
-        // Keep loader visible for at least 2.5 seconds (1.5s display + 1s fade)
         setTimeout(() => {
-          if (mounted) setIsLoading(false);
+          setIsLoading(false);
         }, 2500);
       }
     };
 
     loadListings();
-
-    return () => {
-      mounted = false;
-    };
-  }, [currentPage, itemsPerPage]);
+  }, []);
 
   useEffect(() => {
     clearExpired();
 
-    const stored = getWithExpiry("contactedListings");
+    const stored = getWithExpiry("contactedListings") as Record<string, { inviteUrl?: string; needsInvite?: boolean; threadUrl?: string; threadName?: string; }>;
     if (stored) setContactedListings(stored);
   }, []);
 
@@ -213,9 +200,6 @@ export default function MarketplacePage() {
         sortOption === "price-asc" ? a.price - b.price : b.price - a.price
       );
   }, [listings, selectedCategory, searchQuery, sortOption]);
-
-
-  const AnyPagination = Pagination as any;
 
   return (
     <>
@@ -241,33 +225,28 @@ export default function MarketplacePage() {
         />
 
         <SearchSortBar
-          {...({
-            searchQuery,
-            setSearchQuery,
-            sortOption,
-            setSortOption,
-            showAdminControls,
-            setShowAdminControls,
-            isAdmin: !!session?.user?.permissions?.includes("MARKETPLACE_ADMIN"),
-          } as any)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          sortOption={sortOption}
+          setSortOption={setSortOption}
+          showAdminControls={showAdminControls}
+          setShowAdminControls={setShowAdminControls}
+          isAdmin={!!session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
         />
 
         <ListingsGrid
           listings={listingsByCategory}
           contactedListings={contactedListings}
-          presence={presence}
           handleContactSeller={handleContactSeller}
           FALLBACK_DISCORD_INVITE={FALLBACK_DISCORD_INVITE}
-          adminControlsFn={(item) =>
+          adminControlsFn={(item: { id: string }) =>
             session?.user?.permissions?.includes("MARKETPLACE_ADMIN") && showAdminControls ? (
-              <AdminControls item={item} onEdit={(l) => console.log("edit", l)} onDelete={function (id: string): Promise<void> {
-                throw new Error("Function not implemented.");
-              } } />
+              <AdminControls item={item} onEdit={(l: { id: string }) => console.log("edit", l)} onDelete={() => Promise.resolve(console.log("delete", item.id))} />
             ) : null
           }
         />
 
-        <AnyPagination
+        <Pagination
           currentPage={currentPage}
           onPageChange={setCurrentPage}
           totalPages={totalPages}
