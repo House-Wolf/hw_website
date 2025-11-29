@@ -42,21 +42,60 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create listing
-    const listing = await prisma.marketplaceListings.create({
-      data: {
-        sellerUserId: session.user.id,
-        title: title.trim(),
-        description: description.trim(),
-        categoryId: parseInt(categoryId),
-        price: parseFloat(price),
-        currency: "aUEC",
-        quantity: quantity ? parseInt(quantity) : 1,
-        location: location?.trim() || null,
-        status: "ACTIVE",
-        visibility: "PUBLIC",
-      },
-    });
+    const parsedCategoryId = parseInt(categoryId, 10);
+    const parsedPrice = parseFloat(price);
+    const parsedQuantity = quantity ? parseInt(quantity, 10) : 1;
+
+    if (Number.isNaN(parsedCategoryId) || Number.isNaN(parsedPrice)) {
+      return NextResponse.json(
+        { error: "Invalid category or price" },
+        { status: 400 }
+      );
+    }
+
+    // Prisma schema is currently out of sync with the DB enums for status/visibility,
+    // so use a raw insert with explicit enum casts to avoid conversion errors.
+    const insertResults = (await prisma.$queryRaw`
+      INSERT INTO "marketplace_listings"
+        (
+          "id",
+          "seller_user_id",
+          "title",
+          "description",
+          "category_id",
+          "price",
+          "currency",
+          "quantity",
+          "location",
+          "status",
+          "visibility",
+          "view_count",
+          "message_count",
+          "created_at",
+          "updated_at"
+        )
+      VALUES
+        (
+          gen_random_uuid(),
+          ${session.user.id}::uuid,
+          ${title.trim()},
+          ${description.trim()},
+          ${parsedCategoryId},
+          ${parsedPrice},
+          'aUEC',
+          ${parsedQuantity},
+          ${location?.trim() || null},
+          'ACTIVE'::"ListingStatus",
+          'PUBLIC'::"ListingVisibility",
+          0,
+          0,
+          NOW(),
+          NOW()
+        )
+      RETURNING *;
+    `) as any[];
+
+    const listing = insertResults[0];
 
     // Add image if provided
     if (imageUrl && imageUrl.trim()) {

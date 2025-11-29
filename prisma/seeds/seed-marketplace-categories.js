@@ -1,12 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-/**
- * Seed Marketplace Categories aligned with SRP Tool
- * This script ensures the correct categories exist for the SRP calculator
- */
-
-const CORRECT_CATEGORIES = [
+// SRP categories (must stay strict)
+const SRP_CATEGORIES = [
   {
     name: 'Weapons',
     slug: 'weapons',
@@ -33,83 +29,79 @@ const CORRECT_CATEGORIES = [
   },
 ];
 
+// Marketplace-only categories
+const MARKETPLACE_ONLY = [
+  {
+    name: 'Clothing',
+    slug: 'clothing',
+    description: 'Apparel, undersuits, outfits, and cosmetic gear',
+    sortOrder: 5,
+  },
+  {
+    name: 'Items',
+    slug: 'items',
+    description: 'Misc items, consumables, gadgets, and general equipment',
+    sortOrder: 6,
+  },
+  {
+    name: 'Services',
+    slug: 'services',
+    description: 'Hauling, escorting, logistics, medical assistance, and other player services',
+    sortOrder: 7,
+  },
+  {
+    name: 'Rentals',
+    slug: 'rentals',
+    description: 'Ship rentals, equipment rentals, temporary contracts',
+    sortOrder: 8,
+  },
+];
+
+const ALL_CATEGORIES = [...SRP_CATEGORIES, ...MARKETPLACE_ONLY];
+
 async function main() {
   console.log('\n=== Seeding Marketplace Categories ===\n');
 
-  // Check if there are existing listings
-  const listingCount = await prisma.marketplaceListings.count();
-  console.log(`Found ${listingCount} existing listings in the database.\n`);
-
-  // Deactivate old categories (Vehicles, Ships)
-  const oldCategories = await prisma.marketplaceCategory.findMany({
-    where: {
-      slug: {
-        in: ['vehicles', 'ships']
-      }
-    }
+  // Deactivate old, unused categories
+  await prisma.marketplaceCategory.updateMany({
+    where: { slug: { in: ['vehicles', 'ships'] } },
+    data: { isActive: false },
   });
 
-  if (oldCategories.length > 0) {
-    console.log('Deactivating old categories (Vehicles, Ships)...');
-    await prisma.marketplaceCategory.updateMany({
-      where: {
-        slug: {
-          in: ['vehicles', 'ships']
-        }
-      },
-      data: {
-        isActive: false,
-      }
-    });
-    console.log(`Deactivated ${oldCategories.length} old categories.\n`);
-  }
-
-  // Create or update the correct categories
-  console.log('Creating/updating SRP-aligned categories...\n');
-
-  for (const category of CORRECT_CATEGORIES) {
+  // Upsert all category definitions
+  for (const category of ALL_CATEGORIES) {
     const result = await prisma.marketplaceCategory.upsert({
       where: { slug: category.slug },
       update: {
         name: category.name,
         description: category.description,
-        isActive: true,
         sortOrder: category.sortOrder,
+        isActive: true,
       },
       create: {
         name: category.name,
         slug: category.slug,
         description: category.description,
-        isActive: true,
         sortOrder: category.sortOrder,
+        isActive: true,
       },
     });
 
-    console.log(`✓ ${result.name} (ID: ${result.id}, Slug: ${result.slug})`);
+    console.log(`✓ ${result.name} (${result.slug})`);
   }
 
-  console.log('\n=== Final Categories ===\n');
+  console.log('\n=== Final Categories in Database ===\n');
 
-  const allCategories = await prisma.marketplaceCategory.findMany({
+  const categories = await prisma.marketplaceCategory.findMany({
     orderBy: { sortOrder: 'asc' }
   });
 
-  allCategories.forEach(cat => {
-    const status = cat.isActive ? '✓ ACTIVE' : '✗ INACTIVE';
-    console.log(`${status} | ID: ${cat.id} | ${cat.name} (${cat.slug})`);
-  });
-
-  console.log(`\nTotal: ${allCategories.length} categories\n`);
-
-  if (listingCount > 0) {
-    console.log('⚠️  WARNING: You have existing listings that may need to be recategorized.');
-    console.log('   Please update them through the marketplace dashboard.\n');
+  for (const cat of categories) {
+    const group = SRP_CATEGORIES.find(c => c.slug === cat.slug) ? '[SRP]' : '[Marketplace]';
+    console.log(`${group} ${cat.sortOrder}. ${cat.name} (${cat.slug})`);
   }
 }
 
 main()
-  .catch(e => {
-    console.error('Error seeding categories:', e);
-    process.exit(1);
-  })
+  .catch(err => console.error('Error seeding categories:', err))
   .finally(() => prisma.$disconnect());

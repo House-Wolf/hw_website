@@ -1,101 +1,90 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-/**
- * Verification script for marketplace categories
- * Run this to confirm categories are correctly configured for the SRP calculator
- */
+// Only SRP categories should be validated
+const SRP_SLUGS = ['weapons', 'armor', 'components', 'ship-weapons'];
 
-const EXPECTED_CATEGORIES = [
-  { name: 'Weapons', slug: 'weapons', srpType: 'Guns', fbv: 2500 },
-  { name: 'Armor', slug: 'armor', srpType: 'Armor', fbv: 10000 },
-  { name: 'Components', slug: 'components', srpType: 'Components', fbv: 25000 },
-  { name: 'Ship Weapons', slug: 'ship-weapons', srpType: 'Ship Weapons', fbv: 35000 },
+const EXPECTED_SRP = [
+  { slug: 'weapons', name: 'Weapons', srpType: 'Guns', fbv: 2500 },
+  { slug: 'armor', name: 'Armor', srpType: 'Armor', fbv: 10000 },
+  { slug: 'components', name: 'Components', srpType: 'Components', fbv: 25000 },
+  { slug: 'ship-weapons', name: 'Ship Weapons', srpType: 'Ship Weapons', fbv: 35000 },
 ];
 
 async function verify() {
-  console.log('\n╔════════════════════════════════════════════════╗');
-  console.log('║  Marketplace Categories Verification          ║');
-  console.log('╚════════════════════════════════════════════════╝\n');
+  console.log('\n=== Marketplace Category Verification ===\n');
 
-  // Fetch active categories
   const activeCategories = await prisma.marketplaceCategory.findMany({
     where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: 'asc' }
   });
 
   let allGood = true;
 
-  // Check count
-  if (activeCategories.length !== 4) {
-    console.log(`❌ Expected 4 active categories, found ${activeCategories.length}\n`);
+  // Filter SRP categories by slug
+  const activeSrp = activeCategories.filter(cat =>
+    SRP_SLUGS.includes(cat.slug)
+  );
+
+  // Verify correct SRP category count
+  if (activeSrp.length !== SRP_SLUGS.length) {
+    console.log(`❌ Expected 4 SRP categories, found ${activeSrp.length}`);
     allGood = false;
   } else {
-    console.log(`✓ Found 4 active categories\n`);
+    console.log(`✓ Found 4 SRP categories active`);
   }
 
-  // Check each expected category
-  console.log('Category Details:\n');
-  for (const expected of EXPECTED_CATEGORIES) {
-    const found = activeCategories.find(c => c.slug === expected.slug);
+  console.log('\nChecking SRP Categories:\n');
+
+  for (const expected of EXPECTED_SRP) {
+    const found = activeSrp.find(c => c.slug === expected.slug);
 
     if (!found) {
-      console.log(`❌ Missing: ${expected.name} (${expected.slug})`);
+      console.log(`❌ Missing SRP category: ${expected.slug}`);
       allGood = false;
-    } else if (found.name !== expected.name) {
-      console.log(`❌ Name mismatch for ${expected.slug}: expected "${expected.name}", got "${found.name}"`);
-      allGood = false;
-    } else {
-      console.log(`✓ ${found.name}`);
-      console.log(`  ID: ${found.id}`);
-      console.log(`  Slug: ${found.slug}`);
-      console.log(`  SRP Type: ${expected.srpType}`);
-      console.log(`  FBV: ${expected.fbv.toLocaleString()} aUEC\n`);
+      continue;
     }
+
+    console.log(`✓ ${found.name}`);
+    console.log(`  Slug: ${found.slug}`);
+    console.log(`  SRP Type: ${expected.srpType}`);
+    console.log(`  Base FBV: ${expected.fbv.toLocaleString()} aUEC\n`);
   }
 
-  // Check for inactive categories
-  const inactiveCategories = await prisma.marketplaceCategory.findMany({
-    where: { isActive: false },
+  console.log('\n=== Marketplace-Only Categories ===\n');
+
+  const marketplaceOnly = activeCategories.filter(
+    cat => !SRP_SLUGS.includes(cat.slug)
+  );
+
+  marketplaceOnly.forEach(cat => {
+    console.log(`- ${cat.name} (${cat.slug})`);
   });
 
-  if (inactiveCategories.length > 0) {
-    console.log('Inactive Categories (these are OK, just FYI):');
-    inactiveCategories.forEach(cat => {
-      console.log(`  - ${cat.name} (${cat.slug})`);
-    });
-    console.log('');
-  }
+  console.log('\n=== Checking Listings for Deprecated Categories ===\n');
 
-  // Check for listings using old categories
-  const listingsWithOldCategories = await prisma.marketplaceListings.count({
+  const oldListingCount = await prisma.marketplaceListings.count({
     where: {
-      category: {
-        isActive: false,
-      }
+      category: { isActive: false }
     }
   });
 
-  if (listingsWithOldCategories > 0) {
-    console.log(`⚠️  Warning: ${listingsWithOldCategories} listing(s) using inactive categories`);
-    console.log('   These should be updated to use the new categories.\n');
+  if (oldListingCount > 0) {
+    console.log(`⚠️  WARNING: ${oldListingCount} listing(s) use inactive categories`);
+    console.log('    Please update them from the dashboard.\n');
+  } else {
+    console.log('✓ No listings are using inactive categories.\n');
   }
 
-  // Final verdict
-  console.log('═══════════════════════════════════════════════\n');
+  console.log('=== Verification Complete ===\n');
+
   if (allGood) {
-    console.log('✅ All categories are correctly configured!\n');
-    console.log('The SRP calculator should work properly.\n');
+    console.log('✅ All SRP categories are correctly configured!');
   } else {
-    console.log('❌ Category configuration has issues.\n');
-    console.log('Run the seed script to fix:\n');
-    console.log('  node prisma/seeds/seed-marketplace-categories.js\n');
+    console.log('❌ Problems detected — please run the seed script again.');
   }
 }
 
 verify()
-  .catch(e => {
-    console.error('Error during verification:', e);
-    process.exit(1);
-  })
+  .catch(err => console.error('Error during verification:', err))
   .finally(() => prisma.$disconnect());

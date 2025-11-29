@@ -115,16 +115,22 @@ async function submitBio(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      roles: {
-        include: { discordRole: true },
-      },
-    },
-  });
+  // Raw queries to avoid enum/type mismatches with Prisma client
+  const [userRow] = (await prisma.$queryRaw`
+    SELECT id, image
+    FROM users
+    WHERE id = ${session.user.id}::uuid
+    LIMIT 1;
+  `) as Array<{ id: string; image: string | null }>;
 
-  if (!user) redirect("/auth/signin");
+  if (!userRow) redirect("/auth/signin");
+
+  const rolesRows = (await prisma.$queryRaw`
+    SELECT dr.name
+    FROM user_roles ur
+    JOIN discord_roles dr ON dr.id = ur.discord_role_id
+    WHERE ur.user_id = ${session.user.id}::uuid;
+  `) as Array<{ name: string }>;
 
   const characterName = (formData.get("characterName") as string)?.trim();
   const divisionName = (formData.get("division") as string)?.trim();
@@ -136,7 +142,7 @@ async function submitBio(formData: FormData) {
   if (!bio) throw new Error("Bio is required.");
   if (bio.length > 700) throw new Error("Bio exceeds 700 characters.");
 
-  const roleNames = new Set(user.roles.map((r) => r.discordRole.name));
+  const roleNames = new Set(rolesRows.map((r) => r.name));
 
   const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
     const allowedSubs = division.subdivisions.filter((sub) =>
@@ -165,42 +171,61 @@ async function submitBio(formData: FormData) {
     subdivisionName || null
   );
 
-  const existingProfile = await prisma.mercenaryProfile.findFirst({
-    where: { userId: user.id },
-  });
+  const userId = session.user.id;
 
-  if (existingProfile) {
-    await prisma.mercenaryProfile.update({
-      where: { id: existingProfile.id },
-      data: {
-        characterName,
-        bio,
-        divisionId: division.id,
-        subdivisionId: subdivision ? subdivision.id : null,
-        status: "PENDING",
-        lastSubmittedAt: new Date(),
-        approvedAt: null,
-        approvedBy: null,
-        rejectedAt: null,
-        rejectedBy: null,
-        rejectionReason: null,
-        portraitUrl: user.image ?? null,
-      },
-    });
+  const existingProfileRow = (await prisma.$queryRaw`
+    SELECT id
+    FROM mercenary_profiles
+    WHERE user_id = ${userId}::uuid
+    LIMIT 1;
+  `) as Array<{ id: string }>;
+
+  if (existingProfileRow.length) {
+    const profileId = existingProfileRow[0].id;
+    await prisma.$executeRaw`
+      UPDATE mercenary_profiles
+      SET
+        character_name = ${characterName},
+        bio = ${bio},
+        division_id = ${division.id},
+        subdivision_id = ${subdivision ? subdivision.id : null},
+        status = 'PENDING'::"ProfileStatus",
+        last_submitted_at = NOW(),
+        approved_at = NULL,
+        approved_by = NULL,
+        rejected_at = NULL,
+        rejected_by = NULL,
+        rejection_reason = NULL,
+        portrait_url = ${userRow.image ?? null}
+      WHERE id = ${profileId}::uuid;
+    `;
   } else {
-    await prisma.mercenaryProfile.create({
-      data: {
-        userId: user.id,
-        characterName,
+    await prisma.$executeRaw`
+      INSERT INTO mercenary_profiles (
+        id,
+        user_id,
+        character_name,
         bio,
-        divisionId: division.id,
-        subdivisionId: subdivision ? subdivision.id : null,
-        status: "PENDING",
-        isPublic: true,
-        lastSubmittedAt: new Date(),
-        portraitUrl: user.image ?? null,
-      },
-    });
+        division_id,
+        subdivision_id,
+        status,
+        is_public,
+        last_submitted_at,
+        portrait_url
+      )
+      VALUES (
+        gen_random_uuid(),
+        ${userId}::uuid,
+        ${characterName},
+        ${bio},
+        ${division.id},
+        ${subdivision ? subdivision.id : null},
+        'PENDING'::"ProfileStatus",
+        true,
+        NOW(),
+        ${userRow.image ?? null}
+      );
+    `;
   }
 
   redirect("/dashboard/profile?submitted=1");
@@ -214,17 +239,42 @@ export default async function ProfilePage({
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      roles: { include: { discordRole: true } },
-      mercenaryProfiles: true,
-    },
-  });
+  // Prisma enums are out-of-sync with the DB; use raw queries with casts to avoid errors.
+  const [userRow] = (await prisma.$queryRaw`
+    SELECT id, image
+    FROM users
+    WHERE id = ${session.user.id}::uuid
+    LIMIT 1;
+  `) as Array<{ id: string; image: string | null }>;
 
-  if (!user) notFound();
+  if (!userRow) notFound();
 
-  const roleNames = new Set(user.roles.map((r) => r.discordRole.name));
+  const rolesRows = (await prisma.$queryRaw`
+    SELECT dr.name
+    FROM user_roles ur
+    JOIN discord_roles dr ON dr.id = ur.discord_role_id
+    WHERE ur.user_id = ${session.user.id}::uuid;
+  `) as Array<{ name: string }>;
+
+  const profileRows = (await prisma.$queryRaw`
+    SELECT
+      character_name AS "characterName",
+      bio,
+      division_id AS "divisionId",
+      subdivision_id AS "subdivisionId",
+      status::text AS status
+    FROM mercenary_profiles
+    WHERE user_id = ${session.user.id}::uuid
+    LIMIT 1;
+  `) as Array<{
+    characterName: string;
+    bio: string;
+    divisionId: number | null;
+    subdivisionId: number | null;
+    status: string;
+  }>;
+
+  const roleNames = new Set(rolesRows.map((r) => r.name));
 
   const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
     const allowedSubs = division.subdivisions.filter((sub) =>
@@ -283,7 +333,7 @@ export default async function ProfilePage({
         <MercenaryBioForm
           allowedDivisions={allowedDivisions}
           onSubmit={submitBio}
-          existingProfile={user.mercenaryProfiles[0] ?? null}
+          existingProfile={profileRows[0] ?? null}
         />
       )}
 

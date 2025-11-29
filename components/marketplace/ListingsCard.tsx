@@ -8,6 +8,8 @@ interface ListingCardProps {
     description?: string;
     price: number;
     quantity?: number;
+    category?: string;
+    sellerUsername?: string | null;
     images?: { imageUrl: string }[];
     imageUrl?: string;
   };
@@ -21,21 +23,9 @@ interface ListingCardProps {
   adminControls?: JSX.Element | null;
 }
 
-/**
- * @component ListingCard - A card component to display marketplace listing details.
- * @description This component displays the details of a marketplace listing including the item image, title, description, price, and action buttons.
- * It also shows the seller's online status and provides admin controls if applicable.
- * @param param0 - The props for the ListingCard component.
- * @param param0.item - The item details including title, description, price, quantity, and imageUrl.
- * @param param0.sellerStatus - The online status of the seller.
- * @param param0.contacted - Information about whether the user has contacted the seller.
- * @param param0.onContact - Function to call when the "Contact Seller" button is clicked.
- * @param param0.onViewThread - Function to call when the "View Thread" button is clicked.
- * @param param0.onJoinDiscord - Function to call when the "Join Discord" button is clicked.
- * @param param0.adminControls - Optional admin control buttons to display.
- * @author House Wolf Dev Team
- * @returns 
- */
+/** ANIMATED GLOW **/
+const glowClass =
+  "hover:animate-cardGlow hover:shadow-[0_0_26px_var(--accent-main)]";
 
 export default function ListingCard({
   item,
@@ -45,84 +35,140 @@ export default function ListingCard({
   onJoinDiscord,
   adminControls,
 }: ListingCardProps): JSX.Element {
-
   return (
     <div
-      className="relative bg-[#111]/70 backdrop-blur-sm border border-gray-700 rounded-2xl 
-       overflow-hidden shadow-lg transition-all duration-300 
-       hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] group"
+      className="
+    relative rounded-2xl overflow-hidden 
+    bg-[var(--background-secondary)]/90 backdrop-blur-sm
+    border border-[#00aaff]/60 
+    shadow-[0_0_12px_#0099ff50] 
+    transition-all duration-300 
+    hover:shadow-[0_0_35px_#00ccff] 
+    hover:scale-[1.015]
+  "
     >
+      {/* Metallic Texture Layer */}
+      <div className="absolute inset-0 opacity-[0.22] pointer-events-none bg-[url('/images/marketplace/metal-texture.jpg')] bg-cover mix-blend-overlay" />
 
-      {/* Card Frame Background */}
-      <SafeImage
-        src="/images/marketplace/card.jpg"
-        alt="Card frame"
-        fill
-        className="object-cover opacity-40"
-      />
+      {/* Subtle Accent Gradient */}
+      <div className="absolute inset-0 bg-linear-to-b from-[var(--accent-main)]/15 via-transparent to-[var(--accent-strong)]/20 pointer-events-none" />
+
+      {/* Dark vignette */}
       <div className="absolute inset-0 bg-black/40" />
 
+      {/* Card Content */}
       <div className="relative z-10 flex flex-col p-4 h-full">
-
         {/* Item Image */}
-        <div className="relative w-full h-40 rounded-md overflow-hidden bg-gray-900 mb-4">
+        <div className="relative w-full h-40 mb-4 rounded-lg border border-[var(--border)] bg-[var(--background)] overflow-hidden">
           <SafeImage
-            src={item.imageUrl || item.images?.[0]?.imageUrl || "/images/placeholder.svg"}
+            src={
+              item.imageUrl ||
+              item.images?.[0]?.imageUrl ||
+              "/images/placeholder.svg"
+            }
             alt={item.title}
             fill
-            className="object-cover rounded-md transition-all duration-500
-              group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(17,78,98,0.5)]"
+            className="object-cover transition-all duration-300 group-hover:scale-[1.04]"
           />
+          {item.category && (
+            <span className="absolute top-2 right-2 px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--accent-main)]/85 text-white border border-[var(--border)] shadow-md">
+              {item.category}
+            </span>
+          )}
         </div>
 
         {/* Title */}
-        <h3 className="bg-indigo-700/80 rounded-md text-center py-2 mb-3 border border-indigo-500/40 
-          text-sm md:text-base font-bold text-white uppercase tracking-wide shadow-inner">
+        <h3
+          className="
+          text-center py-2 mb-3 uppercase tracking-wide font-semibold
+          text-white text-sm md:text-base
+          bg-linear-to-r from-[var(--accent-strong)]/90 via-[var(--accent-main)]/95 to-[var(--accent-strong)]/90
+          border border-[var(--accent-strong)]/70 rounded-md
+          shadow-[0_0_12px_var(--accent-main)]
+        "
+        >
           {item.title}
         </h3>
 
         {/* Description */}
-        <p className="text-gray-300 text-xs sm:text-sm leading-relaxed line-clamp-3 mb-4">
+        <p className="text-[var(--foreground-muted)] text-xs sm:text-sm leading-relaxed line-clamp-3 mb-3">
           {item.description}
         </p>
 
-        {/* Price */}
-        <div className="text-right mb-4">
-          <p className="text-indigo-300 font-bold text-lg">
+        {/* Seller */}
+        {item.sellerUsername && (
+          <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--foreground-muted)] mb-2">
+            Seller:{" "}
+            <span className="font-semibold text-[var(--foreground)]">
+              {item.sellerUsername}
+            </span>
+          </p>
+        )}
+
+        {/* Price + Info */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 text-[11px] font-semibold rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--foreground-muted)]">
+              {item.category || "Listing"}
+            </span>
+
+            {item.quantity && item.quantity > 1 && (
+              <span className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-[var(--accent-main)]/15 border border-[var(--accent-main)]/40 text-[var(--foreground)]">
+                Qty {item.quantity}
+              </span>
+            )}
+          </div>
+
+          <p className="text-[var(--accent-strong)] font-bold text-lg">
             {item.price.toLocaleString()} aUEC
           </p>
-          {item.quantity && item.quantity > 1 && (
-            <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
-          )}
         </div>
 
         {/* Buttons */}
         {contacted?.needsInvite ? (
           <button
             onClick={onJoinDiscord}
-            className="w-full py-2 bg-amber-500 hover:bg-amber-600 rounded-md text-white"
+            className="w-full py-2 bg-linear-to-r from-[var(--accent-main)] to-[var(--accent-strong)] hover:brightness-110 rounded-md text-white border border-[var(--border)] shadow-sm transition"
           >
             🔗 Join Discord
           </button>
         ) : contacted?.threadUrl ? (
           <button
             onClick={onViewThread}
-            className="w-full py-2 bg-green-600 hover:bg-green-700 rounded-md text-white"
+            className="w-full py-2 bg-green-600 hover:bg-green-700 rounded-md text-white border border-[var(--border)] shadow-sm transition"
           >
             💬 View Thread
           </button>
         ) : (
           <button
             onClick={onContact}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white"
-          >
+            className="
+    w-full py-2 
+    bg-[var(--accent-main)] 
+    hover:bg-[var(--accent-strong)]
+    transition-colors
+    rounded-md text-white 
+    border border-[var(--border)] 
+    shadow-sm
+  "
+          > 
             💬 Contact Seller
           </button>
         )}
 
-        {/* Admin Buttons */}
+        {/* Admin Controls */}
         {adminControls && <div className="mt-3">{adminControls}</div>}
       </div>
     </div>
   );
 }
+
+/* Animated glow keyframes (add to your globals.css)
+-------------------------------------------------- */
+/*
+@keyframes cardGlow {
+  0%   { box-shadow: 0 0 6px var(--accent-main); }
+  50%  { box-shadow: 0 0 20px var(--accent-strong); }
+  100% { box-shadow: 0 0 6px var(--accent-main); }
+}
+*/

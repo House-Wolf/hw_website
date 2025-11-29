@@ -202,7 +202,7 @@ export default function MarketplacePage() {
   }, [listings, selectedCategory, searchQuery, sortOption]);
 
   return (
-    <>
+    <div className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
       {isLoading && <MarketplaceLoader />}
 
       {modalData && (
@@ -218,33 +218,45 @@ export default function MarketplacePage() {
       <section className="relative z-10 max-w-360 mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <MarketplaceHero />
 
-        <CategoryBar
-          categories={categories}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        <div className="relative mt-8 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background-secondary)]/80 shadow-[0_10px_60px_rgba(17,78,98,0.25)]">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-24 -left-24 w-80 h-80 bg-[var(--accent-strong)]/15 blur-[120px]" />
+            <div className="absolute -bottom-32 -right-24 w-96 h-96 bg-[var(--accent-main)]/12 blur-[140px]" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-[var(--accent-strong)] to-transparent opacity-80" />
+          </div>
 
-        <SearchSortBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          sortOption={sortOption}
-          setSortOption={setSortOption}
-          showAdminControls={showAdminControls}
-          setShowAdminControls={setShowAdminControls}
-          isAdmin={!!session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
-        />
+          <div className="relative space-y-6 p-6 sm:p-8">
+            <CategoryBar
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+              className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 shadow-sm"
+              activeClassName="bg-[var(--accent-strong)] text-white border-[var(--accent-strong)] shadow-[0_0_18px_rgba(17,78,98,0.4)]"
+            />
 
-        <ListingsGrid
-          listings={listingsByCategory}
-          contactedListings={contactedListings}
-          handleContactSeller={handleContactSeller}
-          FALLBACK_DISCORD_INVITE={FALLBACK_DISCORD_INVITE}
-          adminControlsFn={(item: { id: string }) =>
-            session?.user?.permissions?.includes("MARKETPLACE_ADMIN") && showAdminControls ? (
-              <AdminControls item={item} onEdit={(l: { id: string }) => console.log("edit", l)} onDelete={() => Promise.resolve(console.log("delete", item.id))} />
-            ) : null
-          }
-        />
+            <SearchSortBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              sortOption={sortOption}
+              setSortOption={setSortOption}
+              showAdminControls={showAdminControls}
+              setShowAdminControls={setShowAdminControls}
+              isAdmin={!!session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
+            />
+
+            <ListingsGrid
+              listings={listingsByCategory}
+              contactedListings={contactedListings}
+              handleContactSeller={handleContactSeller}
+              FALLBACK_DISCORD_INVITE={FALLBACK_DISCORD_INVITE}
+              adminControlsFn={(item: { id: string }) =>
+                session?.user?.permissions?.includes("MARKETPLACE_ADMIN") && showAdminControls ? (
+                  <AdminControls item={item} onEdit={(l: { id: string }) => console.log("edit", l)} onDelete={() => Promise.resolve(console.log("delete", item.id))} />
+                ) : null
+              }
+            />
+          </div>
+        </div>
 
         <Pagination
           currentPage={currentPage}
@@ -255,6 +267,6 @@ export default function MarketplacePage() {
           totalItems={totalItems}
         />
       </section>
-    </>
+    </div>
   );
 }

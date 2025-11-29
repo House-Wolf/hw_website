@@ -248,14 +248,45 @@ export default async function AdminPanelPage({
     : [];
 
   const dossiers = hasDossierAdmin
-    ? await prisma.mercenaryProfile.findMany({
-        orderBy: { lastSubmittedAt: "desc" },
-        include: {
-          user: true,
-          division: true,
-          subdivision: true,
-        },
-      })
+    ? ((await prisma.$queryRaw`
+        SELECT
+          mp.id,
+          mp.user_id AS "userId",
+          mp.character_name AS "characterName",
+          mp.bio,
+          mp.division_id AS "divisionId",
+          mp.subdivision_id AS "subdivisionId",
+          mp.status::text AS status,
+          mp.last_submitted_at AS "lastSubmittedAt",
+          mp.approved_at AS "approvedAt",
+          mp.rejected_at AS "rejectedAt",
+          mp.rejection_reason AS "rejectionReason",
+          COALESCE(u.discord_display_name, u.discord_username) AS "displayName",
+          u.discord_username AS "discordUsername",
+          d.name AS "divisionName",
+          s.name AS "subdivisionName"
+        FROM mercenary_profiles mp
+        LEFT JOIN users u ON u.id = mp.user_id
+        LEFT JOIN divisions d ON d.id = mp.division_id
+        LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
+        ORDER BY mp.last_submitted_at DESC NULLS LAST;
+      `) as Array<{
+        id: string;
+        userId: string;
+        characterName: string;
+        bio: string;
+        divisionId: number | null;
+        subdivisionId: number | null;
+        status: string;
+        lastSubmittedAt: Date | null;
+        approvedAt: Date | null;
+        rejectedAt: Date | null;
+        rejectionReason: string | null;
+        displayName: string | null;
+        discordUsername: string | null;
+        divisionName: string | null;
+        subdivisionName: string | null;
+      }>)
     : [];
 
   const divisions = hasDossierAdmin
@@ -516,7 +547,7 @@ export default async function AdminPanelPage({
                                 {dossier.characterName}
                               </p>
                               <p className="text-xs text-[var(--foreground-muted)]">
-                                @{dossier.user.discordUsername}
+                                @{dossier.discordUsername || "unknown"}
                               </p>
                             </div>
                             <span className="text-xs text-[var(--foreground-muted)]">
@@ -594,3 +625,4 @@ export default async function AdminPanelPage({
     </div>
   );
 }
+

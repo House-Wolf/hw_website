@@ -1,40 +1,93 @@
 /*
-  Warnings:
-
-  - The `status` column on the `marketplace_listings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-  - The `visibility` column on the `marketplace_listings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-  - The `status` column on the `mercenary_profiles` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-  - A unique constraint covering the columns `[listing_id,sort_order]` on the table `marketplace_listing_images` will be added. If there are existing duplicate values, this will fail.
-  - Changed the type of `action` on the `mercenary_profile_approval_history` table. No cast exists, the column would be dropped and recreated, which cannot be done if there is data, since the column is required.
-
+  FIXED MIGRATION — SAFE ENUM CONVERSION (NO DATA LOSS)
 */
--- CreateEnum
+
+-- Create enums
 CREATE TYPE "ProfileStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
-
--- CreateEnum
 CREATE TYPE "ProfileAction" AS ENUM ('SUBMITTED', 'APPROVED', 'REJECTED', 'REVERTED');
-
--- CreateEnum
 CREATE TYPE "ListingStatus" AS ENUM ('DRAFT', 'ACTIVE', 'SOLD', 'EXPIRED', 'DELETED');
-
--- CreateEnum
 CREATE TYPE "ListingVisibility" AS ENUM ('PUBLIC', 'PRIVATE', 'HIDDEN');
 
--- AlterTable
-ALTER TABLE "marketplace_listings" DROP COLUMN "status",
-ADD COLUMN     "status" "ListingStatus" NOT NULL DEFAULT 'DRAFT',
-DROP COLUMN "visibility",
-ADD COLUMN     "visibility" "ListingVisibility" NOT NULL DEFAULT 'PUBLIC';
+----------------------------------------------------------
+-- marketplace_listings.status : TEXT → ListingStatus
+----------------------------------------------------------
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "status" DROP DEFAULT;
 
--- AlterTable
-ALTER TABLE "mercenary_profile_approval_history" DROP COLUMN "action",
-ADD COLUMN     "action" "ProfileAction" NOT NULL;
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "status"
+  TYPE "ListingStatus"
+  USING
+    CASE
+      WHEN status = 'DRAFT' THEN 'DRAFT'::"ListingStatus"
+      WHEN status = 'ACTIVE' THEN 'ACTIVE'::"ListingStatus"
+      WHEN status = 'SOLD' THEN 'SOLD'::"ListingStatus"
+      WHEN status = 'EXPIRED' THEN 'EXPIRED'::"ListingStatus"
+      WHEN status = 'DELETED' THEN 'DELETED'::"ListingStatus"
+      ELSE 'DRAFT'::"ListingStatus"  -- fallback
+    END;
 
--- AlterTable
-ALTER TABLE "mercenary_profiles" DROP COLUMN "status",
-ADD COLUMN     "status" "ProfileStatus" NOT NULL DEFAULT 'PENDING';
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "status" SET DEFAULT 'DRAFT';
 
--- CreateTable
+----------------------------------------------------------
+-- marketplace_listings.visibility : TEXT → ListingVisibility
+----------------------------------------------------------
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "visibility" DROP DEFAULT;
+
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "visibility"
+  TYPE "ListingVisibility"
+  USING
+    CASE
+      WHEN visibility = 'PUBLIC' THEN 'PUBLIC'::"ListingVisibility"
+      WHEN visibility = 'PRIVATE' THEN 'PRIVATE'::"ListingVisibility"
+      WHEN visibility = 'HIDDEN' THEN 'HIDDEN'::"ListingVisibility"
+      ELSE 'PUBLIC'::"ListingVisibility"
+    END;
+
+ALTER TABLE "marketplace_listings"
+  ALTER COLUMN "visibility" SET DEFAULT 'PUBLIC';
+
+----------------------------------------------------------
+-- mercenary_profile_approval_history.action : TEXT → ProfileAction
+----------------------------------------------------------
+ALTER TABLE "mercenary_profile_approval_history"
+  ALTER COLUMN "action"
+  TYPE "ProfileAction"
+  USING
+    CASE
+      WHEN action = 'SUBMITTED' THEN 'SUBMITTED'::"ProfileAction"
+      WHEN action = 'APPROVED' THEN 'APPROVED'::"ProfileAction"
+      WHEN action = 'REJECTED' THEN 'REJECTED'::"ProfileAction"
+      WHEN action = 'REVERTED' THEN 'REVERTED'::"ProfileAction"
+      ELSE 'SUBMITTED'::"ProfileAction"
+    END;
+
+----------------------------------------------------------
+-- mercenary_profiles.status : TEXT → ProfileStatus
+----------------------------------------------------------
+ALTER TABLE "mercenary_profiles"
+  ALTER COLUMN "status" DROP DEFAULT;
+
+ALTER TABLE "mercenary_profiles"
+  ALTER COLUMN "status"
+  TYPE "ProfileStatus"
+  USING
+    CASE
+      WHEN status = 'PENDING' THEN 'PENDING'::"ProfileStatus"
+      WHEN status = 'APPROVED' THEN 'APPROVED'::"ProfileStatus"
+      WHEN status = 'REJECTED' THEN 'REJECTED'::"ProfileStatus"
+      ELSE 'PENDING'::"ProfileStatus"
+    END;
+
+ALTER TABLE "mercenary_profiles"
+  ALTER COLUMN "status" SET DEFAULT 'PENDING';
+
+----------------------------------------------------------
+-- Add featured_videos table
+----------------------------------------------------------
 CREATE TABLE "featured_videos" (
     "id" SERIAL NOT NULL,
     "youtube_id" TEXT NOT NULL,
@@ -48,5 +101,8 @@ CREATE TABLE "featured_videos" (
     CONSTRAINT "featured_videos_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "marketplace_listing_images_listing_id_sort_order_key" ON "marketplace_listing_images"("listing_id", "sort_order");
+----------------------------------------------------------
+-- Add marketplace_listing_images unique constraint
+----------------------------------------------------------
+CREATE UNIQUE INDEX "marketplace_listing_images_listing_id_sort_order_key"
+  ON "marketplace_listing_images"("listing_id", "sort_order");
