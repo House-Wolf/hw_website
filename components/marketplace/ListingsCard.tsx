@@ -3,8 +3,18 @@ import { JSX } from "react";
 import { SafeImage } from "../utils/SafeImage";
 
 interface ListingCardProps {
-  item: any;
-  contacted?: any;
+  item: {
+    title: string;
+    description: string;
+    price: number;
+    quantity: number;
+    images?: { imageUrl: string }[];
+    imageUrl?: string;
+  };
+  contacted?: {
+    needsInvite?: boolean;
+    threadUrl?: string;
+  };
   onContact: () => void;
   onViewThread: () => void;
   onJoinDiscord: () => void;
@@ -57,10 +67,10 @@ export default function ListingCard({
         {/* Item Image */}
         <div className="relative w-full h-40 rounded-md overflow-hidden bg-gray-900 mb-4">
           <SafeImage
-            src={item.imageUrl || "/images/placeholder.svg"}
+            src={item.imageUrl || item.images?.[0]?.imageUrl || "/images/placeholder.svg"}
             alt={item.title}
             fill
-            className="object-cover rounded-md transition-all duration-500 
+            className="object-cover rounded-md transition-all duration-500
               group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(17,78,98,0.5)]"
           />
         </div>

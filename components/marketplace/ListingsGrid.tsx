@@ -2,10 +2,21 @@
 import { JSX } from "react";
 import ListingCard from "./ListingsCard";
 
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  seller: {
+    discordId?: string;
+    discordUsername?: string;
+  };
+  images?: { imageUrl: string }[];
+  imageUrl?: string;
+}
+
 interface ListingsGridProps {
-  listings: any[];
-    contactedListings: { [key: string]: any };
-    presence: { [key: string]: string };
+  listings: Listing[];
+    contactedListings: { [key: string]: { threadUrl?: string; inviteUrl?: string } };
     handleContactSeller: (
         listingId: string,
         discordId: string | undefined,
@@ -15,13 +26,12 @@ interface ListingsGridProps {
         sellerUsername: string
     ) => void;
     FALLBACK_DISCORD_INVITE: string;
-    adminControlsFn?: (item: any) => JSX.Element | null;
+    adminControlsFn?: (item: { id: string }) => JSX.Element | null;
 }
 
 export default function ListingsGrid({
   listings,
   contactedListings,
-  presence,
   handleContactSeller,
   FALLBACK_DISCORD_INVITE,
   adminControlsFn,
@@ -39,7 +49,7 @@ export default function ListingsGrid({
               item.seller?.discordId,
               item.title,
               item.price,
-              item.imageUrl,
+              item.imageUrl || item.images?.[0]?.imageUrl || "",
               item.seller?.discordUsername || "Seller"
             )
           }
