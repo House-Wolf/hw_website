@@ -20,12 +20,15 @@ export default function MarketplacePage() {
   const { data: session } = useSession();
 
   type Listing = {
-    id?: string | number;
+    id: string;
     title: string;
+    description?: string;
     price: number;
+    quantity?: number;
     category: string;
     discordId?: string | null;
-    imageUrl?: string | null;
+    imageUrl?: string;
+    images?: { imageUrl: string }[];
     sellerUsername?: string | null;
   };
 
@@ -72,7 +75,7 @@ export default function MarketplacePage() {
 
 
   const handleContactSeller = useCallback(
-    (listingId: string, discordId: string | undefined, title: string, price: number, imageUrl: string, sellerUsername: string) => {
+    (listingId: string, discordId: string | null | undefined, title: string, price: number, imageUrl: string, sellerUsername: string) => {
       // run async work but return void (matches ListingsGrid prop signature)
       (async () => {
         if (!session?.user) {

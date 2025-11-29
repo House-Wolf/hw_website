@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -62,7 +62,7 @@ type Category = {
   slug: string;
 };
 
-export default function MarketplaceDashboard() {
+function MarketplaceDashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1220,5 +1220,13 @@ export default function MarketplaceDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MarketplaceDashboard() {
+  return (
+    <Suspense fallback={<p className="text-[var(--foreground-muted)]">Loading...</p>}>
+      <MarketplaceDashboardContent />
+    </Suspense>
   );
 }

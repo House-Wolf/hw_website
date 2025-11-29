@@ -6,27 +6,28 @@ interface Listing {
   id: string;
   title: string;
   price: number;
-  seller: {
-    discordId?: string;
-    discordUsername?: string;
-  };
+  description?: string;
+  quantity?: number;
+  category?: string;
+  discordId?: string | null;
+  sellerUsername?: string | null;
   images?: { imageUrl: string }[];
   imageUrl?: string;
 }
 
 interface ListingsGridProps {
   listings: Listing[];
-    contactedListings: { [key: string]: { threadUrl?: string; inviteUrl?: string } };
-    handleContactSeller: (
-        listingId: string,
-        discordId: string | undefined,
-        title: string,
-        price: number,
-        imageUrl: string,
-        sellerUsername: string
-    ) => void;
-    FALLBACK_DISCORD_INVITE: string;
-    adminControlsFn?: (item: { id: string }) => JSX.Element | null;
+  contactedListings: { [key: string]: { threadUrl?: string; inviteUrl?: string } };
+  handleContactSeller: (
+    listingId: string,
+    discordId: string | undefined | null,
+    title: string,
+    price: number,
+    imageUrl: string,
+    sellerUsername: string
+  ) => void;
+  FALLBACK_DISCORD_INVITE: string;
+  adminControlsFn?: (item: { id: string }) => JSX.Element | null;
 }
 
 export default function ListingsGrid({
@@ -46,11 +47,11 @@ export default function ListingsGrid({
           onContact={() =>
             handleContactSeller(
               item.id,
-              item.seller?.discordId,
+              item.discordId,
               item.title,
               item.price,
               item.imageUrl || item.images?.[0]?.imageUrl || "",
-              item.seller?.discordUsername || "Seller"
+              item.sellerUsername || "Seller"
             )
           }
           onViewThread={() =>

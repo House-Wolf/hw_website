@@ -70,7 +70,7 @@ export default function SearchSortBar({
                 sortOption === "price-asc" ? "text-steel-light" : "text-foreground"
               }`}
             >
-              Price: Low -> High
+              {"Price: Low -> High"}
             </button>
 
             <button
@@ -82,7 +82,7 @@ export default function SearchSortBar({
                 sortOption === "price-desc" ? "text-crimson-light" : "text-foreground"
               }`}
             >
-              Price: High -> Low
+              {"Price: High -> Low"}
             </button>
           </div>
         )}

@@ -5,9 +5,9 @@ import { SafeImage } from "../utils/SafeImage";
 interface ListingCardProps {
   item: {
     title: string;
-    description: string;
+    description?: string;
     price: number;
-    quantity: number;
+    quantity?: number;
     images?: { imageUrl: string }[];
     imageUrl?: string;
   };
@@ -91,7 +91,7 @@ export default function ListingCard({
           <p className="text-indigo-300 font-bold text-lg">
             {item.price.toLocaleString()} aUEC
           </p>
-          {item.quantity > 1 && (
+          {item.quantity && item.quantity > 1 && (
             <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
           )}
         </div>
