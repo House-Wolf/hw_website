@@ -81,26 +81,18 @@ export async function PUT(
       },
     });
 
-    // Handle image update
+    // Handle image update (clear then recreate primary image)
+    await prisma.marketplaceListingImage.deleteMany({
+      where: { listingId: id },
+    });
+
     if (imageUrl && imageUrl.trim()) {
-      await prisma.marketplaceListingImage.upsert({
-        where: {
-          listingId_sortOrder: {
-            listingId: id,
-            sortOrder: 0,
-          },
-        },
-        update: { imageUrl: imageUrl.trim() },
-        create: {
+      await prisma.marketplaceListingImage.create({
+        data: {
           listingId: id,
           imageUrl: imageUrl.trim(),
           sortOrder: 0,
         },
-      });
-    } else {
-      // Remove image if empty
-      await prisma.marketplaceListingImage.deleteMany({
-        where: { listingId: id },
       });
     }
 
