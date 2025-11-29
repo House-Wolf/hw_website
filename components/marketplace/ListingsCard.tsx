@@ -45,7 +45,7 @@ export default function ListingCard({
 
       {/* Card Frame Background */}
       <SafeImage
-        src="/images/marketplace/card-frame.png"
+        src="/images/marketplace/card.jpg"
         alt="Card frame"
         fill
         className="object-cover opacity-40"

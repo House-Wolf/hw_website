@@ -4,8 +4,9 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { deriveUserPermissions } from "@/lib/derive-permissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Ban, CheckCircle2, FileText, Shield, UserCog } from "lucide-react";
+import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2 } from "lucide-react";
 import ApprovedDossiersSection from "./components/ApprovedDossiersSection";
+import SocialLinksSection from "./components/SocialLinksSection";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -210,9 +211,11 @@ export default async function AdminPanelPage({
   const params = await searchParams;
   const requestedTab =
     typeof params?.tab === "string" ? (params.tab as string) : "users";
-  let activeTab: "users" | "dossiers" = "users";
+  let activeTab: "users" | "dossiers" | "social" = "users";
   if (requestedTab === "dossiers" && hasDossierAdmin) {
     activeTab = "dossiers";
+  } else if (requestedTab === "social" && hasDossierAdmin) {
+    activeTab = "social";
   } else if (!hasUserAdmin && hasDossierAdmin) {
     activeTab = "dossiers";
   }
@@ -315,6 +318,18 @@ export default async function AdminPanelPage({
             aria-disabled={!hasDossierAdmin}
           >
             Dossiers
+          </Link>
+          <Link
+            href="/dashboard/admin?tab=social"
+            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+              activeTab === "social"
+                ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
+                : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
+            } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
+            aria-current={activeTab === "social" ? "page" : undefined}
+            aria-disabled={!hasDossierAdmin}
+          >
+            Social Links
           </Link>
         </div>
 
@@ -552,6 +567,27 @@ export default async function AdminPanelPage({
                 />
               </div>
             </div>
+          </>
+        )}
+
+        {activeTab === "social" && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.1em] text-[var(--foreground-muted)]">
+                  Social Workflow
+                </p>
+                <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                  Community Streamers
+                </h2>
+                <p className="text-sm text-[var(--foreground-muted)]">
+                  Review and approve Twitch channel submissions from House Wolf members.
+                </p>
+              </div>
+              <Link2 className="text-[var(--accent-main)]" size={20} />
+            </div>
+
+            <SocialLinksSection />
           </>
         )}
       </section>

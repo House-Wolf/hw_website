@@ -35,6 +35,9 @@ model User {
   notifications             notifications[]
   sessions                  Session[]
   roles                     UserRole[]
+  socialLinks               SocialLink[]
+  approvedSocialLinks       SocialLink[]  @relation("ApprovedSocialLinks")
+  rejectedSocialLinks       SocialLink[]  @relation("RejectedSocialLinks")
 
   @@map("users")
 }
@@ -368,4 +371,26 @@ enum notification_type_enum {
   LISTING_SOLD
   SUSPENSION
   SYSTEM
+}
+
+model SocialLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  platform    String
+  channelName String   @map("channel_name")
+  channelUrl  String   @map("channel_url")
+  description String?
+  status      String   @default("PENDING")
+  approvedAt  DateTime? @map("approved_at") @db.Timestamptz(6)
+  approvedBy  String?  @map("approved_by") @db.Uuid
+  rejectedAt  DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectedBy  String?  @map("rejected_by") @db.Uuid
+  rejectionReason String? @map("rejection_reason")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver    User?    @relation("ApprovedSocialLinks", fields: [approvedBy], references: [id])
+  rejecter    User?    @relation("RejectedSocialLinks", fields: [rejectedBy], references: [id])
+
+  @@map("social_links")
 }

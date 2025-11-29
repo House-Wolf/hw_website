@@ -9,6 +9,14 @@ export const fetchCache = "force-no-store";
 
 const DIVISION_DEFINITIONS = [
   {
+    name: "House Wolf Command",
+    subdivisions: [
+      "Leadership Core",
+      "Officers",
+      "Non-Commissioned Officers",
+    ],
+  },
+  {
     name: "Tactical Air Control Operations Division",
     subdivisions: [
       "TACOPS - Command",
