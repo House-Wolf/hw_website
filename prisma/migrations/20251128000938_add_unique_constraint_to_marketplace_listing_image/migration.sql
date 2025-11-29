@@ -66,24 +66,25 @@ ALTER TABLE "mercenary_profile_approval_history"
     END;
 
 ----------------------------------------------------------
--- mercenary_profiles.status : TEXT → ProfileStatus
+-- mercenary_profiles.status : keep as TEXT (fix)
 ----------------------------------------------------------
+
+-- remove default before type change
 ALTER TABLE "mercenary_profiles"
   ALTER COLUMN "status" DROP DEFAULT;
 
+-- convert enum → text
 ALTER TABLE "mercenary_profiles"
-  ALTER COLUMN "status"
-  TYPE "ProfileStatus"
-  USING
-    CASE
-      WHEN status = 'PENDING' THEN 'PENDING'::"ProfileStatus"
-      WHEN status = 'APPROVED' THEN 'APPROVED'::"ProfileStatus"
-      WHEN status = 'REJECTED' THEN 'REJECTED'::"ProfileStatus"
-      ELSE 'PENDING'::"ProfileStatus"
-    END;
+  ALTER COLUMN "status" TYPE TEXT
+  USING status::TEXT;
 
+-- restore default
 ALTER TABLE "mercenary_profiles"
   ALTER COLUMN "status" SET DEFAULT 'PENDING';
+
+-- remove unused enum type if it exists
+DROP TYPE IF EXISTS "ProfileStatus";
+
 
 ----------------------------------------------------------
 -- Add featured_videos table

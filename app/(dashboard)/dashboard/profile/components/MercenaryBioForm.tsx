@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
+import ImageUpload from "./ImageUpload";
 
 type DivisionOption = {
   name: string;
@@ -45,6 +46,7 @@ export default function MercenaryBioForm({
   const [characterName, setCharacterName] = useState(
     existingProfile?.characterName || ""
   );
+  const [portraitUrl, setPortraitUrl] = useState("");
 
   // Social Links State
   const [showSocialModal, setShowSocialModal] = useState(false);
@@ -236,16 +238,58 @@ export default function MercenaryBioForm({
             <label className="block text-sm font-semibold text-[var(--foreground)] mb-1">
               Character Portrait
             </label>
-            <input
-              type="file"
-              name="portrait"
-              accept="image/*"
-              className="w-full text-sm text-[var(--foreground-muted)]"
-              disabled
-              title="Portrait uploads will be enabled soon."
-            />
+
+            {/* Preview in card format matching division page display */}
+            {portraitUrl ? (
+              <div className="max-w-xs mx-auto">
+                <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden border border-[var(--border-soft)] hover:border-[var(--hw-steel-teal)]/50 transition-colors">
+                  {/* Portrait Image */}
+                  <img
+                    src={portraitUrl}
+                    alt="Character Portrait Preview"
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Gradient Overlay - Always visible */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+                  {/* Overlay Text - Always visible */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-sm text-[var(--hw-steel-teal)] font-semibold uppercase tracking-wider mb-1">
+                      {subdivision || "Select Subdivision"}
+                    </p>
+                    <h3 className="text-xl font-bold text-white uppercase tracking-wide drop-shadow-lg">
+                      {characterName || "Character Name"}
+                    </h3>
+                  </div>
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => setPortraitUrl("")}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-red-500/90 hover:bg-red-600 text-white transition-colors z-20 cursor-pointer"
+                    title="Remove portrait"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-xs text-center text-[var(--foreground-muted)] mb-3">
+                  This is how your portrait will appear on the division page
+                </p>
+              </div>
+            ) : (
+              <ImageUpload
+                value={portraitUrl}
+                onChange={setPortraitUrl}
+                onClear={() => setPortraitUrl("")}
+              />
+            )}
+
+            <input type="hidden" name="portraitUrl" value={portraitUrl} />
             <p className="text-xs text-[var(--foreground-muted)] mt-1">
-              Uploads are coming soon. For now, your Discord avatar will be used.
+              Upload a character portrait or provide a URL. If not provided, your Discord avatar will be used.
             </p>
           </div>
         </div>
@@ -255,7 +299,7 @@ export default function MercenaryBioForm({
           <button
             type="button"
             onClick={handleOpenSocialModal}
-            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
           >
             Manage Twitch Channels
           </button>
@@ -263,7 +307,7 @@ export default function MercenaryBioForm({
           {/* Submit Button */}
           <button
             type="submit"
-            className="px-4 py-2 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors"
+            className="px-4 py-2 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors cursor-pointer"
           >
             Submit for approval
           </button>
@@ -309,7 +353,7 @@ export default function MercenaryBioForm({
 
             <button
               onClick={() => setShowAddModal(true)}
-              className="w-full mb-4 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+              className="w-full mb-4 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
             >
               + Add Channel
             </button>
@@ -368,7 +412,7 @@ export default function MercenaryBioForm({
                       </div>
                       <button
                         onClick={() => handleDelete(link.id)}
-                        className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+                        className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground-muted)] hover:text-[var(--foreground)] cursor-pointer"
                       >
                         Delete
                       </button>
@@ -502,14 +546,14 @@ export default function MercenaryBioForm({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isSubmitting ? "Submitting..." : "Submit"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--background-soft)] transition-colors text-[var(--foreground-muted)]"
+                  className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--background-soft)] transition-colors text-[var(--foreground-muted)] cursor-pointer"
                 >
                   Cancel
                 </button>

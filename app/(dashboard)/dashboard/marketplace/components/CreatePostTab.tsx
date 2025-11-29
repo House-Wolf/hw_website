@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useState, useMemo } from "react";
-import ImageUpload from "./ImageUpload";
+import ImageUpload from "../../profile/components/ImageUpload";
 
 interface Category {
   id: number;
@@ -207,7 +207,7 @@ export default function CreatePostTab({ categories, createAction }: CreatePostTa
         <div className="flex justify-end pt-4">
           <button
             type="submit"
-            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] flex items-center gap-2"
+            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] flex items-center gap-2 cursor-pointer"
           >
             <Plus size={16} />
             Create Listing

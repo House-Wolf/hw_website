@@ -32,7 +32,7 @@ export default function SearchSortBar({
   const [sortOpen, setSortOpen] = useState(false);
 
   return (
-    <div className="w-full mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--background-secondary)]/80 shadow-[0_0_25px_rgba(17,78,98,0.25)]">
+    <div className="w-full mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between p-5 rounded-xl bg-[var(--background-secondary)]/80 shadow-[0_0_25px_rgba(17,78,98,0.25)]">
       {/* SEARCH BOX */}
       <div className="relative w-full sm:w-1/2">
         <Search
@@ -45,7 +45,7 @@ export default function SearchSortBar({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search listings..."
-          className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] outline-none focus:border-[var(--accent-strong)] focus:ring-2 focus:ring-[var(--accent-strong)]/30 transition"
+          className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--background)] text-[var(--foreground)] outline-none border-2 border-[var(--hw-steel-teal)]/20 focus:border-[var(--hw-steel-teal)]/40 focus:ring-2 focus:ring-[var(--hw-steel-teal)]/30 transition"
         />
       </div>
 
@@ -53,7 +53,7 @@ export default function SearchSortBar({
       <div className="relative">
         <button
           onClick={() => setSortOpen((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent-strong)] transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] text-[var(--foreground)] border-2 border-[var(--hw-steel-teal)]/20 hover:border-[var(--hw-steel-teal)]/40 hover:bg-[var(--background-elevated)] transition shadow-sm cursor-pointer"
         >
           {sortOption === "price-asc" ? <SortAsc size={18} /> : <SortDesc size={18} />}
           Sort
@@ -66,7 +66,7 @@ export default function SearchSortBar({
                 setSortOption("price-asc");
                 setSortOpen(false);
               }}
-              className={`block w-full text-left px-4 py-2 text-sm hover:bg-[var(--background)] ${
+              className={`block w-full text-left px-4 py-2 text-sm hover:bg-[var(--background)] cursor-pointer ${
                 sortOption === "price-asc" ? "text-[var(--accent-strong)]" : "text-[var(--foreground)]"
               }`}
             >
@@ -78,7 +78,7 @@ export default function SearchSortBar({
                 setSortOption("price-desc");
                 setSortOpen(false);
               }}
-              className={`block w-full text-left px-4 py-2 text-sm hover:bg-[var(--background)] ${
+              className={`block w-full text-left px-4 py-2 text-sm hover:bg-[var(--background)] cursor-pointer ${
                 sortOption === "price-desc" ? "text-[var(--accent-strong)]" : "text-[var(--foreground)]"
               }`}
             >
@@ -92,11 +92,7 @@ export default function SearchSortBar({
       {isAdmin && setShowAdminControls && (
         <button
           onClick={() => setShowAdminControls(!showAdminControls)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] border transition shadow-sm ${
-            showAdminControls
-              ? "border-[var(--accent-strong)] text-[var(--accent-strong)]"
-              : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent-strong)]"
-          }`}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] text-[var(--foreground)] border-2 border-[var(--hw-steel-teal)]/20 hover:border-[var(--hw-steel-teal)]/40 hover:bg-[var(--background-elevated)] transition shadow-sm cursor-pointer"
         >
           Admin Controls
         </button>
@@ -106,7 +102,7 @@ export default function SearchSortBar({
       {showFilters && (
         <button
           onClick={onOpenFilters}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent-strong)] transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background)] text-[var(--foreground)] border-2 border-[var(--hw-steel-teal)]/20 hover:border-[var(--hw-steel-teal)]/40 hover:bg-[var(--background-elevated)] transition shadow-sm cursor-pointer"
         >
           <Filter size={18} />
           Filters

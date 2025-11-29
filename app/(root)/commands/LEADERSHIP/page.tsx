@@ -1,7 +1,8 @@
-"use client";
+"use server";
 
 import React from "react";
 import { SafeImage } from "@/components/utils/SafeImage";
+import { prisma } from "@/lib/prisma";
 
 // Types for leadership members
 interface LeadershipMember {
@@ -15,86 +16,48 @@ interface LeadershipMember {
   specializations?: string[];
 }
 
-// Mock data - will be replaced with backend API calls
-const leadershipCore: LeadershipMember[] = [
-  {
-    id: "1",
-    name: "TBD",
-    rank: "Clan Lord",
-    bio: "Founder and supreme commander of House Wolf. A veteran mercenary with decades of experience across the verse, Magnus built House Wolf from the ground up, establishing it as one of the most elite and respected mercenary organizations in the galaxy. His tactical brilliance and unwavering dedication to the code have shaped the very foundation of what it means to be a Wolf.",
-    joinDate: "2945",
-    specializations: ["Strategic Command", "Tactical Leadership"],
-  },
-  {
-    id: "2",
-    name: "TBD",
-    rank: "Hand of the Clan",
-    bio: "The right hand of the Clan Lord, responsible for operational oversight and strategic planning across all divisions.",
-    specializations: ["Operations", "Strategy"],
-  },
-  {
-    id: "3",
-    name: "TBD",
-    rank: "High Councilor",
-    bio: "Manages internal affairs, personnel, and ensures the smooth operation of House Wolf's day-to-day activities.",
-    specializations: ["Administration", "Personnel Management"],
-  },
-  {
-    id: "4",
-    name: "TBD",
-    rank: "Armor",
-    bio: "Oversees defensive operations, armor deployment, and protective strategies for House Wolf operations.",
-    specializations: ["Defense", "Armor Operations"],
-  },
-];
+async function fetchApprovedLeadership(): Promise<LeadershipMember[]> {
+  const rows = (await prisma.$queryRaw`
+    SELECT
+      mp.id,
+      mp.character_name AS name,
+      mp.bio,
+      mp.portrait_url AS image_url,
+      d.name AS division_name,
+      s.name AS subdivision_name
+    FROM mercenary_profiles mp
+    LEFT JOIN divisions d ON d.id = mp.division_id
+    LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
+    WHERE mp.status = 'APPROVED'
+    ORDER BY mp.approved_at DESC NULLS LAST, mp.last_submitted_at DESC NULLS LAST;
+  `) as Array<{
+    id: string;
+    name: string;
+    bio: string;
+    image_url: string | null;
+    division_name: string | null;
+    subdivision_name: string | null;
+  }>;
 
-const officers: LeadershipMember[] = [
-  {
-    id: "5",
-    name: "TBD",
-    rank: "Fleet Commander",
-    bio: "Commands House Wolf's fleet operations and naval strategic deployments across the verse.",
-    specializations: ["Fleet Operations", "Naval Strategy"],
-  },
-  {
-    id: "6",
-    name: "TBD",
-    rank: "Captain",
-    bio: "Leads tactical operations and coordinates mission execution for critical engagements.",
-    specializations: ["Tactical Operations", "Mission Leadership"],
-  },
-  {
-    id: "7",
-    name: "TBD",
-    rank: "Lieutenant",
-    bio: "Supports operational command and manages frontline unit coordination.",
-    specializations: ["Unit Coordination", "Operations Support"],
-  },
-];
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    rank: row.division_name || "House Wolf",
+    bio: row.bio,
+    imageUrl: row.image_url || undefined,
+    specializations: row.subdivision_name ? [row.subdivision_name] : undefined,
+  }));
+}
 
-const ncos: LeadershipMember[] = [
-  {
-    id: "8",
-    name: "TBD",
-    rank: "Field Marshal",
-    bio: "Leads ground operations and ensures tactical readiness across all enlisted personnel.",
-    specializations: ["Ground Operations", "Tactical Leadership"],
-  },
-  {
-    id: "9",
-    name: "TBD",
-    rank: "Platoon Sergeant",
-    bio: "Provides direct leadership and mentorship to platoon-level units in the field.",
-    specializations: ["Platoon Leadership", "Mentorship"],
-  },
-];
+const LeadershipPage = async () => {
+  const leadershipCore = await fetchApprovedLeadership();
+  const officers: LeadershipMember[] = [];
+  const ncos: LeadershipMember[] = [];
 
-const LeadershipPage = () => {
   return (
     <div className="min-h-screen bg-background-base">
       {/* Hero Section with Patch */}
       <section className="relative overflow-hidden border-b border-border-subtle">
-        <div className="absolute inset-0 bg-linear-to-b from-crimson/5 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-linear-to-r from-steel/5 via-transparent to-steel/5" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -102,14 +65,29 @@ const LeadershipPage = () => {
             {/* Leadership Patch */}
             <div className="flex justify-center mb-8">
               <div className="relative group">
-                <div className="absolute inset-0 bg-crimson/20 blur-2xl group-hover:bg-crimson/30 transition-all duration-slow" />
-                <div className="relative">
+                {/* Soft glow ONLY on hover */}
+                <div className="absolute inset-0 blur-2xl bg-transparent transition-all duration-700 group-hover:bg-crimson/25" />
+
+                <div className="relative rounded-full overflow-visible">
                   <SafeImage
                     src="/images/divisions/leadership.png"
                     alt="Leadership Core Patch"
                     width={200}
                     height={200}
-                    className="drop-shadow-2xl transition-transform duration-slow group-hover:scale-105"
+                    className="
+                      transition-transform duration-700
+                      hover:scale-105 
+                     hover:drop-shadow-[0_0_35px_rgba(220,38,38,0.65)]
+                    "
+                  />
+
+                  {/* ONLY glow outline on hover — no static border */}
+                  <div
+                    className="
+                      absolute inset-0 rounded-full pointer-events-none 
+                      transition-all duration-700
+                      hover:shadow-[0_0_30px_rgba(220,38,38,0.45)]
+                    "
                   />
                 </div>
               </div>
@@ -121,16 +99,21 @@ const LeadershipPage = () => {
             </h1>
             <div className="w-24 h-1 bg-linear-to-r from-transparent via-crimson to-transparent mx-auto mb-6" />
             <p className="text-left text-lg md:text-xl text-foreground-muted max-w-3xl mx-auto leading-relaxed">
-              The elite command structure of House Wolf. Our leaders have proven themselves through
-              honor, strength, and unwavering dedication to the pack.
+              The elite command structure of House Wolf. Our leaders have proven
+              themselves through honor, strength, and unwavering dedication to
+              the pack.
             </p>
             <br />
             <p className="text-left text-lg md:text-xl text-foreground-muted max-w-3xl mx-auto leading-relaxed">
-              House Wolf Command is the central authority responsible for the coordination and oversight of all operations.
-              Serving as the guiding force behind every division, they ensure seamless collaboration and strategic alignment across
-              the organization. While their presence is rarely needed in day-to-day activities, House Wolf Command steps in decisively
-              when situations demand critical intervention. With a focus on vision, accountability, and decisive action, House Wolf
-              Command provides the steady hand that drives success and maintains organizational integrity.
+              House Wolf Command is the central authority responsible for the
+              coordination and oversight of all operations. Serving as the
+              guiding force behind every division, they ensure seamless
+              collaboration and strategic alignment across the organization.
+              While their presence is rarely needed in day-to-day activities,
+              House Wolf Command steps in decisively when situations demand
+              critical intervention. With a focus on vision, accountability, and
+              decisive action, House Wolf Command provides the steady hand that
+              drives success and maintains organizational integrity.
             </p>
           </div>
         </div>
@@ -145,11 +128,15 @@ const LeadershipPage = () => {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {leadershipCore.map((member) => (
-              <LeadershipCard key={member.id} member={member} compact />
-            ))}
-          </div>
+          {leadershipCore.length === 0 ? (
+            <EmptyState label="Leadership core coming soon" />
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {leadershipCore.map((member) => (
+                <LeadershipCard key={member.id} member={member} compact />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -162,11 +149,15 @@ const LeadershipPage = () => {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {officers.map((member) => (
-              <LeadershipCard key={member.id} member={member} compact />
-            ))}
-          </div>
+          {officers.length === 0 ? (
+            <EmptyState label="Officers will be posted here" />
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {officers.map((member) => (
+                <LeadershipCard key={member.id} member={member} compact />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -179,11 +170,15 @@ const LeadershipPage = () => {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {ncos.map((member) => (
-              <LeadershipCard key={member.id} member={member} compact />
-            ))}
-          </div>
+          {ncos.length === 0 ? (
+            <EmptyState label="NCO roster coming soon" />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {ncos.map((member) => (
+                <LeadershipCard key={member.id} member={member} compact />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
@@ -196,11 +191,18 @@ interface LeadershipCardProps {
   compact?: boolean;
 }
 
-const LeadershipCard: React.FC<LeadershipCardProps> = ({ member, compact = false }) => {
+const LeadershipCard: React.FC<LeadershipCardProps> = ({
+  member,
+  compact = false,
+}) => {
   return (
     <div className="card group h-full flex flex-col">
       {/* Image */}
-      <div className={`relative w-full ${compact ? 'aspect-square' : 'aspect-4/3'} mb-4 rounded-lg overflow-hidden border border-border-subtle group-hover:border-steel/50 transition-colors`}>
+      <div
+        className={`relative w-full ${
+          compact ? "aspect-square" : "aspect-4/3"
+        } mb-4 rounded-lg overflow-hidden border border-border-subtle group-hover:border-steel/50 transition-colors`}
+      >
         {member.imageUrl ? (
           <SafeImage
             src={member.imageUrl}
@@ -209,8 +211,7 @@ const LeadershipCard: React.FC<LeadershipCardProps> = ({ member, compact = false
             className="object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-background-elevated flex items-center justify-center">
-          </div>
+          <div className="w-full h-full bg-background-elevated flex items-center justify-center"></div>
         )}
       </div>
 
@@ -220,12 +221,14 @@ const LeadershipCard: React.FC<LeadershipCardProps> = ({ member, compact = false
           <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-steel-light transition-colors">
             {member.name}
           </h3>
-          <div className="badge badge-secondary text-xs">
-            {member.rank}
-          </div>
+          <div className="badge badge-secondary text-xs">{member.rank}</div>
         </div>
 
-        <p className={`text-foreground-muted text-sm leading-relaxed mb-4 flex-1 ${compact ? 'line-clamp-4' : 'line-clamp-6'}`}>
+        <p
+          className={`text-foreground-muted text-sm leading-relaxed mb-4 flex-1 ${
+            compact ? "line-clamp-4" : "line-clamp-6"
+          }`}
+        >
           {member.bio}
         </p>
 
@@ -253,3 +256,11 @@ const LeadershipCard: React.FC<LeadershipCardProps> = ({ member, compact = false
 };
 
 export default LeadershipPage;
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="border border-border-subtle rounded-lg p-6 text-center bg-background-elevated/60 text-foreground-muted">
+      {label}
+    </div>
+  );
+}

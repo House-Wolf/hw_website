@@ -153,15 +153,30 @@ interface DivisionCardProps {
 const DivisionCard: React.FC<DivisionCardProps> = ({ member, compact = false }) => {
   return (
     <div className="card group h-full flex flex-col">
-      {/* Image */}
+      {/* Image with Overlay */}
       <div className={`relative w-full ${compact ? 'aspect-square' : 'aspect-4/3'} mb-4 rounded-lg overflow-hidden border border-border-subtle group-hover:border-steel/50 transition-colors`}>
         {member.imageUrl ? (
-          <SafeImage
-            src={member.imageUrl}
-            alt={member.name}
-            fill
-            className="object-cover"
-          />
+          <>
+            <SafeImage
+              src={member.imageUrl}
+              alt={member.name}
+              fill
+              className="object-cover"
+            />
+
+            {/* Gradient Overlay - Always visible */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+            {/* Overlay Text - Always visible */}
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <p className="text-sm text-[var(--hw-steel-teal)] font-semibold uppercase tracking-wider mb-1">
+                Leadership Core
+              </p>
+              <h3 className="text-xl font-bold text-white uppercase tracking-wide drop-shadow-lg">
+                {member.name}
+              </h3>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full bg-background-elevated flex items-center justify-center">
           </div>

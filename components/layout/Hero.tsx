@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Bell, CalendarDays, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { SafeImage } from "../utils/SafeImage";
 
 interface Event {
   id: string;
@@ -69,7 +70,7 @@ export default function Hero({
       >
         {/* LEFT — FEATURED PHOTO */}
         <div className="relative w-full h-full overflow-hidden border-r border-border-subtle group">
-          <Image
+          <SafeImage
             src={activePhoto.url}
             alt={activePhoto.alt}
             fill
@@ -121,7 +122,7 @@ export default function Hero({
           rel="noreferrer"
           className="relative w-full h-full overflow-hidden border-r border-border-subtle group"
         >
-          <Image
+          <SafeImage
             src={featuredVideo.thumbnail}
             alt={featuredVideo.title}
             fill
@@ -153,15 +154,15 @@ export default function Hero({
         {/* RIGHT — ANNOUNCEMENTS + EVENTS (STACKED) */}
         <div className="flex-1 flex-col h-full bg-background-soft">
           {/* Announcements */}
-          <div className="flex-1 border-b border-border-subtle p-2 overflow-auto ">
-            <header className="flex items-center justify-between mb-2">
+          <div className="flex-1 flex-col h-[20vh] border-b border-border-subtle p-2 overflow-auto ">
+            <header className="flex items-center justify-between mb-2 mt-3">
               <h2 className="text-sm font-bold uppercase tracking-widest text-crimson-light">
                 Announcements
               </h2>
               <Bell size={18} className="text-crimson-light" />
             </header>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {announcements.length ? (
                 announcements.slice(0, 2).map((a) => (
                   <div

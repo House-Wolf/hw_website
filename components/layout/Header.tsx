@@ -32,7 +32,7 @@ export default function Header({ isLoggedIn = false }: HeaderProps): JSX.Element
       className={`sticky top-0 z-50 transition-all duration-300 border-b ${
         isScrolled
           ? "bg-background-card/30 backdrop-blur-xl border-white/20 shadow-xl"
-          : "bg-[#252933] backdrop-blur-sm border-white/40 shadow-lg"
+          : "bg-[#000000] backdrop-blur-sm border-white/40 shadow-lg"
       }`}
     >
       <div className="container mx-auto px-4 md:px-6">
@@ -43,9 +43,9 @@ export default function Header({ isLoggedIn = false }: HeaderProps): JSX.Element
             <Image
               src="/images/global/HWiconnew.png"
               alt="House Wolf Icon"
-              width={60}
-              height={60}
-              className="drop-shadow-[0_0_10px_rgba(17,78,98,0.6)]"
+              width={75}
+              height={75}
+              className="drop-shadow-[0_0_20px_rgba(17,78,98,0.6)]"
             />
           </Link>
 

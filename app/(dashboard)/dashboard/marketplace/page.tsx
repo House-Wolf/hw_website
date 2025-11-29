@@ -531,7 +531,7 @@ function MarketplaceDashboardContent() {
       <div className="flex gap-2 mb-6 border-b border-[var(--border-soft)]">
         <button
           onClick={() => setActiveTab("create")}
-          className={`px-6 py-3 font-semibold transition-all relative ${
+          className={`px-6 py-3 font-semibold transition-all relative cursor-pointer ${
             activeTab === "create"
               ? "text-[var(--accent-strong)]"
               : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
@@ -547,7 +547,7 @@ function MarketplaceDashboardContent() {
             setActiveTab("manage");
             cancelEdit();
           }}
-          className={`px-6 py-3 font-semibold transition-all relative ${
+          className={`px-6 py-3 font-semibold transition-all relative cursor-pointer ${
             activeTab === "manage"
               ? "text-[var(--accent-strong)]"
               : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
@@ -568,7 +568,7 @@ function MarketplaceDashboardContent() {
               <span className="text-blue-300">Editing listing</span>
               <button
                 onClick={cancelEdit}
-                className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
+                className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -608,14 +608,14 @@ function MarketplaceDashboardContent() {
                     type="button"
                     onClick={handleWikiSearch}
                     disabled={wikiLoading || !formData.title.trim()}
-                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors whitespace-nowrap"
+                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                   >
                     {wikiLoading ? "Searching..." : "Search Wiki"}
                   </button>
                   <button
                     type="button"
                     onClick={handleClearForm}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors cursor-pointer"
                   >
                     Clear Form
                   </button>
@@ -691,7 +691,7 @@ function MarketplaceDashboardContent() {
                       <button
                         type="button"
                         onClick={() => setShowSrpHelper((prev) => !prev)}
-                        className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors"
+                        className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
                       >
                         {showSrpHelper ? "Hide tool" : "Show tool"}
                       </button>
@@ -766,7 +766,7 @@ function MarketplaceDashboardContent() {
                             <button
                               type="button"
                               onClick={() => setShowSrpCalculator((prev) => !prev)}
-                              className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors"
+                              className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
                             >
                               {showSrpCalculator
                                 ? "Hide cheat sheet"
@@ -950,7 +950,7 @@ function MarketplaceDashboardContent() {
                                   <button
                                     type="button"
                                     onClick={applyCalculatedRarityScore}
-                                    className="w-full py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-lg font-semibold transition-colors border border-[var(--border)]"
+                                    className="w-full py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-lg font-semibold transition-colors border border-[var(--border)] cursor-pointer"
                                   >
                                     Use RS{" "}
                                     {Math.min(
@@ -987,7 +987,7 @@ function MarketplaceDashboardContent() {
                             <button
                               type="button"
                               onClick={applySuggestedPrice}
-                              className="mt-2 w-full py-2 bg-[var(--accent-strong)]/80 hover:bg-[var(--accent-strong)] text-white rounded-lg font-semibold transition-colors"
+                              className="mt-2 w-full py-2 bg-[var(--accent-strong)]/80 hover:bg-[var(--accent-strong)] text-white rounded-lg font-semibold transition-colors cursor-pointer"
                             >
                               Use {suggestedRetailPrice.toLocaleString()} aUEC
                             </button>
@@ -1101,7 +1101,7 @@ function MarketplaceDashboardContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-3 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading
                   ? "Saving..."
@@ -1161,7 +1161,7 @@ function MarketplaceDashboardContent() {
               </p>
               <button
                 onClick={() => setActiveTab("create")}
-                className="text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 font-semibold"
+                className="text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 font-semibold cursor-pointer"
               >
                 Create your first listing →
               </button>
@@ -1217,14 +1217,14 @@ function MarketplaceDashboardContent() {
                         <button
                           onClick={() => handleEdit(listing)}
                           disabled={loading}
-                          className="flex-1 py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-md transition-colors disabled:opacity-50 border border-[var(--border)] text-sm"
+                          className="flex-1 py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-md transition-colors disabled:opacity-50 border border-[var(--border)] text-sm cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(listing.id)}
                           disabled={loading}
-                          className="flex-1 py-2 bg-red-900/40 hover:bg-red-900/60 text-red-300 hover:text-red-200 rounded-md transition-colors disabled:opacity-50 text-sm"
+                          className="flex-1 py-2 bg-red-900/40 hover:bg-red-900/60 text-red-300 hover:text-red-200 rounded-md transition-colors disabled:opacity-50 text-sm cursor-pointer"
                         >
                           Delete
                         </button>

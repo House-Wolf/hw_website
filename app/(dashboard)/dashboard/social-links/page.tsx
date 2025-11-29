@@ -134,7 +134,7 @@ const SocialLinksManagementPage = () => {
       <div className="flex gap-2 mb-8 border-b border-border-default">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`px-6 py-3 font-semibold transition-colors relative ${
+          className={`px-6 py-3 font-semibold transition-colors relative cursor-pointer ${
             activeTab === "pending"
               ? "text-crimson"
               : "text-foreground-muted hover:text-foreground"
@@ -152,7 +152,7 @@ const SocialLinksManagementPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("approved")}
-          className={`px-6 py-3 font-semibold transition-colors relative ${
+          className={`px-6 py-3 font-semibold transition-colors relative cursor-pointer ${
             activeTab === "approved"
               ? "text-steel-light"
               : "text-foreground-muted hover:text-foreground"
@@ -165,7 +165,7 @@ const SocialLinksManagementPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("rejected")}
-          className={`px-6 py-3 font-semibold transition-colors relative ${
+          className={`px-6 py-3 font-semibold transition-colors relative cursor-pointer ${
             activeTab === "rejected"
               ? "text-status-warning-text"
               : "text-foreground-muted hover:text-foreground"
@@ -306,13 +306,13 @@ const SocialLinkCard: React.FC<SocialLinkCardProps> = ({
             <>
               <button
                 onClick={onApprove}
-                className="btn btn-secondary px-4 py-2 text-sm whitespace-nowrap"
+                className="btn btn-secondary px-4 py-2 text-sm whitespace-nowrap cursor-pointer"
               >
                 ✓ Approve
               </button>
               <button
                 onClick={onReject}
-                className="btn btn-ghost px-4 py-2 text-sm whitespace-nowrap hover:bg-status-error/20 hover:text-status-error-text"
+                className="btn btn-ghost px-4 py-2 text-sm whitespace-nowrap hover:bg-status-error/20 hover:text-status-error-text cursor-pointer"
               >
                 ✗ Reject
               </button>
@@ -321,7 +321,7 @@ const SocialLinkCard: React.FC<SocialLinkCardProps> = ({
           {(status === "approved" || status === "rejected") && (
             <button
               onClick={onDelete}
-              className="btn btn-ghost px-4 py-2 text-sm whitespace-nowrap hover:bg-status-error/20 hover:text-status-error-text"
+              className="btn btn-ghost px-4 py-2 text-sm whitespace-nowrap hover:bg-status-error/20 hover:text-status-error-text cursor-pointer"
             >
               Delete
             </button>
@@ -388,7 +388,7 @@ const RejectModal: React.FC<RejectModalProps> = ({ link, onClose, onSuccess }) =
           </h2>
           <button
             onClick={onClose}
-            className="text-foreground-muted hover:text-foreground transition-colors"
+            className="text-foreground-muted hover:text-foreground transition-colors cursor-pointer"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -425,11 +425,11 @@ const RejectModal: React.FC<RejectModalProps> = ({ link, onClose, onSuccess }) =
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn btn-primary flex-1 bg-status-error hover:bg-status-error/80"
+              className="btn btn-primary flex-1 bg-status-error hover:bg-status-error/80 cursor-pointer"
             >
               {isSubmitting ? "Rejecting..." : "Reject Submission"}
             </button>
-            <button type="button" onClick={onClose} className="btn btn-ghost">
+            <button type="button" onClick={onClose} className="btn btn-ghost cursor-pointer">
               Cancel
             </button>
           </div>

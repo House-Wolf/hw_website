@@ -189,8 +189,9 @@ async function submitBio(formData: FormData) {
         bio = ${bio},
         division_id = ${division.id},
         subdivision_id = ${subdivision ? subdivision.id : null},
-        status = 'PENDING'::"ProfileStatus",
+        status = 'PENDING',
         last_submitted_at = NOW(),
+        updated_at = NOW(),
         approved_at = NULL,
         approved_by = NULL,
         rejected_at = NULL,
@@ -211,6 +212,7 @@ async function submitBio(formData: FormData) {
         status,
         is_public,
         last_submitted_at,
+        updated_at,
         portrait_url
       )
       VALUES (
@@ -220,8 +222,9 @@ async function submitBio(formData: FormData) {
         ${bio},
         ${division.id},
         ${subdivision ? subdivision.id : null},
-        'PENDING'::"ProfileStatus",
+        'PENDING',
         true,
+        NOW(),
         NOW(),
         ${userRow.image ?? null}
       );

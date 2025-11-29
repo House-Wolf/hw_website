@@ -11,6 +11,8 @@ import SocialLinksSection from "./components/SocialLinksSection";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
+
+
 async function suspendUserAction(formData: FormData) {
   "use server";
 
@@ -301,10 +303,20 @@ export default async function AdminPanelPage({
         select: {
           id: true,
           name: true,
+          
           divisionId: true,
         },
       })
     : [];
+
+  const approvedDossiers = dossiers
+    .filter((d) => d.status === "APPROVED")
+    .map((d) => ({
+      ...d,
+      user: { discordUsername: d.discordUsername || "unknown" },
+      division: d.divisionName ? { name: d.divisionName } : null,
+      subdivision: d.subdivisionName ? { name: d.subdivisionName } : null,
+    }));
 
   return (
     <div className="space-y-6">
@@ -328,7 +340,7 @@ export default async function AdminPanelPage({
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] pb-3">
           <Link
             href="/dashboard/admin?tab=users"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
               activeTab === "users"
                 ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
                 : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
@@ -340,7 +352,7 @@ export default async function AdminPanelPage({
           </Link>
           <Link
             href="/dashboard/admin?tab=dossiers"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
               activeTab === "dossiers"
                 ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
                 : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
@@ -352,7 +364,7 @@ export default async function AdminPanelPage({
           </Link>
           <Link
             href="/dashboard/admin?tab=social"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
               activeTab === "social"
                 ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
                 : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
@@ -464,7 +476,7 @@ export default async function AdminPanelPage({
                                 <input type="hidden" name="userId" value={user.id} />
                                 <button
                                   type="submit"
-                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   aria-label="Suspend user"
                                   title="Suspend user from dashboard access"
                                 >
@@ -476,7 +488,7 @@ export default async function AdminPanelPage({
                                 <input type="hidden" name="userId" value={user.id} />
                                 <button
                                   type="submit"
-                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                                   aria-label="Revoke suspension"
                                   title="Revoke suspension and restore access"
                                 >
@@ -551,8 +563,8 @@ export default async function AdminPanelPage({
                               </p>
                             </div>
                             <span className="text-xs text-[var(--foreground-muted)]">
-                              {dossier.division?.name}
-                              {dossier.subdivision ? ` • ${dossier.subdivision.name}` : ""}
+                              {dossier.divisionName ?? ""}
+                              {dossier.subdivisionName ? ` • ${dossier.subdivisionName}` : ""}
                             </span>
                           </div>
                           <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-hidden">
@@ -562,7 +574,7 @@ export default async function AdminPanelPage({
                             <input type="hidden" name="dossierId" value={dossier.id} />
                             <button
                               type="submit"
-                              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                             >
                               Approve
                             </button>
@@ -582,14 +594,15 @@ export default async function AdminPanelPage({
                     <h3 className="text-lg font-semibold text-[var(--foreground)]">
                       Published
                     </h3>
+                    
                   </div>
                   <span className="text-sm font-semibold px-3 py-1 rounded-full bg-[var(--accent-soft)]/15 border border-[var(--accent-soft)] text-[var(--foreground)]">
                     {dossiers.filter((d) => d.status === "APPROVED").length}
                   </span>
                 </div>
 
-                <ApprovedDossiersSection
-                  dossiers={dossiers.filter((d) => d.status === "APPROVED")}
+                <ApprovedDossiersSection 
+                  dossiers={approvedDossiers}
                   divisions={divisions}
                   subdivisions={subdivisions}
                   onEdit={editDossierAction}

@@ -22,7 +22,7 @@ export default function AdminControls({ item, onEdit, onDelete }: AdminControlsP
       {/* DELETE BUTTON */}
       <button
         onClick={() => setConfirming(true)}
-        className="flex-1 py-2 bg-crimson-dark/70 border border-crimson-light/40 text-crimson-light text-xs font-semibold rounded-md hover:bg-crimson-dark/90 hover:border-crimson-light transition"
+        className="flex-1 py-2 bg-crimson-dark/70 border border-crimson-light/40 text-crimson-light text-xs font-semibold rounded-md hover:bg-crimson-dark/90 hover:border-crimson-light transition cursor-pointer"
       >
         <Trash2 size={14} className="inline-block mr-1" />
         Delete
@@ -31,7 +31,7 @@ export default function AdminControls({ item, onEdit, onDelete }: AdminControlsP
       {/* EDIT BUTTON */}
       <button
         onClick={() => onEdit(item)}
-        className="flex-1 py-2 bg-steel-dark/60 border border-steel-light/30 text-steel-light text-xs font-semibold rounded-md hover:bg-steel-dark/80 hover:border-steel-light transition"
+        className="flex-1 py-2 bg-steel-dark/60 border border-steel-light/30 text-steel-light text-xs font-semibold rounded-md hover:bg-steel-dark/80 hover:border-steel-light transition cursor-pointer"
       >
         <Pencil size={14} className="inline-block mr-1" />
         Edit
@@ -51,13 +51,13 @@ export default function AdminControls({ item, onEdit, onDelete }: AdminControlsP
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirming(false)}
-                className="flex-1 py-2 rounded-md bg-steel-dark/40 text-foreground hover:bg-steel-dark/60 transition"
+                className="flex-1 py-2 rounded-md bg-steel-dark/40 text-foreground hover:bg-steel-dark/60 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 py-2 rounded-md bg-crimson-dark/80 text-crimson-light border border-crimson-light/40 hover:bg-crimson-dark transition"
+                className="flex-1 py-2 rounded-md bg-crimson-dark/80 text-crimson-light border border-crimson-light/40 hover:bg-crimson-dark transition cursor-pointer"
               >
                 Yes, Delete
               </button>

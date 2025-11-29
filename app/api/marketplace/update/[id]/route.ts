@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { Prisma } from "@prisma/client";
 
 export async function PUT(
   req: Request,
@@ -37,12 +38,21 @@ export async function PUT(
     }
 
     const body = await req.json();
+    console.log('Update API received body:', JSON.stringify(body, null, 2));
+
     const { title, description, categoryId, price, quantity, location, imageUrl, status } = body;
 
-    // Validation
-    if (!title || !description || !categoryId || price == null) {
+    // Validation - ensure at least title and description are provided
+    if (title !== undefined && !title.trim()) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Title cannot be empty" },
+        { status: 400 }
+      );
+    }
+
+    if (description !== undefined && !description.trim()) {
+      return NextResponse.json(
+        { error: "Description cannot be empty" },
         { status: 400 }
       );
     }
@@ -67,19 +77,46 @@ export async function PUT(
       );
     }
 
-    // Update listing
-    const updated = await prisma.marketplaceListings.update({
-      where: { id },
-      data: {
-        title: title.trim(),
-        description: description.trim(),
-        categoryId: parseInt(categoryId),
-        price: parseFloat(price),
-        quantity: quantity ? parseInt(quantity) : 1,
-        location: location?.trim() || null,
-        ...(status && { status }),
-      },
-    });
+    // Build and execute SQL update query using raw SQL (needed for enum types)
+    const setParts: any[] = [];
+
+    if (title !== undefined) {
+      setParts.push(Prisma.sql`"title" = ${title.trim()}`);
+    }
+    if (description !== undefined) {
+      setParts.push(Prisma.sql`"description" = ${description.trim()}`);
+    }
+    if (categoryId !== undefined) {
+      setParts.push(Prisma.sql`"category_id" = ${parseInt(categoryId)}`);
+    }
+    if (price !== undefined) {
+      setParts.push(Prisma.sql`"price" = ${parseFloat(price)}`);
+    }
+    if (quantity !== undefined) {
+      setParts.push(Prisma.sql`"quantity" = ${parseInt(quantity)}`);
+    }
+    if (location !== undefined) {
+      setParts.push(Prisma.sql`"location" = ${location?.trim() || null}`);
+    }
+
+    // Always update the timestamp
+    setParts.push(Prisma.sql`"updated_at" = NOW()`);
+
+    console.log('Updating listing with', setParts.length, 'fields');
+
+    // Build the complete query
+    const query = Prisma.sql`
+      UPDATE "marketplace_listings"
+      SET ${Prisma.join(setParts, ', ')}
+      WHERE "id" = ${id}::uuid
+    `;
+
+    console.log('Executing query...');
+
+    // Execute the update
+    await prisma.$executeRaw(query);
+
+    console.log('Update successful');
 
     // Handle image update (clear then recreate primary image)
     await prisma.marketplaceListingImage.deleteMany({
@@ -97,7 +134,7 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { success: true, listing: updated },
+      { success: true, message: 'Listing updated successfully' },
       { status: 200 }
     );
   } catch (error: any) {

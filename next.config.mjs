@@ -6,9 +6,6 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: false,
-  },
   outputFileTracingRoot: __dirname,
   turbopack: {
     root: __dirname,

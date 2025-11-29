@@ -47,6 +47,10 @@ const navItems: NavItem[] = [
     href: "/marketplace",
   },
   {
+    label: "Fleet",
+    href: "/fleet",
+  },
+  {
     label: "Socials",
     href: "/socials",
   },

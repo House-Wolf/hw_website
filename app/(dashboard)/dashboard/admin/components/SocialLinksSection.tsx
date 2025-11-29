@@ -189,13 +189,13 @@ export default function SocialLinksSection() {
                   <div className="flex gap-2 pt-2 border-t border-[var(--border-subtle)]">
                     <button
                       onClick={() => handleApprove(link.id)}
-                      className="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                      className="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                     >
                       ✓ Approve
                     </button>
                     <button
                       onClick={() => handleReject(link)}
-                      className="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)]"
+                      className="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] cursor-pointer"
                     >
                       ✗ Reject
                     </button>
@@ -258,7 +258,7 @@ export default function SocialLinksSection() {
                     </div>
                     <button
                       onClick={() => handleDelete(link.id)}
-                      className="px-2 py-1 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+                      className="px-2 py-1 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground-muted)] hover:text-[var(--foreground)] cursor-pointer"
                     >
                       Delete
                     </button>
@@ -342,7 +342,7 @@ const RejectModal: React.FC<RejectModalProps> = ({ link, onClose, onSuccess }) =
           </h2>
           <button
             onClick={onClose}
-            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
+            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -379,14 +379,14 @@ const RejectModal: React.FC<RejectModalProps> = ({ link, onClose, onSuccess }) =
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-strong)] bg-[var(--accent-strong)]/15 hover:bg-[var(--accent-strong)]/25 transition-colors text-[var(--foreground)]"
+              className="flex-1 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-strong)] bg-[var(--accent-strong)]/15 hover:bg-[var(--accent-strong)]/25 transition-colors text-[var(--foreground)] cursor-pointer"
             >
               {isSubmitting ? "Rejecting..." : "Reject Submission"}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--background-soft)] transition-colors text-[var(--foreground-muted)]"
+              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--background-soft)] transition-colors text-[var(--foreground-muted)] cursor-pointer"
             >
               Cancel
             </button>

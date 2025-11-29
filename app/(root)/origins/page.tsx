@@ -21,10 +21,13 @@ export default function OriginsPage(): JSX.Element {
           <div className="absolute inset-0 bg-linear-to-b from-steel-dark/60 via-obsidian/40 to-obsidian/95" />
           {/* Subtle color orbs */}
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+          <div
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse"
+            style={{ animationDelay: "1s" }}
+          />
         </div>
         {/* Bottom Border */}
-         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-30 z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-30 z-10" />
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-7xl mx-auto">
           <div className="mb-8">
@@ -54,14 +57,18 @@ export default function OriginsPage(): JSX.Element {
         <div className="max-w-4xl mx-auto relative z-10">
           <div className="bg-linear-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)] hover:shadow-[0_0_60px_rgba(17,78,98,0.5)] hover:border-steel/50 transition-all duration-500">
             <p className="text-xl md:text-2xl text-foreground leading-relaxed mb-6">
-              The <span className="text-steel-light font-bold">Kamposian Dragoons</span> were
-              a clan-based culture composed of members from multiple species and bound by a
-              common creed, language, and code.
+              The{" "}
+              <span className="text-steel-light font-bold">
+                Kamposian Dragoons
+              </span>{" "}
+              were a clan-based culture composed of members from multiple
+              species and bound by a common creed, language, and code.
             </p>
             <p className="text-lg md:text-xl text-foreground-muted leading-relaxed">
-              Known primarily as highly-effective mercenaries and bounty hunters, Kamposian
-              Dragoons—or simply "Dragoons"—have at various points in galactic history played
-              a major role as legendary warriors and conquerors.
+              Known primarily as highly-effective mercenaries and bounty
+              hunters, Kamposian Dragoons—or simply "Dragoons"—have at various
+              points in galactic history played a major role as legendary
+              warriors and conquerors.
             </p>
           </div>
         </div>
@@ -73,17 +80,23 @@ export default function OriginsPage(): JSX.Element {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Image */}
             <div className="relative">
-              <div className="bg-linear-to-br from-steel-dark/30 to-obsidian rounded-lg overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+              <div
+                className="
+                    rounded-xl overflow-hidden
+                    bg-linear-to-br from-steel-dark/30 to-obsidian
+                    shadow-[0_0_18px_rgba(0,180,255,0.25)]
+                    hover:shadow-[0_0_28px_rgba(0,200,255,0.45)]
+                    transition-shadow duration-300
+                  "
+              >
                 <SafeImage
-                  src="/images/origins/kamposi-magnus.png"
+                  src="/images/origins/kamposimagnusskull.png"
                   alt="Kampos - Birthplace of the Dragoons"
                   width={800}
                   height={600}
-                  className="w-full h-80 object-contain"
+                  className="w-full h-80 object-contain rounded-xl"
                 />
               </div>
-              <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-steel/30 rounded-lg -z-10 blur-xl animate-pulse" />
-              <div className="absolute -top-6 -left-6 w-48 h-48 bg-crimson/20 rounded-lg -z-10 blur-xl animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
 
             {/* Content */}
@@ -94,13 +107,17 @@ export default function OriginsPage(): JSX.Element {
               <div className="h-1 w-24 bg-linear-to-r from-steel-light to-transparent mb-6 shadow-[0_0_10px_rgba(17,78,98,0.8)]" />
 
               <p className="text-lg text-foreground-muted leading-relaxed mb-4">
-                Originating on the planet of <span className="text-steel-light font-semibold">Kampos (Ellis IV)</span>,
-                the Dragoons' way of life revolved around honor and war.
+                Originating on the planet of{" "}
+                <span className="text-steel-light font-semibold">
+                  Kampos (Ellis IV)
+                </span>
+                , the Dragoons' way of life revolved around honor and war.
               </p>
 
               <p className="text-lg text-foreground-muted leading-relaxed mb-6">
-                This harsh world forged a warrior culture unlike any other, where strength
-                and honor were not mere ideals but the very foundation of existence.
+                This harsh world forged a warrior culture unlike any other,
+                where strength and honor were not mere ideals but the very
+                foundation of existence.
               </p>
 
               <Link
@@ -159,9 +176,9 @@ export default function OriginsPage(): JSX.Element {
               </h3>
 
               <p className="text-foreground-muted leading-relaxed">
-                As a result of their warrior culture, the Dragoons launched several wars
-                of expansion, colonizing nearby worlds and extending their influence across
-                the sector.
+                As a result of their warrior culture, the Dragoons launched
+                several wars of expansion, colonizing nearby worlds and
+                extending their influence across the sector.
               </p>
             </div>
 
@@ -182,8 +199,12 @@ export default function OriginsPage(): JSX.Element {
               </h3>
 
               <p className="text-foreground-muted leading-relaxed">
-                The sector surrounding their homeworld became known as <span className="text-steel-light font-semibold">Dragoon Space</span>,
-                a testament to their military prowess and territorial dominance.
+                The sector surrounding their homeworld became known as{" "}
+                <span className="text-steel-light font-semibold">
+                  Dragoon Space
+                </span>
+                , a testament to their military prowess and territorial
+                dominance.
               </p>
             </div>
           </div>
@@ -194,7 +215,10 @@ export default function OriginsPage(): JSX.Element {
       <section className="relative py-20 px-4 bg-linear-to-b from-night-deep to-shadow overflow-hidden">
         {/* Dual color glows representing the divide */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="bg-linear-to-br from-crimson-dark/30 via-steel-dark/20 to-obsidian border-2 border-crimson/50 rounded-lg p-12 md:p-16 shadow-[0_0_70px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.5)] transition-all duration-500">
@@ -213,9 +237,10 @@ export default function OriginsPage(): JSX.Element {
                     </h3>
                   </div>
                   <p className="text-foreground-muted leading-relaxed">
-                    Traditional Dragoon warriors maintained control of Kampos through force,
-                    upholding the ancient ways of honor through combat and the warrior's code
-                    that had defined their people for generations.
+                    Traditional Dragoon warriors maintained control of Kampos
+                    through force, upholding the ancient ways of honor through
+                    combat and the warrior's code that had defined their people
+                    for generations.
                   </p>
                 </div>
 
@@ -223,23 +248,26 @@ export default function OriginsPage(): JSX.Element {
                 <div className="bg-linear-to-br from-steel-dark/40 to-obsidian border border-steel/40 rounded-lg p-6 hover:border-steel-light hover:shadow-[0_0_30px_rgba(17,78,98,0.4)] transition-all duration-300">
                   <div className="mb-4">
                     <h3 className="text-2xl font-bold text-steel-light mb-2 flex items-center gap-2">
-                      <span className="w-3 h-3 bg-steel-light rounded-full shadow-[0_0_10px_rgba(17,78,98,0.8)] animate-pulse" style={{ animationDelay: '0.5s' }}></span>
+                      <span
+                        className="w-3 h-3 bg-steel-light rounded-full shadow-[0_0_10px_rgba(17,78,98,0.8)] animate-pulse"
+                        style={{ animationDelay: "0.5s" }}
+                      ></span>
                       The New Dragoons
                     </h3>
                   </div>
                   <p className="text-foreground-muted leading-relaxed">
-                    Much of Kampos's population embraced the pacifist New Dragoons movement,
-                    led by the young Duchess Satine Kryze of House Kryze, seeking a path
-                    away from endless war.
+                    Much of Kampos's population embraced the pacifist New
+                    Dragoons movement, led by the young Duchess Satine Kryze of
+                    House Kryze, seeking a path away from endless war.
                   </p>
                 </div>
               </div>
 
               <div className="border-t border-border-subtle pt-8">
                 <p className="text-xl text-foreground leading-relaxed text-center">
-                  Eventually, a civil war erupted between the pacifist New Dragoons and the
-                  traditionalist warriors, tearing the Dragoon culture apart and reshaping
-                  the fate of Kampos forever.
+                  Eventually, a civil war erupted between the pacifist New
+                  Dragoons and the traditionalist warriors, tearing the Dragoon
+                  culture apart and reshaping the fate of Kampos forever.
                 </p>
               </div>
             </div>
@@ -258,8 +286,9 @@ export default function OriginsPage(): JSX.Element {
           </h2>
 
           <p className="text-xl text-foreground-muted mb-12 leading-relaxed max-w-3xl mx-auto">
-            Today, House Wolf carries forward the proud traditions of the Kamposian Dragoons,
-            honoring the warrior code while forging our own path among the stars.
+            Today, House Wolf carries forward the proud traditions of the
+            Kamposian Dragoons, honoring the warrior code while forging our own
+            path among the stars.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
