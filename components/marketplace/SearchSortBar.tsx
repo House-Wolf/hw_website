@@ -1,24 +1,31 @@
 "use client";
 
 import { Search, Filter, SortAsc, SortDesc } from "lucide-react";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 interface SearchSortBarProps {
-  searchValue: string;
-  onSearchChange: (value: string) => void;
+  searchQuery: string;
+  setSearchQuery: Dispatch<SetStateAction<string>>;
 
-  sortValue: string;
-  onSortChange: (value: string) => void;
+  sortOption: string;
+  setSortOption: Dispatch<SetStateAction<string>>;
+
+  showAdminControls?: boolean;
+  setShowAdminControls?: Dispatch<SetStateAction<boolean>>;
+  isAdmin?: boolean;
 
   showFilters?: boolean;
   onOpenFilters?: () => void;
 }
 
 export default function SearchSortBar({
-  searchValue,
-  onSearchChange,
-  sortValue,
-  onSortChange,
+  searchQuery,
+  setSearchQuery,
+  sortOption,
+  setSortOption,
+  showAdminControls = false,
+  setShowAdminControls,
+  isAdmin = false,
   showFilters = false,
   onOpenFilters
 }: SearchSortBarProps) {
@@ -35,8 +42,8 @@ export default function SearchSortBar({
 
         <input
           type="text"
-          value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search listings..."
           className="w-full pl-10 pr-4 py-2 rounded-lg bg-night-deep border border-accent-main/20 text-foreground outline-none focus:border-steel-light focus:ring-2 focus:ring-steel-light/40 transition"
         />
@@ -48,7 +55,7 @@ export default function SearchSortBar({
           onClick={() => setSortOpen((v) => !v)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-night-deep border border-accent-main/20 text-foreground hover:border-steel-light transition"
         >
-          {sortValue === "asc" ? <SortAsc size={18} /> : <SortDesc size={18} />}
+          {sortOption === "price-asc" ? <SortAsc size={18} /> : <SortDesc size={18} />}
           Sort
         </button>
 
@@ -56,30 +63,44 @@ export default function SearchSortBar({
           <div className="absolute mt-2 w-40 right-0 rounded-lg bg-obsidian border border-accent-main/30 shadow-lg z-50">
             <button
               onClick={() => {
-                onSortChange("asc");
+                setSortOption("price-asc");
                 setSortOpen(false);
               }}
               className={`block w-full text-left px-4 py-2 text-sm hover:bg-night-deep ${
-                sortValue === "asc" ? "text-steel-light" : "text-foreground"
+                sortOption === "price-asc" ? "text-steel-light" : "text-foreground"
               }`}
             >
-              Price: Low → High
+              {"Price: Low -> High"}
             </button>
 
             <button
               onClick={() => {
-                onSortChange("desc");
+                setSortOption("price-desc");
                 setSortOpen(false);
               }}
               className={`block w-full text-left px-4 py-2 text-sm hover:bg-night-deep ${
-                sortValue === "desc" ? "text-crimson-light" : "text-foreground"
+                sortOption === "price-desc" ? "text-crimson-light" : "text-foreground"
               }`}
             >
-              Price: High → Low
+              {"Price: High -> Low"}
             </button>
           </div>
         )}
       </div>
+
+      {/* ADMIN CONTROLS TOGGLE (OPTIONAL) */}
+      {isAdmin && setShowAdminControls && (
+        <button
+          onClick={() => setShowAdminControls(!showAdminControls)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-night-deep border transition ${
+            showAdminControls
+              ? "border-crimson-light text-crimson-light"
+              : "border-accent-main/20 text-foreground hover:border-steel-light"
+          }`}
+        >
+          Admin Controls
+        </button>
+      )}
 
       {/* FILTERS BUTTON (OPTIONAL) */}
       {showFilters && (

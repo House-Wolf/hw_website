@@ -2,26 +2,37 @@
 import { JSX } from "react";
 import ListingCard from "./ListingsCard";
 
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  description?: string;
+  quantity?: number;
+  category?: string;
+  discordId?: string | null;
+  sellerUsername?: string | null;
+  images?: { imageUrl: string }[];
+  imageUrl?: string;
+}
+
 interface ListingsGridProps {
-  listings: any[];
-    contactedListings: { [key: string]: any };
-    presence: { [key: string]: string };
-    handleContactSeller: (
-        listingId: string,
-        discordId: string | undefined,
-        title: string,
-        price: number,
-        imageUrl: string,
-        sellerUsername: string
-    ) => void;
-    FALLBACK_DISCORD_INVITE: string;
-    adminControlsFn?: (item: any) => JSX.Element | null;
+  listings: Listing[];
+  contactedListings: { [key: string]: { threadUrl?: string; inviteUrl?: string } };
+  handleContactSeller: (
+    listingId: string,
+    discordId: string | undefined | null,
+    title: string,
+    price: number,
+    imageUrl: string,
+    sellerUsername: string
+  ) => void;
+  FALLBACK_DISCORD_INVITE: string;
+  adminControlsFn?: (item: { id: string }) => JSX.Element | null;
 }
 
 export default function ListingsGrid({
   listings,
   contactedListings,
-  presence,
   handleContactSeller,
   FALLBACK_DISCORD_INVITE,
   adminControlsFn,
@@ -36,11 +47,11 @@ export default function ListingsGrid({
           onContact={() =>
             handleContactSeller(
               item.id,
-              item.seller?.discordId,
+              item.discordId,
               item.title,
               item.price,
-              item.imageUrl,
-              item.seller?.discordUsername || "Seller"
+              item.imageUrl || item.images?.[0]?.imageUrl || "",
+              item.sellerUsername || "Seller"
             )
           }
           onViewThread={() =>
