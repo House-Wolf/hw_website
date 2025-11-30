@@ -3,13 +3,19 @@ import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import formidable from 'formidable';
 import { Readable } from 'stream';
-import { getToken } from 'next-auth/jwt';
+import crypto from 'crypto';
+import { auth } from '@/lib/auth';
+import { isUserSuspended } from '@/lib/marketplace/suspension';
+import { PERMISSIONS } from '@/lib/permissions';
 
 // Force Node.js runtime (required for file system operations)
 export const runtime = 'nodejs';
 
 // Configure the route to handle larger file uploads
 export const dynamic = 'force-dynamic';
+
+const STORAGE_ROOT = join(process.cwd(), 'uploads', 'marketplace'); // outside /public
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h signed URL
 
 // Helper function to convert NextRequest to Node.js IncomingMessage
 async function formidablePromise(
@@ -43,6 +49,50 @@ async function formidablePromise(
   });
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB hard limit
+const ALLOWED_TYPES: Record<
+  string,
+  { ext: string; signatures: Array<number[] | string> }
+> = {
+  'image/png': { ext: 'png', signatures: [[0x89, 0x50, 0x4e, 0x47]] },
+  'image/jpeg': {
+    ext: 'jpg',
+    signatures: [[0xff, 0xd8, 0xff]],
+  },
+  'image/jpg': {
+    ext: 'jpg',
+    signatures: [[0xff, 0xd8, 0xff]],
+  },
+  'image/gif': {
+    ext: 'gif',
+    signatures: [
+      [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
+      [0x47, 0x49, 0x46, 0x38, 0x39, 0x61],
+    ],
+  },
+  'image/webp': {
+    ext: 'webp',
+    signatures: ['RIFF'], // followed by WEBP later in the header
+  },
+};
+
+function hasValidSignature(
+  buffer: Buffer,
+  mimetype: string | undefined
+): boolean {
+  if (!mimetype) return false;
+  const rule = ALLOWED_TYPES[mimetype];
+  if (!rule) return false;
+
+  return rule.signatures.some((sig) => {
+    if (typeof sig === 'string') {
+      return buffer.slice(0, sig.length).toString('ascii') === sig;
+    }
+    const slice = buffer.slice(0, sig.length);
+    return sig.every((byte, idx) => slice[idx] === byte);
+  });
+}
+
 export async function POST(request: NextRequest) {
   console.log('[Upload API] Starting upload request');
   console.log('[Upload API] Request headers:', {
@@ -50,11 +100,42 @@ export async function POST(request: NextRequest) {
     contentLength: request.headers.get('content-length'),
   });
 
+  const signingSecret = process.env.FILE_TOKEN_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!signingSecret) {
+    return NextResponse.json(
+      { error: 'Server misconfigured: FILE_TOKEN_SECRET missing' },
+      { status: 500 }
+    );
+  }
+
+  // Require authenticated, non-suspended users to prevent arbitrary uploads
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const canUpload =
+    session.user.permissions?.some((perm) =>
+      [
+        PERMISSIONS.MARKETPLACE_ADMIN,
+        PERMISSIONS.MARKETPLACE_MODERATOR,
+        PERMISSIONS.SITE_ADMIN,
+      ].includes(perm)
+    ) ?? false;
+
+  if (!canUpload) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const suspended = await isUserSuspended(session.user.id);
+  if (suspended) {
+    return NextResponse.json(
+      { error: 'Marketplace access suspended' },
+      { status: 403 }
+    );
+  }
+
   try {
-    // TODO: Add database session checking
-    // For now, skip auth to verify upload functionality works
-    // The upload route is already protected by being in the dashboard area
-    console.log('[Upload API] Skipping detailed auth check (route excluded from middleware)');
     console.log('[Upload API] Parsing form data with formidable...');
     const { files } = await formidablePromise(request);
 
@@ -64,42 +145,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log('[Upload API] File received:', {
-      originalFilename: uploadedFile.originalFilename,
-      mimetype: uploadedFile.mimetype,
-      size: uploadedFile.size,
-      tempPath: uploadedFile.filepath,
-    });
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!uploadedFile.mimetype || !validTypes.includes(uploadedFile.mimetype)) {
-      // Clean up temp file
+    // Validate file type (mimetype allowlist + magic number check)
+    const allowed = uploadedFile.mimetype && ALLOWED_TYPES[uploadedFile.mimetype];
+    if (!allowed) {
       await unlink(uploadedFile.filepath).catch(() => {});
       return NextResponse.json(
-        { error: 'Invalid file type. Only images are allowed.' },
+        { error: 'Invalid file type. Only PNG, JPG, GIF, or WEBP images are allowed.' },
         { status: 400 }
       );
     }
 
-    // Validate file size (already enforced by formidable, but double-check)
-    const maxSize = 15 * 1024 * 1024; // 15MB
-    if (uploadedFile.size > maxSize) {
+    // Validate file size (server-side)
+    if (uploadedFile.size > MAX_FILE_SIZE) {
       await unlink(uploadedFile.filepath).catch(() => {});
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 15MB.' },
+        { error: 'File too large. Maximum size is 5MB.' },
         { status: 400 }
       );
     }
 
-    // Create unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(7);
-    const extension = uploadedFile.originalFilename?.split('.').pop() || 'jpg';
-    const filename = `marketplace-${timestamp}-${randomString}.${extension}`;
+    const fs = await import('fs');
+    const tempFileContent = await fs.promises.readFile(uploadedFile.filepath);
+    if (!hasValidSignature(tempFileContent, uploadedFile.mimetype)) {
+      await unlink(uploadedFile.filepath).catch(() => {});
+      return NextResponse.json(
+        { error: 'File failed signature validation.' },
+        { status: 400 }
+      );
+    }
 
-    // Save to public/uploads/marketplace
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'marketplace');
+    // Create unique filename using UUID and trusted extension
+    const filename = `marketplace-${crypto.randomUUID()}.${allowed.ext}`;
+
+    // Save outside /public
+    const uploadDir = STORAGE_ROOT;
     const filepath = join(uploadDir, filename);
 
     console.log('[Upload API] Moving file to:', filepath);
@@ -107,16 +186,20 @@ export async function POST(request: NextRequest) {
     // Ensure directory exists
     await mkdir(uploadDir, { recursive: true });
 
-    // Read the temp file and write to destination
-    const fs = await import('fs');
-    const tempFileContent = await fs.promises.readFile(uploadedFile.filepath);
+    // Write validated content to destination
     await writeFile(filepath, tempFileContent);
 
     // Clean up temp file
     await unlink(uploadedFile.filepath).catch(() => {});
 
-    // Return the public URL
-    const url = `/uploads/marketplace/${filename}`;
+    // Return a signed URL routed through an authenticated proxy endpoint
+    const expiresAt = Date.now() + TOKEN_TTL_MS;
+    const signature = crypto
+      .createHmac('sha256', signingSecret)
+      .update(`${filename}:${expiresAt}`)
+      .digest('hex');
+
+    const url = `/api/marketplace/uploaded/${filename}?exp=${expiresAt}&sig=${signature}`;
 
     console.log('[Upload API] Upload successful:', url);
     return NextResponse.json({ url }, { status: 200 });

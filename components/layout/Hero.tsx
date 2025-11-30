@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Bell, CalendarDays, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { SafeImage } from "../utils/SafeImage";
+import MarkdownContent from "../utils/MarkdownContent";
 
 interface Event {
   id: string;
@@ -175,7 +176,10 @@ export default function Hero({
                         {a.timestamp}
                       </span>
                     </div>
-                    <p className="text-xs text-foreground-muted leading-relaxed">{a.content}</p>
+                    <MarkdownContent
+                      content={a.content}
+                      className="text-xs text-foreground-muted leading-relaxed"
+                    />
                   </div>
                 ))
               ) : (

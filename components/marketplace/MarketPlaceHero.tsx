@@ -223,7 +223,7 @@ export default function MarketplaceHero(): JSX.Element {
         {/* OVERLAY IMAGE (CENTERED BOTH HORIZONTALLY AND VERTICALLY) WITH ENHANCED EFFECTS */}
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-          w-32 sm:w-40 md:w-48 lg:w-200 z-30
+          w-75 sm:w-100 md:w-150 lg:w-200 xl:w-275 z-30
           drop-shadow-[0_0_40px_rgba(17,78,98,0.9)]
           group-hover:drop-shadow-[0_0_60px_rgba(17,78,98,1)]"
         >

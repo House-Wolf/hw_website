@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { validateCreateListingInput } from "@/lib/marketplace/validation";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -26,32 +27,29 @@ export async function POST(req: Request) {
     }
 
     const data = await req.formData();
-    const title = data.get("title")?.toString();
-    const description = data.get("description")?.toString();
-    const categoryId = data.get("categoryId")?.toString();
-    const price = data.get("price")?.toString();
-    const quantity = data.get("quantity")?.toString();
-    const location = data.get("location")?.toString();
-    const imageUrl = data.get("imageUrl")?.toString();
+    const validation = validateCreateListingInput({
+      title: data.get("title")?.toString() ?? "",
+      description: data.get("description")?.toString() ?? "",
+      categoryId: data.get("categoryId")?.toString() ?? "",
+      price: data.get("price")?.toString() ?? "",
+      quantity: data.get("quantity")?.toString(),
+      location: data.get("location")?.toString() ?? "",
+      imageUrl: data.get("imageUrl")?.toString() ?? "",
+    });
 
-    // Validation
-    if (!title || !description || !categoryId || !price) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const parsedCategoryId = parseInt(categoryId, 10);
-    const parsedPrice = parseFloat(price);
-    const parsedQuantity = quantity ? parseInt(quantity, 10) : 1;
-
-    if (Number.isNaN(parsedCategoryId) || Number.isNaN(parsedPrice)) {
-      return NextResponse.json(
-        { error: "Invalid category or price" },
-        { status: 400 }
-      );
-    }
+    const {
+      title,
+      description,
+      categoryId,
+      price,
+      quantity,
+      location,
+      imageUrl,
+    } = validation.parsed;
 
     // Prisma schema is currently out of sync with the DB enums for status/visibility,
     // so use a raw insert with explicit enum casts to avoid conversion errors.
@@ -78,13 +76,13 @@ export async function POST(req: Request) {
         (
           gen_random_uuid(),
           ${session.user.id}::uuid,
-          ${title.trim()},
-          ${description.trim()},
-          ${parsedCategoryId},
-          ${parsedPrice},
+          ${title},
+          ${description},
+          ${categoryId},
+          ${price},
           'aUEC',
-          ${parsedQuantity},
-          ${location?.trim() || null},
+          ${quantity},
+          ${location || null},
           'ACTIVE'::"ListingStatus",
           'PUBLIC'::"ListingVisibility",
           0,

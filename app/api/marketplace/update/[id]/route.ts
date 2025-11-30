@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
+import { validateUpdateListingInput } from "@/lib/marketplace/validation";
 
 export async function PUT(
   req: Request,
@@ -38,24 +39,15 @@ export async function PUT(
     }
 
     const body = await req.json();
-    console.log('Update API received body:', JSON.stringify(body, null, 2));
+    // Avoid verbose logging of user-supplied payloads to reduce data leakage
 
-    const { title, description, categoryId, price, quantity, location, imageUrl, status } = body;
-
-    // Validation - ensure at least title and description are provided
-    if (title !== undefined && !title.trim()) {
-      return NextResponse.json(
-        { error: "Title cannot be empty" },
-        { status: 400 }
-      );
+    const validation = validateUpdateListingInput(body);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    if (description !== undefined && !description.trim()) {
-      return NextResponse.json(
-        { error: "Description cannot be empty" },
-        { status: 400 }
-      );
-    }
+    const { title, description, categoryId, price, quantity, location, imageUrl } =
+      validation.parsed;
 
     // Check if listing exists and user owns it
     const existing = await prisma.marketplaceListings.findUnique({
@@ -87,13 +79,13 @@ export async function PUT(
       setParts.push(Prisma.sql`"description" = ${description.trim()}`);
     }
     if (categoryId !== undefined) {
-      setParts.push(Prisma.sql`"category_id" = ${parseInt(categoryId)}`);
+      setParts.push(Prisma.sql`"category_id" = ${categoryId}`);
     }
     if (price !== undefined) {
-      setParts.push(Prisma.sql`"price" = ${parseFloat(price)}`);
+      setParts.push(Prisma.sql`"price" = ${price}`);
     }
     if (quantity !== undefined) {
-      setParts.push(Prisma.sql`"quantity" = ${parseInt(quantity)}`);
+      setParts.push(Prisma.sql`"quantity" = ${quantity}`);
     }
     if (location !== undefined) {
       setParts.push(Prisma.sql`"location" = ${location?.trim() || null}`);
@@ -102,35 +94,30 @@ export async function PUT(
     // Always update the timestamp
     setParts.push(Prisma.sql`"updated_at" = NOW()`);
 
-    console.log('Updating listing with', setParts.length, 'fields');
-
     // Build the complete query
     const query = Prisma.sql`
       UPDATE "marketplace_listings"
       SET ${Prisma.join(setParts, ', ')}
       WHERE "id" = ${id}::uuid
     `;
-
-    console.log('Executing query...');
-
     // Execute the update
     await prisma.$executeRaw(query);
 
-    console.log('Update successful');
-
-    // Handle image update (clear then recreate primary image)
-    await prisma.marketplaceListingImage.deleteMany({
-      where: { listingId: id },
-    });
-
-    if (imageUrl && imageUrl.trim()) {
-      await prisma.marketplaceListingImage.create({
-        data: {
-          listingId: id,
-          imageUrl: imageUrl.trim(),
-          sortOrder: 0,
-        },
+    // Handle image update (only when provided)
+    if (imageUrl !== undefined) {
+      await prisma.marketplaceListingImage.deleteMany({
+        where: { listingId: id },
       });
+
+      if (typeof imageUrl === "string" && imageUrl.trim()) {
+        await prisma.marketplaceListingImage.create({
+          data: {
+            listingId: id,
+            imageUrl: imageUrl.trim(),
+            sortOrder: 0,
+          },
+        });
+      }
     }
 
     return NextResponse.json(

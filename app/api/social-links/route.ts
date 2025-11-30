@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     const searchParams = req.nextUrl.searchParams;
-    const status = searchParams.get("status") || "APPROVED";
+    const statusParam = (searchParams.get("status") || "APPROVED").toUpperCase();
     const platform = searchParams.get("platform");
 
-    let where: any = {};
+    const validStatuses = new Set(["APPROVED", "PENDING", "REJECTED"]);
+    if (!validStatuses.has(statusParam)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
 
-    // If status is "all", fetch the current user's own links regardless of status
-    if (status === "all") {
-      if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const where: any = { status: statusParam };
+
+    // Public may only access approved links; other statuses require dossier admin
+    const isApprovedOnly = statusParam === "APPROVED";
+    if (!isApprovedOnly) {
+      const canView = session?.user && (await hasPermission(PERMISSIONS.DOSSIER_ADMIN));
+      if (!canView) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      where.userId = session.user.id;
-    } else {
-      where.status = status;
     }
 
     if (platform) {
