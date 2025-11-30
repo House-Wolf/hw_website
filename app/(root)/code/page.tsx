@@ -51,7 +51,7 @@ export default function DragoonCodePage(): JSX.Element {
 
       {/* Main Code Statement */}
       <section className="py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="bg-linear-to-br from-crimson-dark/20 via-steel-dark/10 to-obsidian border-2 border-accent-main rounded-lg p-12 md:p-16 shadow-[0_0_50px_rgba(71,0,0,0.3)]">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-crimson tracking-widest uppercase">
               Code of Honor
