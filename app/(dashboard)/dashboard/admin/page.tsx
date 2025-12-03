@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { deriveUserPermissions } from "@/lib/derive-permissions";
+import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2 } from "lucide-react";

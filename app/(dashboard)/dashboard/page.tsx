@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BadgeCheck, Clock3, KeyRound, Shield, UserCircle2 } from "lucide-react";
-import { deriveUserPermissions } from "@/lib/derive-permissions";
+import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import { RANK_PRIORITY } from "@/lib/role-constants";
 
 export const dynamic = "force-dynamic";
