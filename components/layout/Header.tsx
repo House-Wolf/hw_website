@@ -15,7 +15,9 @@ interface HeaderProps {
   isLoggedIn?: boolean;
 }
 
-export default function Header({ isLoggedIn = false }: HeaderProps): JSX.Element {
+export default function Header({
+  isLoggedIn = false,
+}: HeaderProps): JSX.Element {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function Header({ isLoggedIn = false }: HeaderProps): JSX.Element
     >
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 md:h-20 gap-8">
-
+        
           {/* LEFT — LOGO */}
           <Link href="/" className="flex items-center group -ml-2">
             <Image
@@ -45,7 +47,7 @@ export default function Header({ isLoggedIn = false }: HeaderProps): JSX.Element
               alt="House Wolf Icon"
               width={75}
               height={75}
-              className="drop-shadow-[0_0_20px_rgba(17,78,98,0.6)]"
+              className="hidden sm:block drop-shadow-[0_0_20px_rgba(17,78,98,0.6)]"
             />
           </Link>
 
