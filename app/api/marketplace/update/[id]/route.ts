@@ -69,66 +69,134 @@ export async function PUT(
       );
     }
 
-    // Build and execute SQL update query using raw SQL (needed for enum types)
-    const setParts: any[] = [];
+        await prisma.$transaction(async (tx) => {
 
-    if (title !== undefined) {
-      setParts.push(Prisma.sql`"title" = ${title.trim()}`);
-    }
-    if (description !== undefined) {
-      setParts.push(Prisma.sql`"description" = ${description.trim()}`);
-    }
-    if (categoryId !== undefined) {
-      setParts.push(Prisma.sql`"category_id" = ${categoryId}`);
-    }
-    if (price !== undefined) {
-      setParts.push(Prisma.sql`"price" = ${price}`);
-    }
-    if (quantity !== undefined) {
-      setParts.push(Prisma.sql`"quantity" = ${quantity}`);
-    }
-    if (location !== undefined) {
-      setParts.push(Prisma.sql`"location" = ${location?.trim() || null}`);
-    }
+          // Build and execute SQL update query using raw SQL (needed for enum types)
 
-    // Always update the timestamp
-    setParts.push(Prisma.sql`"updated_at" = NOW()`);
+          const setParts = [];
 
-    // Build the complete query
-    const query = Prisma.sql`
-      UPDATE "marketplace_listings"
-      SET ${Prisma.join(setParts, ', ')}
-      WHERE "id" = ${id}::uuid
-    `;
-    // Execute the update
-    await prisma.$executeRaw(query);
+    
 
-    // Handle image update (only when provided)
-    if (imageUrl !== undefined) {
-      await prisma.marketplaceListingImage.deleteMany({
-        where: { listingId: id },
-      });
+          if (title !== undefined) {
 
-      if (typeof imageUrl === "string" && imageUrl.trim()) {
-        await prisma.marketplaceListingImage.create({
-          data: {
-            listingId: id,
-            imageUrl: imageUrl.trim(),
-            sortOrder: 0,
-          },
+            setParts.push(Prisma.sql`"title" = ${title.trim()}`);
+
+          }
+
+          if (description !== undefined) {
+
+            setParts.push(Prisma.sql`"description" = ${description.trim()}`);
+
+          }
+
+          if (categoryId !== undefined) {
+
+            setParts.push(Prisma.sql`"category_id" = ${categoryId}`);
+
+          }
+
+          if (price !== undefined) {
+
+            setParts.push(Prisma.sql`"price" = ${price}`);
+
+          }
+
+          if (quantity !== undefined) {
+
+            setParts.push(Prisma.sql`"quantity" = ${quantity}`);
+
+          }
+
+          if (location !== undefined) {
+
+            setParts.push(Prisma.sql`"location" = ${location?.trim() || null}`);
+
+          }
+
+    
+
+          // Always update the timestamp
+
+          setParts.push(Prisma.sql`"updated_at" = NOW()`);
+
+    
+
+          // Build the complete query
+
+          const query = Prisma.sql`
+
+            UPDATE "marketplace_listings"
+
+            SET ${Prisma.join(setParts, ", ")}
+
+            WHERE "id" = ${id}::uuid
+
+          `;
+
+          // Execute the update
+
+          await tx.$executeRaw(query);
+
+    
+
+          // Handle image update (only when provided)
+
+          if (imageUrl !== undefined) {
+
+            await tx.marketplaceListingImage.deleteMany({
+
+              where: { listingId: id },
+
+            });
+
+    
+
+            if (typeof imageUrl === "string" && imageUrl.trim()) {
+
+              await tx.marketplaceListingImage.create({
+
+                data: {
+
+                  listingId: id,
+
+                  imageUrl: imageUrl.trim(),
+
+                  sortOrder: 0,
+
+                },
+
+              });
+
+            }
+
+          }
+
         });
-      }
-    }
 
-    return NextResponse.json(
-      { success: true, message: 'Listing updated successfully' },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Update listing error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update listing" },
-      { status: 500 }
-    );
-  }
-}
+    
+
+        return NextResponse.json(
+
+          { success: true, message: "Listing updated successfully" },
+
+          { status: 200 }
+
+        );
+
+      } catch (error: unknown) {
+
+        console.error("Update listing error:", error);
+
+        const message = error instanceof Error ? error.message : "Failed to update listing";
+
+        return NextResponse.json(
+
+          { error: message },
+
+          { status: 500 }
+
+        );
+
+      }
+
+    }

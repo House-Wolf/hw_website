@@ -3,9 +3,12 @@ import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import { join, extname } from "path";
 import crypto from "crypto";
+import { auth } from "@/lib/auth";
+import { Readable } from "stream";
 
 const STORAGE_ROOT = join(process.cwd(), "uploads", "marketplace"); // outside /public
-const SIGNING_SECRET = process.env.FILE_TOKEN_SECRET || process.env.NEXTAUTH_SECRET;
+const SIGNING_SECRET =
+  process.env.FILE_TOKEN_SECRET || process.env.NEXTAUTH_SECRET;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -31,6 +34,11 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (!SIGNING_SECRET) {
     return NextResponse.json(
       { error: "Server misconfigured: FILE_TOKEN_SECRET missing" },
@@ -58,17 +66,19 @@ export async function GET(
   try {
     const stats = await stat(filepath);
     const stream = createReadStream(filepath);
-    const contentType = CONTENT_TYPES[extname(filename).toLowerCase()] || "application/octet-stream";
+    const contentType =
+      CONTENT_TYPES[extname(filename).toLowerCase()] ||
+      "application/octet-stream";
 
-    return new NextResponse(stream as any, {
+    return new NextResponse(stream as unknown as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Content-Length": stats.size.toString(),
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "private, max-age=86400",
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error serving uploaded file:", error);
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }

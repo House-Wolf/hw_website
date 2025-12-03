@@ -77,6 +77,9 @@ const TACOPSPage = () => {
             {/* Division Patch */}
             <div className="flex justify-center mb-8">
               <div className="relative group">
+
+                {/* Soft glow ONLY on hover */}
+                <div className="absolute inset-0 blur-2xl bg-transparent transition-all duration-700 group-hover:bg-orange-700/25" />
                 <div className="absolute inset-0 bg-crimson/20 blur-2xl group-hover:bg-crimson/30 transition-all duration-slow" />
                 <div className="relative">
                   <SafeImage

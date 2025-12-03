@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { validateCreateListingInput } from "@/lib/marketplace/validation";
+import { MarketplaceListings } from "@prisma/client";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -51,69 +52,74 @@ export async function POST(req: Request) {
       imageUrl,
     } = validation.parsed;
 
-    // Prisma schema is currently out of sync with the DB enums for status/visibility,
-    // so use a raw insert with explicit enum casts to avoid conversion errors.
-    const insertResults = (await prisma.$queryRaw`
-      INSERT INTO "marketplace_listings"
-        (
-          "id",
-          "seller_user_id",
-          "title",
-          "description",
-          "category_id",
-          "price",
-          "currency",
-          "quantity",
-          "location",
-          "status",
-          "visibility",
-          "view_count",
-          "message_count",
-          "created_at",
-          "updated_at"
-        )
-      VALUES
-        (
-          gen_random_uuid(),
-          ${session.user.id}::uuid,
-          ${title},
-          ${description},
-          ${categoryId},
-          ${price},
-          'aUEC',
-          ${quantity},
-          ${location || null},
-          'ACTIVE'::"ListingStatus",
-          'PUBLIC'::"ListingVisibility",
-          0,
-          0,
-          NOW(),
-          NOW()
-        )
-      RETURNING *;
-    `) as any[];
+    const listing = await prisma.$transaction(async (tx) => {
+      // Prisma schema is currently out of sync with the DB enums for status/visibility,
+      // so use a raw insert with explicit enum casts to avoid conversion errors.
+      const insertResults = await tx.$queryRaw<MarketplaceListings[]>`
+        INSERT INTO "marketplace_listings"
+          (
+            "id",
+            "seller_user_id",
+            "title",
+            "description",
+            "category_id",
+            "price",
+            "currency",
+            "quantity",
+            "location",
+            "status",
+            "visibility",
+            "view_count",
+            "message_count",
+            "created_at",
+            "updated_at"
+          )
+        VALUES
+          (
+            gen_random_uuid(),
+            ${session.user.id}::uuid,
+            ${title},
+            ${description},
+            ${categoryId},
+            ${price},
+            'aUEC',
+            ${quantity},
+            ${location || null},
+            'ACTIVE'::"ListingStatus",
+            'PUBLIC'::"ListingVisibility",
+            0,
+            0,
+            NOW(),
+            NOW()
+          )
+        RETURNING *;
+      `;
 
-    const listing = insertResults[0];
+      const newListing = insertResults[0];
 
-    // Add image if provided
-    if (imageUrl && imageUrl.trim()) {
-      await prisma.marketplaceListingImage.create({
-        data: {
-          listingId: listing.id,
-          imageUrl: imageUrl.trim(),
-          sortOrder: 0,
-        },
-      });
-    }
+      // Add image if provided
+      if (imageUrl && imageUrl.trim()) {
+        await tx.marketplaceListingImage.create({
+          data: {
+            listingId: newListing.id,
+            imageUrl: imageUrl.trim(),
+            sortOrder: 0,
+          },
+        });
+      }
+
+      return newListing;
+    });
 
     return NextResponse.json(
       { success: true, listing },
       { status: 201 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error creating listing:", err);
+    const message = err instanceof Error ? err.message : "Failed to create listing";
     return NextResponse.json(
-      { error: err.message || "Failed to create listing" },
+      { error: message },
       { status: 500 }
     );
   }

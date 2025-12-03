@@ -1,7 +1,10 @@
 {
-  "name": "hw_website",
+  "name": "house-wolf",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -11,7 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
@@ -37,7 +41,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
-    "prisma": "^6.19.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

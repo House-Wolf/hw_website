@@ -22,18 +22,18 @@ const navItems: NavItem[] = [
         items: [
           { label: "Our History", href: "/origins", description: "The story of House Wolf" },
           { label: "Dragoon Code", href: "/code", description: "Our values and principles" },
-          { label: "Leadership", href: "/commands/LEADERSHIP", description: "Meet our commanders" },
+          { label: "Leadership", href: "/LEADERSHIP", description: "Meet our commanders" },
         ],
       },
     ],
   },
   {
     label: "Commands",
-    href: "/commands",
     submenu: [
       {
         label: "Operational Units",
         items: [
+          { label: "COMMANDS", href: "/commands", description: "Commands Overview" },
           { label: "LOCOPS", href: "/commands/LOCOPS", description: "Logistics Operations" },
           { label: "TACOPS", href: "/commands/TACOPS", description: "Tactical Operations" },
           { label: "SPECOPS", href: "/commands/SPECOPS", description: "Special Operations" },
@@ -45,10 +45,6 @@ const navItems: NavItem[] = [
   {
     label: "Marketplace",
     href: "/marketplace",
-  },
-  {
-    label: "Fleet",
-    href: "/fleet",
   },
   {
     label: "Socials",
