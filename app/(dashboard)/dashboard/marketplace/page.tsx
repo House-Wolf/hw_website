@@ -297,7 +297,14 @@ function MarketplaceDashboardContent() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const text = await res.text();
       if (!text) throw new Error("Empty response from server");
-      const data = JSON.parse(text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error("Failed to parse listings response:", text);
+        throw new Error("Unexpected response format from server");
+      }
       setMyListings(data.listings || []);
     } catch (err: any) {
       console.error("Error fetching listings:", err);
@@ -488,7 +495,7 @@ function MarketplaceDashboardContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/70">
+      <div className="card border border-[var(--border-soft)] bg-black">
         <div className="flex items-center gap-3 mb-2">
           <div className="h-10 w-10 rounded-full bg-[var(--accent-strong)]/15 border border-[var(--border)] flex items-center justify-center">
             <Store className="text-[var(--accent-strong)]" size={20} />
@@ -510,10 +517,10 @@ function MarketplaceDashboardContent() {
       {/* Success/Error Messages */}
       {message && (
         <div
-          className={`mb-6 p-4 rounded-lg border ${
+          className={`mb-6 p-4 rounded-lg border bg-black ${
             message.type === "success"
-              ? "bg-green-900/20 border-green-700 text-green-300"
-              : "bg-red-900/20 border-red-700 text-red-300"
+              ? "border-green-700 text-green-300"
+              : "border-red-700 text-red-300"
           }`}
         >
           {message.text}
@@ -524,7 +531,7 @@ function MarketplaceDashboardContent() {
       <div className="flex gap-2 mb-6 border-b border-[var(--border-soft)]">
         <button
           onClick={() => setActiveTab("create")}
-          className={`px-6 py-3 font-semibold transition-all relative ${
+          className={`px-6 py-3 font-semibold transition-all relative cursor-pointer ${
             activeTab === "create"
               ? "text-[var(--accent-strong)]"
               : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
@@ -540,7 +547,7 @@ function MarketplaceDashboardContent() {
             setActiveTab("manage");
             cancelEdit();
           }}
-          className={`px-6 py-3 font-semibold transition-all relative ${
+          className={`px-6 py-3 font-semibold transition-all relative cursor-pointer ${
             activeTab === "manage"
               ? "text-[var(--accent-strong)]"
               : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
@@ -555,13 +562,13 @@ function MarketplaceDashboardContent() {
 
       {/* Create/Edit Form */}
       {activeTab === "create" && (
-        <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/70">
+        <div className="card border border-[var(--border-soft)] bg-black">
           {editingId && (
             <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg flex justify-between items-center">
               <span className="text-blue-300">Editing listing</span>
               <button
                 onClick={cancelEdit}
-                className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
+                className="text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -601,14 +608,14 @@ function MarketplaceDashboardContent() {
                     type="button"
                     onClick={handleWikiSearch}
                     disabled={wikiLoading || !formData.title.trim()}
-                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors whitespace-nowrap"
+                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                   >
                     {wikiLoading ? "Searching..." : "Search Wiki"}
                   </button>
                   <button
                     type="button"
                     onClick={handleClearForm}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors cursor-pointer"
                   >
                     Clear Form
                   </button>
@@ -634,9 +641,17 @@ function MarketplaceDashboardContent() {
                     setFormData({ ...formData, categoryId: e.target.value })
                   }
                   className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                  style={{
+                    backgroundColor: "var(--background-secondary)",
+                    color: "var(--foreground)",
+                  }}
                 >
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
+                    <option
+                      key={cat.id}
+                      value={cat.id}
+                      className="bg-[var(--background-secondary)] text-[var(--foreground)]"
+                    >
                       {cat.name}
                     </option>
                   ))}
@@ -676,7 +691,7 @@ function MarketplaceDashboardContent() {
                       <button
                         type="button"
                         onClick={() => setShowSrpHelper((prev) => !prev)}
-                        className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors"
+                        className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
                       >
                         {showSrpHelper ? "Hide tool" : "Show tool"}
                       </button>
@@ -751,7 +766,7 @@ function MarketplaceDashboardContent() {
                             <button
                               type="button"
                               onClick={() => setShowSrpCalculator((prev) => !prev)}
-                              className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors"
+                              className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
                             >
                               {showSrpCalculator
                                 ? "Hide cheat sheet"
@@ -935,7 +950,7 @@ function MarketplaceDashboardContent() {
                                   <button
                                     type="button"
                                     onClick={applyCalculatedRarityScore}
-                                    className="w-full py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-lg font-semibold transition-colors border border-[var(--border)]"
+                                    className="w-full py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-lg font-semibold transition-colors border border-[var(--border)] cursor-pointer"
                                   >
                                     Use RS{" "}
                                     {Math.min(
@@ -972,7 +987,7 @@ function MarketplaceDashboardContent() {
                             <button
                               type="button"
                               onClick={applySuggestedPrice}
-                              className="mt-2 w-full py-2 bg-[var(--accent-strong)]/80 hover:bg-[var(--accent-strong)] text-white rounded-lg font-semibold transition-colors"
+                              className="mt-2 w-full py-2 bg-[var(--accent-strong)]/80 hover:bg-[var(--accent-strong)] text-white rounded-lg font-semibold transition-colors cursor-pointer"
                             >
                               Use {suggestedRetailPrice.toLocaleString()} aUEC
                             </button>
@@ -1082,17 +1097,19 @@ function MarketplaceDashboardContent() {
             </div>
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-[var(--accent-strong)] hover:bg-[var(--accent-strong)]/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading
-                ? "Saving..."
-                : editingId
-                ? "Update Listing"
-                : "Create Listing"}
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-3 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {loading
+                  ? "Saving..."
+                  : editingId
+                  ? "Update Listing"
+                  : "Create Listing"}
+              </button>
+            </div>
           </form>
 
           {/* Wiki Preview */}
@@ -1136,7 +1153,7 @@ function MarketplaceDashboardContent() {
 
       {/* Manage Listings */}
       {activeTab === "manage" && (
-        <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/70">
+        <div className="card border border-[var(--border-soft)] bg-black">
           {myListings.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-[var(--foreground-muted)] text-lg mb-4">
@@ -1144,26 +1161,26 @@ function MarketplaceDashboardContent() {
               </p>
               <button
                 onClick={() => setActiveTab("create")}
-                className="text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 font-semibold"
+                className="text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 font-semibold cursor-pointer"
               >
                 Create your first listing →
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {myListings.map((listing) => (
-                <div
-                  key={listing.id}
-                  className="bg-[var(--background-secondary)] border border-[var(--border)] rounded-xl overflow-hidden hover:border-[var(--accent-strong)]/50 transition-all"
-                >
-                  <div className="relative h-48 bg-[var(--background-secondary)]">
-                    {listing.imageUrl && isValidImageUrl(listing.imageUrl) ? (
-                      <Image
-                        src={listing.imageUrl}
-                        alt={listing.title}
-                        fill
-                        className="object-cover"
-                        unoptimized
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-center">
+                {myListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    className="w-full max-w-xs bg-[var(--background-secondary)]/80 border border-[var(--border-soft)] rounded-lg overflow-hidden shadow-sm hover:shadow-md hover:border-[var(--accent-strong)]/50 transition-all"
+                  >
+                    <div className="relative h-40 bg-[var(--background-secondary)]">
+                      {listing.imageUrl && isValidImageUrl(listing.imageUrl) ? (
+                        <Image
+                          src={listing.imageUrl}
+                          alt={listing.title}
+                          fill
+                          className="object-cover"
+                          unoptimized
                         onError={(e) => {
                           console.error(
                             "Listing image failed to load:",
@@ -1178,41 +1195,41 @@ function MarketplaceDashboardContent() {
                     )}
                   </div>
 
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold text-[var(--foreground)]">
-                        {listing.title}
-                      </h3>
-                      <span className="bg-[var(--accent-strong)]/20 text-[var(--accent-strong)] text-xs px-3 py-1 rounded-full">
-                        {listing.category}
-                      </span>
+                    <div className="p-4 space-y-3">
+                      <div className="flex justify-between items-start gap-3">
+                        <h3 className="text-lg font-semibold text-[var(--foreground)] leading-tight line-clamp-2">
+                          {listing.title}
+                        </h3>
+                        <span className="bg-[var(--accent-strong)]/15 text-[var(--accent-strong)] text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap">
+                          {listing.category}
+                        </span>
+                      </div>
+
+                      <p className="text-[var(--foreground-muted)] text-sm line-clamp-2">
+                        {listing.description}
+                      </p>
+
+                      <p className="text-[var(--accent-strong)] font-semibold text-base">
+                        {listing.price.toLocaleString()} aUEC
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(listing)}
+                          disabled={loading}
+                          className="flex-1 py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-md transition-colors disabled:opacity-50 border border-[var(--border)] text-sm cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(listing.id)}
+                          disabled={loading}
+                          className="flex-1 py-2 bg-red-900/40 hover:bg-red-900/60 text-red-300 hover:text-red-200 rounded-md transition-colors disabled:opacity-50 text-sm cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-
-                    <p className="text-[var(--foreground-muted)] text-sm mb-4 line-clamp-2">
-                      {listing.description}
-                    </p>
-
-                    <p className="text-[var(--accent-strong)] font-bold text-lg mb-4">
-                      {listing.price.toLocaleString()} aUEC
-                    </p>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(listing)}
-                        disabled={loading}
-                        className="flex-1 py-2 bg-[var(--background-secondary)] hover:bg-[var(--background-secondary)]/80 text-[var(--foreground)] rounded-lg transition-colors disabled:opacity-50 border border-[var(--border)]"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(listing.id)}
-                        disabled={loading}
-                        className="flex-1 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>

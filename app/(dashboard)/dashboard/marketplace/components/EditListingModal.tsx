@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import ImageUpload from "./ImageUpload";
+import ImageUpload from "../../profile/components/ImageUpload";
 
 interface Category {
   id: number;
@@ -112,7 +112,7 @@ export default function EditListingModal({
           </h2>
           <button
             onClick={onClose}
-            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
+            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X size={20} />
@@ -283,13 +283,13 @@ export default function EditListingModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground-muted)]"
+              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground-muted)] cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)]"
+              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] cursor-pointer"
             >
               Update Listing
             </button>

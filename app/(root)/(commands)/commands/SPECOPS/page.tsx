@@ -21,29 +21,29 @@ const commandRoster: DivisionMember[] = [
     id: "1",
     name: "TBD",
     rank: "Captain",
-    bio: "Commands TACOPS division and oversees all tactical combat operations and frontline engagements across House Wolf.",
-    specializations: ["Division Command", "Tactical Operations"],
+    bio: "Commands SPECOPS division and oversees all special operations, including infiltration, medical support, and covert missions.",
+    specializations: ["Division Command", "Special Operations"],
   },
   {
     id: "2",
     name: "TBD",
     rank: "Lieutenant",
-    bio: "Supports the Captain in coordinating TACOPS missions and combat unit deployment.",
-    specializations: ["Operations", "Combat Coordination"],
+    bio: "Supports the Captain in coordinating SPECOPS missions and specialized unit deployment.",
+    specializations: ["Operations", "Tactical Planning"],
   },
   {
     id: "3",
     name: "TBD",
     rank: "Field Marshal",
-    bio: "Leads frontline tactical operations and coordinates combat maneuvers in the field.",
-    specializations: ["Field Combat", "Tactical Leadership"],
+    bio: "Leads field-based special operations and coordinates elite unit actions.",
+    specializations: ["Field Operations", "Elite Tactics"],
   },
   {
     id: "4",
     name: "TBD",
     rank: "Platoon Sergeant",
-    bio: "Manages tactical platoon operations and ensures combat readiness of TACOPS units.",
-    specializations: ["Platoon Leadership", "Combat Readiness"],
+    bio: "Manages specialized platoon operations and ensures operational readiness of SPECOPS teams.",
+    specializations: ["Platoon Leadership", "Operational Readiness"],
   },
 ];
 
@@ -52,19 +52,19 @@ const members: DivisionMember[] = [
     id: "5",
     name: "TBD",
     rank: "Member",
-    bio: "TACOPS operative specializing in frontline combat and tactical engagement.",
-    specializations: ["Combat"],
+    bio: "SPECOPS operative specializing in medical support and combat rescue operations.",
+    specializations: ["Medical"],
   },
   {
     id: "6",
     name: "TBD",
     rank: "Member",
-    bio: "TACOPS operative specializing in tactical warfare and combat operations.",
-    specializations: ["Tactical Warfare"],
+    bio: "SPECOPS operative specializing in covert operations and infiltration.",
+    specializations: ["Infiltration"],
   },
 ];
 
-const TACOPSPage = () => {
+const SPECOPSPage = () => {
   return (
     <div className="min-h-screen bg-background-base">
       {/* Hero Section with Patch */}
@@ -77,11 +77,13 @@ const TACOPSPage = () => {
             {/* Division Patch */}
             <div className="flex justify-center mb-8">
               <div className="relative group">
+                {/* Soft glow ONLY on hover */}
+                <div className="absolute inset-0 blur-2xl bg-transparent transition-all duration-700 group-hover:bg-green-800/45" />
                 <div className="absolute inset-0 bg-crimson/20 blur-2xl group-hover:bg-crimson/30 transition-all duration-slow" />
                 <div className="relative">
                   <SafeImage
-                    src="/images/divisions/tacops/tacops.png"
-                    alt="TACOPS Patch"
+                    src="/images/divisions/specops/specops.png"
+                    alt="SPECOPS Patch"
                     width={200}
                     height={200}
                     className="drop-shadow-2xl transition-transform duration-slow group-hover:scale-105"
@@ -92,16 +94,16 @@ const TACOPSPage = () => {
 
             {/* Title */}
             <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-widest text-foreground mb-4">
-              TACOPS
+              SPECOPS
             </h1>
             <div className="w-24 h-1 bg-linear-to-r from-transparent via-crimson to-transparent mx-auto mb-6" />
             <p className="text-left text-lg md:text-xl text-foreground-muted max-w-3xl mx-auto leading-relaxed">
-              The Tactical Air Control Operations Division is responsible for coordinating air support for ground operations,
-              serving as the vital link between forces on the ground and assets in the skies. Acting as the eyes and ears of
-              the battlefield and the voice of the skies, this division ensures precise communication and execution of air missions.
-              From directing airstrikes to providing reconnaissance, Tactical Air Control Operations is essential to maintaining situational
-              awareness and operational effectiveness. Their expertise bridges the gap between ground and air, enabling cohesive and
-              decisive action in dynamic environments.
+              The Special Operations Division is the tip of the spear, leading the charge in executing high-risk,
+              high-reward missions with precision and excellence. As the first to strike, this elite division specializes
+              in critical tasks that demand adaptability, skill, and unwavering resolve. Whether operating in hostile environments
+              securing key objectives, or executing covert operations, the Special Operations Division embodies the pinnacle
+              of operational effectiveness. They are the decisive edge in the most challenging and high-stakes scenarios,
+              where success is non-negotiable.
             </p>
           </div>
         </div>
@@ -206,4 +208,4 @@ const DivisionCard: React.FC<DivisionCardProps> = ({ member, compact = false }) 
   );
 };
 
-export default TACOPSPage;
+export default SPECOPSPage;

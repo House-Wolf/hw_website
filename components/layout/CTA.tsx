@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { SafeImage } from "../utils/SafeImage";
-import Image from "next/image";
+
+/**
+ * @component CTA Section with Parallax Background, Animated Glows, and CTA Buttons
+ * @description A visually engaging Call to Action section featuring a parallax background, animated glow effects, and prominent CTA buttons.
+ * @returns {JSX.Element} The CTA section component.
+ * @author House Wolf Dev Team
+ */
 
 export default function EpicCTA() {
   const [scrollY, setScrollY] = useState(0);
@@ -53,7 +59,7 @@ export default function EpicCTA() {
                 alt="LOCOPS Division"
                 width={65}
                 height={65}
-                className="object-contain brightness-150"
+                className="object-contain object-center brightness-150"
               />    
             </div>
             <div className="animate-float" style={{ animationDelay: "0.3s" }}>

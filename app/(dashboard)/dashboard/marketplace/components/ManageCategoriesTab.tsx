@@ -46,7 +46,7 @@ export default function ManageCategoriesTab({
         </div>
         <button
           onClick={() => setIsCreating(true)}
-          className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] flex items-center gap-2"
+          className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] flex items-center gap-2 cursor-pointer"
         >
           <Plus size={16} />
           Add Category
@@ -106,7 +106,7 @@ export default function ManageCategoriesTab({
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingCategory(category)}
-                        className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                        className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                         aria-label="Edit category"
                       >
                         <Edit size={14} className="inline" />
@@ -120,7 +120,7 @@ export default function ManageCategoriesTab({
                               e.preventDefault();
                             }
                           }}
-                          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:border-red-500 transition-colors"
+                          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:border-red-500 transition-colors cursor-pointer"
                           aria-label="Delete category"
                         >
                           <Trash2 size={14} className="inline" />
@@ -209,7 +209,7 @@ function CategoryModal({ title, category, categories, onClose, action }: Categor
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50 cursor-pointer"
             aria-label="Close modal"
           >
             <X size={20} />
@@ -296,14 +296,14 @@ function CategoryModal({ title, category, categories, onClose, action }: Categor
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground-muted)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? "Saving..." : category ? "Update" : "Create"} {!isSubmitting && "Category"}
             </button>

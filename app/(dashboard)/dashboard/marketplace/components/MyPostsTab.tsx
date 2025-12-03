@@ -79,7 +79,7 @@ export default function MyPostsTab({
           </p>
           <Link
             href="/dashboard/marketplace?tab=create"
-            className="inline-block mt-4 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)]"
+            className="inline-block mt-4 px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] cursor-pointer"
           >
             Create Your First Post
           </Link>
@@ -155,7 +155,7 @@ export default function MyPostsTab({
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingListing(listing)}
-                          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                           aria-label="Edit listing"
                         >
                           <Edit size={14} className="inline" />
@@ -170,7 +170,7 @@ export default function MyPostsTab({
                                 e.preventDefault();
                               }
                             }}
-                            className="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:border-red-500 transition-colors"
+                            className="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:border-red-500 transition-colors cursor-pointer"
                             aria-label="Delete listing"
                           >
                             <Trash2 size={14} className="inline" />

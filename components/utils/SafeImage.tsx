@@ -20,7 +20,7 @@ interface SafeImageProps extends ImageProps {
 
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
-  fallbackSrc = "/images/global/HWiconnwew.png",
+  fallbackSrc = "/images/global/HWiconnew.png",
   ...props
 }) => {
   const [error, setError] = useState(false);

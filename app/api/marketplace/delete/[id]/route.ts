@@ -56,23 +56,31 @@ export async function DELETE(
       );
     }
 
-    // Soft delete
-    await prisma.marketplaceListings.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        status: "DELETED",
-      },
-    });
+    // Prisma enum mismatch with DB: perform raw update with explicit enum cast
+    const deleteResult = await prisma.$queryRaw<{ id: string }[]>`
+      UPDATE "marketplace_listings"
+      SET "deleted_at" = NOW(),
+          "status" = 'DELETED'::"ListingStatus"
+      WHERE id = ${id}::uuid
+      RETURNING id;
+    `;
+
+    if (!deleteResult.length) {
+      return NextResponse.json(
+        { error: "Listing not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
       { success: true },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete listing error:", error);
+    const message = error instanceof Error ? error.message : "Failed to delete listing";
     return NextResponse.json(
-      { error: error.message || "Failed to delete listing" },
+      { error: message },
       { status: 500 }
     );
   }

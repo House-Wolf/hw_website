@@ -32,8 +32,9 @@ export async function isUserSuspended(userId: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error("Error checking suspension status:", error);
-    return false; // Fail open - don't block users on error
+    console.error("Error checking suspension status (failing closed):", error);
+    // Fail closed to avoid accidentally lifting suspensions during outages
+    return true;
   }
 }
 

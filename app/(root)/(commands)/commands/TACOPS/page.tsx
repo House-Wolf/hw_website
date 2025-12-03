@@ -21,29 +21,29 @@ const commandRoster: DivisionMember[] = [
     id: "1",
     name: "TBD",
     rank: "Captain",
-    bio: "Commands SPECOPS division and oversees all special operations, including infiltration, medical support, and covert missions.",
-    specializations: ["Division Command", "Special Operations"],
+    bio: "Commands TACOPS division and oversees all tactical combat operations and frontline engagements across House Wolf.",
+    specializations: ["Division Command", "Tactical Operations"],
   },
   {
     id: "2",
     name: "TBD",
     rank: "Lieutenant",
-    bio: "Supports the Captain in coordinating SPECOPS missions and specialized unit deployment.",
-    specializations: ["Operations", "Tactical Planning"],
+    bio: "Supports the Captain in coordinating TACOPS missions and combat unit deployment.",
+    specializations: ["Operations", "Combat Coordination"],
   },
   {
     id: "3",
     name: "TBD",
     rank: "Field Marshal",
-    bio: "Leads field-based special operations and coordinates elite unit actions.",
-    specializations: ["Field Operations", "Elite Tactics"],
+    bio: "Leads frontline tactical operations and coordinates combat maneuvers in the field.",
+    specializations: ["Field Combat", "Tactical Leadership"],
   },
   {
     id: "4",
     name: "TBD",
     rank: "Platoon Sergeant",
-    bio: "Manages specialized platoon operations and ensures operational readiness of SPECOPS teams.",
-    specializations: ["Platoon Leadership", "Operational Readiness"],
+    bio: "Manages tactical platoon operations and ensures combat readiness of TACOPS units.",
+    specializations: ["Platoon Leadership", "Combat Readiness"],
   },
 ];
 
@@ -52,19 +52,19 @@ const members: DivisionMember[] = [
     id: "5",
     name: "TBD",
     rank: "Member",
-    bio: "SPECOPS operative specializing in medical support and combat rescue operations.",
-    specializations: ["Medical"],
+    bio: "TACOPS operative specializing in frontline combat and tactical engagement.",
+    specializations: ["Combat"],
   },
   {
     id: "6",
     name: "TBD",
     rank: "Member",
-    bio: "SPECOPS operative specializing in covert operations and infiltration.",
-    specializations: ["Infiltration"],
+    bio: "TACOPS operative specializing in tactical warfare and combat operations.",
+    specializations: ["Tactical Warfare"],
   },
 ];
 
-const SPECOPSPage = () => {
+const TACOPSPage = () => {
   return (
     <div className="min-h-screen bg-background-base">
       {/* Hero Section with Patch */}
@@ -77,11 +77,14 @@ const SPECOPSPage = () => {
             {/* Division Patch */}
             <div className="flex justify-center mb-8">
               <div className="relative group">
+
+                {/* Soft glow ONLY on hover */}
+                <div className="absolute inset-0 blur-2xl bg-transparent transition-all duration-700 group-hover:bg-orange-700/25" />
                 <div className="absolute inset-0 bg-crimson/20 blur-2xl group-hover:bg-crimson/30 transition-all duration-slow" />
                 <div className="relative">
                   <SafeImage
-                    src="/images/divisions/specops/specops.png"
-                    alt="SPECOPS Patch"
+                    src="/images/divisions/tacops/tacops.png"
+                    alt="TACOPS Patch"
                     width={200}
                     height={200}
                     className="drop-shadow-2xl transition-transform duration-slow group-hover:scale-105"
@@ -92,16 +95,16 @@ const SPECOPSPage = () => {
 
             {/* Title */}
             <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-widest text-foreground mb-4">
-              SPECOPS
+              TACOPS
             </h1>
             <div className="w-24 h-1 bg-linear-to-r from-transparent via-crimson to-transparent mx-auto mb-6" />
             <p className="text-left text-lg md:text-xl text-foreground-muted max-w-3xl mx-auto leading-relaxed">
-              The Special Operations Division is the tip of the spear, leading the charge in executing high-risk,
-              high-reward missions with precision and excellence. As the first to strike, this elite division specializes
-              in critical tasks that demand adaptability, skill, and unwavering resolve. Whether operating in hostile environments
-              securing key objectives, or executing covert operations, the Special Operations Division embodies the pinnacle
-              of operational effectiveness. They are the decisive edge in the most challenging and high-stakes scenarios,
-              where success is non-negotiable.
+              The Tactical Air Control Operations Division is responsible for coordinating air support for ground operations,
+              serving as the vital link between forces on the ground and assets in the skies. Acting as the eyes and ears of
+              the battlefield and the voice of the skies, this division ensures precise communication and execution of air missions.
+              From directing airstrikes to providing reconnaissance, Tactical Air Control Operations is essential to maintaining situational
+              awareness and operational effectiveness. Their expertise bridges the gap between ground and air, enabling cohesive and
+              decisive action in dynamic environments.
             </p>
           </div>
         </div>
@@ -153,15 +156,30 @@ interface DivisionCardProps {
 const DivisionCard: React.FC<DivisionCardProps> = ({ member, compact = false }) => {
   return (
     <div className="card group h-full flex flex-col">
-      {/* Image */}
+      {/* Image with Overlay */}
       <div className={`relative w-full ${compact ? 'aspect-square' : 'aspect-4/3'} mb-4 rounded-lg overflow-hidden border border-border-subtle group-hover:border-steel/50 transition-colors`}>
         {member.imageUrl ? (
-          <SafeImage
-            src={member.imageUrl}
-            alt={member.name}
-            fill
-            className="object-cover"
-          />
+          <>
+            <SafeImage
+              src={member.imageUrl}
+              alt={member.name}
+              fill
+              className="object-cover"
+            />
+
+            {/* Gradient Overlay - Always visible */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+            {/* Overlay Text - Always visible */}
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <p className="text-sm text-[var(--hw-steel-teal)] font-semibold uppercase tracking-wider mb-1">
+                Leadership Core
+              </p>
+              <h3 className="text-xl font-bold text-white uppercase tracking-wide drop-shadow-lg">
+                {member.name}
+              </h3>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full bg-background-elevated flex items-center justify-center">
           </div>
@@ -206,4 +224,4 @@ const DivisionCard: React.FC<DivisionCardProps> = ({ member, compact = false }) 
   );
 };
 
-export default SPECOPSPage;
+export default TACOPSPage;

@@ -11,6 +11,7 @@ import Pagination from "@/components/marketplace/Pagination";
 import DiscordInviteModal from "@/components/marketplace/DiscordInviteModal";
 import MarketplaceLoader from "@/components/marketplace/MarketplaceLoader";
 import AdminControls from "@/components/marketplace/AdminControls";
+import EditListingModal from "@/components/marketplace/EditListingModal";
 
 import { getWithExpiry, setWithExpiry, clearExpired } from "@/lib/localStorage";
 
@@ -42,6 +43,7 @@ export default function MarketplacePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminControls, setShowAdminControls] = useState(false);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -185,6 +187,103 @@ export default function MarketplacePage() {
     if (stored) setContactedListings(stored);
   }, []);
 
+  // Handle edit listing
+  const handleEditListing = useCallback((listing: Listing) => {
+    setEditingListing(listing);
+  }, []);
+
+  // Handle save edited listing
+  const handleSaveEdit = useCallback(async (updatedData: Partial<Listing>) => {
+    if (!editingListing) return;
+
+    try {
+      // Map category name to categoryId (you may need to adjust this mapping)
+      const categoryMap: Record<string, number> = {
+        "Weapons": 1,
+        "Armor": 2,
+        "Clothing": 3,
+        "Components": 4,
+        "Items": 5,
+        "Services": 6,
+        "Rentals": 7,
+        "Misc": 8,
+      };
+
+      const requestBody = {
+        title: updatedData.title,
+        description: updatedData.description || "",
+        categoryId: updatedData.category ? categoryMap[updatedData.category] : undefined,
+        price: updatedData.price,
+        quantity: updatedData.quantity || 1,
+        imageUrl: updatedData.imageUrl,
+      };
+
+      console.log('Sending update request:', requestBody);
+
+      const response = await fetch(`/api/marketplace/update/${editingListing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText || 'Failed to update listing' };
+        }
+        throw new Error(error.error || 'Failed to update listing');
+      }
+
+      const responseText = await response.text();
+      console.log('Success response:', responseText);
+
+      const result = responseText ? JSON.parse(responseText) : { success: true };
+
+      // Update local state
+      setListings(prev =>
+        prev.map(listing =>
+          listing.id === editingListing.id
+            ? { ...listing, ...updatedData }
+            : listing
+        )
+      );
+
+      alert('Listing updated successfully');
+      setEditingListing(null);
+    } catch (error) {
+      console.error('Update error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save changes');
+      throw error; // Re-throw so modal can handle it
+    }
+  }, [editingListing]);
+
+  // Handle delete listing
+  const handleDeleteListing = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/marketplace/delete/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete listing');
+      }
+
+      // Remove from local state
+      setListings(prev => prev.filter(listing => listing.id !== id));
+      alert('Listing deleted successfully');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete listing');
+    }
+  }, []);
+
 
   const listingsByCategory = useMemo(() => {
     return listings
@@ -202,7 +301,59 @@ export default function MarketplacePage() {
   }, [listings, selectedCategory, searchQuery, sortOption]);
 
   return (
-    <>
+    <div className="relative min-h-screen overflow-hidden
+      bg-gradient-to-b from-[var(--hw-shadow)] via-[var(--hw-obsidian)] to-[var(--hw-pure-black)]">
+
+      {/* AMBIENT BACKGROUND EFFECTS */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Animated Gradient Orbs */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px]
+          bg-gradient-radial from-[var(--hw-steel-teal)]/15 via-[var(--hw-steel-teal)]/5 to-transparent
+          blur-[100px] animate-pulse" style={{ animationDuration: "8s" }} />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px]
+          bg-gradient-radial from-[var(--hw-dark-crimson)]/12 via-[var(--hw-dark-crimson)]/4 to-transparent
+          blur-[100px] animate-pulse" style={{ animationDuration: "6s", animationDelay: "2s" }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px]
+          bg-gradient-radial from-[var(--hw-steel-teal)]/8 via-transparent to-transparent
+          blur-[120px] animate-pulse" style={{ animationDuration: "10s", animationDelay: "4s" }} />
+
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(var(--hw-steel-teal) 1px, transparent 1px),
+                            linear-gradient(90deg, var(--hw-steel-teal) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px'
+          }} />
+
+        {/* Scanning Lines Effect */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--hw-steel-teal)] to-transparent
+            animate-scan" />
+        </div>
+
+        {/* Floating Particles - Using deterministic positions */}
+        <div className="absolute inset-0">
+          {[...Array(15)].map((_, i) => {
+            // Deterministic pseudo-random values based on index
+            const seed1 = (i * 7919) % 100;
+            const seed2 = (i * 6151) % 100;
+            const seed3 = (i * 4373) % 3;
+            return (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-[var(--hw-steel-teal)] rounded-full opacity-20 animate-float-particle"
+                style={{
+                  left: `${seed1}%`,
+                  top: `${seed2}%`,
+                  animationDelay: `${i * 0.8}s`,
+                  animationDuration: `${4 + seed3}s`
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
       {isLoading && <MarketplaceLoader />}
 
       {modalData && (
@@ -215,36 +366,79 @@ export default function MarketplacePage() {
         />
       )}
 
+      {editingListing && (
+        <EditListingModal
+          listing={editingListing}
+          onClose={() => setEditingListing(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+
       <section className="relative z-10 max-w-360 mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <MarketplaceHero />
 
-        <CategoryBar
-          categories={categories}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        {/* Main Content Container - Enhanced */}
+        <div className="relative mt-8 overflow-hidden rounded-2xl
+          border-2 border-[var(--hw-steel-teal)]/30
+          bg-gradient-to-br from-[var(--background-elevated)]/60 to-[var(--background-card)]/40
+          backdrop-blur-xl
+          shadow-[0_10px_60px_rgba(17,78,98,0.3),0_0_100px_rgba(71,0,0,0.15)]">
 
-        <SearchSortBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          sortOption={sortOption}
-          setSortOption={setSortOption}
-          showAdminControls={showAdminControls}
-          setShowAdminControls={setShowAdminControls}
-          isAdmin={!!session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
-        />
+          {/* Enhanced Ambient Effects Inside Container */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-32 -left-32 w-96 h-96
+              bg-gradient-radial from-[var(--hw-steel-teal)]/15 via-[var(--hw-steel-teal)]/5 to-transparent
+              blur-[80px] animate-pulse" style={{ animationDuration: "6s" }} />
+            <div className="absolute -bottom-40 -right-32 w-[500px] h-[500px]
+              bg-gradient-radial from-[var(--hw-dark-crimson)]/12 via-transparent to-transparent
+              blur-[100px] animate-pulse" style={{ animationDuration: "7s", animationDelay: "2s" }} />
 
-        <ListingsGrid
-          listings={listingsByCategory}
-          contactedListings={contactedListings}
-          handleContactSeller={handleContactSeller}
-          FALLBACK_DISCORD_INVITE={FALLBACK_DISCORD_INVITE}
-          adminControlsFn={(item: { id: string }) =>
-            session?.user?.permissions?.includes("MARKETPLACE_ADMIN") && showAdminControls ? (
-              <AdminControls item={item} onEdit={(l: { id: string }) => console.log("edit", l)} onDelete={() => Promise.resolve(console.log("delete", item.id))} />
-            ) : null
-          }
-        />
+            {/* Top Border Accent */}
+            <div className="absolute top-0 left-0 right-0 h-[2px]
+              bg-gradient-to-r from-transparent via-[var(--hw-steel-teal)] to-transparent opacity-60" />
+
+            {/* Corner Brackets */}
+            <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-[var(--hw-steel-teal)]/40" />
+            <div className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-[var(--hw-steel-teal)]/40" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 border-b-2 border-l-2 border-[var(--hw-dark-crimson)]/40" />
+            <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-[var(--hw-dark-crimson)]/40" />
+          </div>
+
+          <div className="relative space-y-6 p-6 sm:p-8">
+            <CategoryBar
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+              className="bg-[var(--background)]/30 border border-[var(--hw-steel-teal)]/20 rounded-xl p-4 backdrop-blur-sm"
+            />
+
+            <SearchSortBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              sortOption={sortOption}
+              setSortOption={setSortOption}
+              showAdminControls={showAdminControls}
+              setShowAdminControls={setShowAdminControls}
+              isAdmin={!!session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
+            />
+
+            <ListingsGrid
+              listings={listingsByCategory}
+              contactedListings={contactedListings}
+              handleContactSeller={handleContactSeller}
+              FALLBACK_DISCORD_INVITE={FALLBACK_DISCORD_INVITE}
+              adminControlsFn={(item: Listing) =>
+                session?.user?.permissions?.includes("MARKETPLACE_ADMIN") && showAdminControls ? (
+                  <AdminControls
+                    item={item}
+                    onEdit={handleEditListing}
+                    onDelete={handleDeleteListing}
+                  />
+                ) : null
+              }
+            />
+          </div>
+        </div>
 
         <Pagination
           currentPage={currentPage}
@@ -255,6 +449,6 @@ export default function MarketplacePage() {
           totalItems={totalItems}
         />
       </section>
-    </>
+    </div>
   );
 }

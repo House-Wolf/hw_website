@@ -178,30 +178,36 @@ export default function MarketplaceLoader() {
 
         {/* Data stream indicators (left side) */}
         <div className="absolute -left-32 top-1/2 -translate-y-1/2 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="h-0.5 bg-red-500/60 animate-data-stream"
-              style={{
-                width: `${Math.random() * 40 + 20}px`,
-                animationDelay: `${i * 0.2}s`
-              }}
-            />
-          ))}
+          {[...Array(5)].map((_, i) => {
+            const width = 24 + ((i * 13) % 28); // deterministic width to avoid hydration mismatch
+            return (
+              <div
+                key={i}
+                className="h-0.5 bg-red-500/60 animate-data-stream"
+                style={{
+                  width: `${width}px`,
+                  animationDelay: `${i * 0.2}s`
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Data stream indicators (right side) */}
         <div className="absolute -right-32 top-1/2 -translate-y-1/2 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="h-0.5 bg-orange-400/60 animate-data-stream-reverse"
-              style={{
-                width: `${Math.random() * 40 + 20}px`,
-                animationDelay: `${i * 0.2}s`
-              }}
-            />
-          ))}
+          {[...Array(5)].map((_, i) => {
+            const width = 26 + ((i * 17) % 26); // deterministic width to avoid hydration mismatch
+            return (
+              <div
+                key={i}
+                className="h-0.5 bg-orange-400/60 animate-data-stream-reverse"
+                style={{
+                  width: `${width}px`,
+                  animationDelay: `${i * 0.2}s`
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 

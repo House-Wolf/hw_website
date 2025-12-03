@@ -61,7 +61,7 @@ export default function DashboardLayout({
           </h1>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`text-foreground-muted hover:text-accent transition-all duration-200 hover:scale-110 ${
+            className={`text-foreground-muted hover:text-accent transition-all duration-200 hover:scale-110 cursor-pointer ${
               sidebarOpen ? "" : "p-2"
             } focus:outline-none focus:ring-2 focus:ring-accent rounded-md`}
             aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}

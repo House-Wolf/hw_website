@@ -124,9 +124,7 @@ export default function DivisionsPage() {
                 key={division.slug}
                 href={`/commands/${division.slug}`}
                 className={`group bg-linear-to-br ${
-                  division.color === "crimson"
-                    ? "from-crimson-dark/20 to-obsidian border-crimson/30 hover:border-crimson hover:shadow-[0_0_50px_rgba(71,0,0,0.5)]"
-                    : "from-steel-dark/20 to-obsidian border-steel/30 hover:border-steel-light hover:shadow-[0_0_50px_rgba(17,78,98,0.5)]"
+                  division.color = "from-steel-dark/20 to-obsidian border-steel/30 hover:border-steel-light hover:shadow-[0_0_50px_rgba(17,78,98,0.5)]"
                 } border-2 rounded-lg p-8 hover:scale-105 transition-all duration-500`}
               >
                 {/* Patch Image */}

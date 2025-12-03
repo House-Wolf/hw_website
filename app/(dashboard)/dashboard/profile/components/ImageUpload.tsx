@@ -127,7 +127,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
           <button
             type="button"
             onClick={handleClear}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white transition-colors"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white transition-colors cursor-pointer"
             title="Remove image"
           >
             <X size={16} />
@@ -178,7 +178,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] inline-flex items-center justify-center gap-2"
+                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] inline-flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Upload size={16} />
                     Choose File
@@ -187,7 +187,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
                   <button
                     type="button"
                     onClick={() => setShowUrlInput(!showUrlInput)}
-                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors text-[var(--foreground)]"
+                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors text-[var(--foreground)] cursor-pointer"
                   >
                     Use URL Instead
                   </button>
@@ -224,7 +224,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
           <button
             type="button"
             onClick={handleUrlSubmit}
-            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)]"
+            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] cursor-pointer"
           >
             Add
           </button>
@@ -234,7 +234,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
               setShowUrlInput(false);
               setUrlInputValue("");
             }}
-            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors text-[var(--foreground)]"
+            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors text-[var(--foreground)] cursor-pointer"
           >
             Cancel
           </button>
