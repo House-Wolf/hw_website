@@ -17,7 +17,6 @@ interface SafeImageProps extends ImageProps {
  * <SafeImage src="/images/example.png" alt="Example Image" width={500} height={300} />
  * @author House Wolf Dev Team
  */
-
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   fallbackSrc = "/images/global/HWiconnew.png",

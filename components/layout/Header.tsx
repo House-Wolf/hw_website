@@ -47,7 +47,7 @@ export default function Header({
               alt="House Wolf Icon"
               width={75}
               height={75}
-              className="hidden sm:block drop-shadow-[0_0_20px_rgba(17,78,98,0.6)]"
+              className="hidden sm:block drop-shadow-[0_0_25px_rgba(17,78,98,3.0)]"
             />
           </Link>
 

@@ -446,6 +446,10 @@ body {
   margin: var(--spacing-2xl) 0;
 }
 
+.wolf-blur {
+  will-change: transform, opacity;
+}
+
 /* ============================================
    ANIMATIONS
    ============================================ */

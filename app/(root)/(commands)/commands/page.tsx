@@ -47,9 +47,9 @@ export default function DivisionsPage() {
   return (
     <div className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
       {/* Hero Section */}
-      <section className="relative h-[70vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[95vh] min-h-[600px] flex items-center justify-center overflow-hidden ">
         {/* Background Image */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 hidden 2xl:block">
           <SafeImage
             src="/images/divisions/HWdivisionsandunits.png"
             alt="House Wolf Divisions"
@@ -82,7 +82,7 @@ export default function DivisionsPage() {
           </h1>
           <div className="h-1 w-32 bg-linear-to-r from-transparent via-steel-light to-transparent mx-auto mb-8 shadow-[0_0_15px_rgba(17,78,98,0.8)]" />
           <p className="text-xl md:text-2xl text-foreground-muted italic leading-relaxed">
-            Elite units forged in honor, bound by the Wolf Code
+            Elite units forged in honor, bound by the Dragoon Code
           </p>
         </div>
       </section>
@@ -95,14 +95,23 @@ export default function DivisionsPage() {
         <div className="max-w-4xl mx-auto relative z-10">
           <div className="bg-linear-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)] hover:shadow-[0_0_60px_rgba(17,78,98,0.5)] hover:border-steel/50 transition-all duration-500">
             <p className="text-xl md:text-2xl text-foreground leading-relaxed mb-6">
-              House Wolf operates as a <span className="text-steel-light font-bold">multi-divisional force</span>,
-              with each unit specializing in specific operational domains while maintaining our core values of
-              <span className="text-crimson-light font-bold"> Honor, Strength, and Death Before Dishonor</span>.
+              House Wolf operates as a{" "}
+              <span className="text-steel-light font-bold">
+                multi-divisional force
+              </span>
+              , with each unit specializing in specific operational domains
+              while maintaining our core values of
+              <span className="text-crimson-light font-bold">
+                {" "}
+                Honor, Strength, and Death Before Dishonor
+              </span>
+              .
             </p>
             <p className="text-lg md:text-xl text-foreground-muted leading-relaxed">
-              From reconnaissance to logistics, from special operations to frontline combat—every Wolf
-              serves with distinction, knowing that the pack is only as strong as its weakest member.
-              Together, we are unstoppable.
+              From reconnaissance to logistics, from special operations to
+              frontline combat—every Wolf serves with distinction, knowing that
+              the pack is only as strong as its weakest member. Together, we are
+              unstoppable.
             </p>
           </div>
         </div>
@@ -123,8 +132,7 @@ export default function DivisionsPage() {
               <Link
                 key={division.slug}
                 href={`/commands/${division.slug}`}
-                className={`group bg-linear-to-br ${
-                  division.color = "from-steel-dark/20 to-obsidian border-steel/30 hover:border-steel-light hover:shadow-[0_0_50px_rgba(17,78,98,0.5)]"
+                className={`group bg-linear-to-br ${"from-steel-dark/20 to-obsidian border-steel/30 hover:border-steel-light hover:shadow-[0_0_50px_rgba(17,78,98,0.5)]"
                 } border-2 rounded-lg p-8 hover:scale-105 transition-all duration-500`}
               >
                 {/* Patch Image */}
@@ -132,7 +140,9 @@ export default function DivisionsPage() {
                   <div className="relative">
                     <div
                       className={`absolute inset-0 ${
-                        division.color === "crimson" ? "bg-crimson/20" : "bg-steel/20"
+                        division.color === "crimson"
+                          ? "bg-crimson/20"
+                          : "bg-steel/20"
                       } blur-2xl group-hover:blur-3xl transition-all`}
                     />
                     <SafeImage
@@ -148,7 +158,9 @@ export default function DivisionsPage() {
                 {/* Division Info */}
                 <h3
                   className={`text-2xl font-bold mb-2 uppercase tracking-wider ${
-                    division.color === "crimson" ? "text-crimson-light" : "text-steel-light"
+                    division.color === "crimson"
+                      ? "text-crimson-light"
+                      : "text-steel-light"
                   } group-hover:text-foreground transition-colors`}
                 >
                   {division.name}
@@ -156,7 +168,9 @@ export default function DivisionsPage() {
                 <p className="text-sm text-foreground-muted mb-4 font-mono uppercase tracking-widest">
                   {division.tagline}
                 </p>
-                <p className="text-foreground-muted leading-relaxed mb-6">{division.description}</p>
+                <p className="text-foreground-muted leading-relaxed mb-6">
+                  {division.description}
+                </p>
 
                 {/* CTA */}
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-steel-light group-hover:text-foreground transition-colors">
@@ -177,8 +191,9 @@ export default function DivisionsPage() {
               Join the Pack
             </h2>
             <p className="text-lg md:text-xl text-foreground-muted leading-relaxed mb-8">
-              House Wolf seeks warriors of honor and skill. If you have what it takes to run with
-              the pack, your place awaits in one of our elite divisions.
+              House Wolf seeks warriors of honor and skill. If you have what it
+              takes to run with the pack, your place awaits in one of our elite
+              divisions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -189,7 +204,7 @@ export default function DivisionsPage() {
               </Link>
               <Link
                 href="/code"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_40px_rgba(71,0,0,0.6)] hover:scale-105 transition-all duration-300 uppercase tracking-wider"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-crimson to-crimson-light text-foreground font-bold rounded-lg hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] hover:scale-105 transition-all duration-300 uppercase tracking-wider"
               >
                 Read the Code
               </Link>

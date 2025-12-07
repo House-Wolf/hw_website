@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { ListingStatus } from "@prisma/client";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -14,6 +16,23 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting for marketplace deletion
+    const identifier = getRateLimitIdentifier(
+      session.user.id,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_WRITE);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
       );
     }
 
@@ -56,21 +75,13 @@ export async function DELETE(
       );
     }
 
-    // Prisma enum mismatch with DB: perform raw update with explicit enum cast
-    const deleteResult = await prisma.$queryRaw<{ id: string }[]>`
-      UPDATE "marketplace_listings"
-      SET "deleted_at" = NOW(),
-          "status" = 'DELETED'::"ListingStatus"
-      WHERE id = ${id}::uuid
-      RETURNING id;
-    `;
-
-    if (!deleteResult.length) {
-      return NextResponse.json(
-        { error: "Listing not found" },
-        { status: 404 }
-      );
-    }
+    await prisma.marketplaceListings.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: ListingStatus.DELETED,
+      },
+    });
 
     return NextResponse.json(
       { success: true },

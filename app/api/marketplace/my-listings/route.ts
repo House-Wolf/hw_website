@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth();
 
@@ -10,6 +11,23 @@ export async function GET() {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting for fetching user's own listings
+    const identifier = getRateLimitIdentifier(
+      session.user.id,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_READ);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
       );
     }
 

@@ -2,10 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
+
+    // Rate limiting for fetching social links
+    const identifier = getRateLimitIdentifier(
+      session?.user?.id,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_READ);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
     const searchParams = req.nextUrl.searchParams;
     const statusParam = (searchParams.get("status") || "APPROVED").toUpperCase();
     const platform = searchParams.get("platform");
@@ -62,6 +81,23 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting for creating social links
+    const identifier = getRateLimitIdentifier(
+      session.user.id,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_WRITE);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
+      );
     }
 
     const body = await req.json();

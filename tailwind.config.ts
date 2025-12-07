@@ -1,82 +1,110 @@
-/**
- * @type {import('tailwindcss').Config}
- */
+import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
   content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+
   theme: {
     extend: {
+      /* ========================================
+         COLOR SYSTEM (Mapped to globals.css)
+         ======================================== */
       colors: {
-        // === House Wolf Official Palette ===
-        crimson: {
-          DEFAULT: "#470000",
-          dark: "#2a0000",
-          light: "#6b0000",
-          lighter: "#8a0000",
-        },
-        night: {
-          deep: "#09171E",
-          midnight: "#071F27",
-        },
-        steel: {
-          DEFAULT: "#114E62",
-          light: "#1a6b8a",
-          dark: "#0d3a4a",
-        },
-        obsidian: "#0D1517",
-        shadow: "#070B0C",
+        /* Core brand colors */
+        crimson: "var(--hw-dark-crimson)",
+        "crimson-light": "#FF6B6B",
+        "crimson-dark": "var(--accent-primary)",
 
-        // Semantic mappings for easy use
+        steel: "var(--hw-steel-teal)",
+        "steel-light": "#60A5FA",
+        "steel-dark": "var(--accent-secondary)",
+
+        
+
+        /* Background layers */
         background: {
-          DEFAULT: "var(--background-base)",
-          soft: "var(--background-soft)",
+          base: "var(--background-base)",
           elevated: "var(--background-elevated)",
           card: "var(--background-card)",
+          soft: "var(--background-soft)",
         },
-        foreground: {
-          DEFAULT: "var(--text-primary)",
-          muted: "var(--text-secondary)",
-        },
+        /* Foreground (text) */
+        foreground: "var(--text-primary)",
+        "foreground-muted": "var(--text-secondary)",
+        "foreground-inverse": "var(--text-inverse)",
+
+        /* Accents */
         accent: {
-          DEFAULT: "var(--accent-primary)",
+          main: "var(--accent-primary)",
           secondary: "var(--accent-secondary)",
-          hover: "var(--accent-primary-hover)",
         },
+
+        /* Borders */
         border: {
-          DEFAULT: "var(--border-default)",
-          subtle: "var(--border-subtle)",
+          soft: "var(--border-subtle)",
+          base: "var(--border-default)",
           strong: "var(--border-strong)",
           crimson: "var(--border-crimson)",
-          teal: "var(--border-teal)",
+          steel: "var(--border-teal)",
         },
-        status: {
-          success: "var(--status-success)",
-          warning: "var(--status-warning)",
-          error: "var(--status-error)",
-          info: "var(--status-info)",
+
+
+        /* Status colors */
+        success: {
+          DEFAULT: "var(--status-success)",
+          text: "var(--status-success-text)",
+        },
+        warning: {
+          DEFAULT: "var(--status-warning)",
+          text: "var(--status-warning-text)",
+        },
+        error: {
+          DEFAULT: "var(--status-error)",
+          text: "var(--status-error-text)",
+        },
+        info: {
+          DEFAULT: "var(--status-info)",
+          text: "var(--status-info-text)",
         },
       },
-      fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        mono: ["var(--font-jetbrains-mono)", "monospace"],
+
+      /* ========================================
+         BORDER COLORS (shortcut utilities)
+         ======================================== */
+      borderColor: {
+        crimson: "var(--border-crimson)",
+        steel: "var(--border-teal)",
+        strong: "var(--border-strong)",
       },
+
+      /* ========================================
+         SHADOWS (matches globals.css token shadows)
+         ======================================== */
       boxShadow: {
         sm: "var(--shadow-sm)",
         md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
-        crimson: "var(--shadow-crimson)",
-        teal: "var(--shadow-teal)",
+        "crimson-glow": "0 0 20px rgba(71,0,0,0.4)",
+        "steel-glow": "0 0 20px rgba(17,78,98,0.3)",
       },
-      borderRadius: {
-        sm: "var(--radius-sm)",
-        md: "var(--radius-md)",
-        lg: "var(--radius-lg)",
-        xl: "var(--radius-xl)",
+
+      /* ========================================
+         GRADIENTS
+         ======================================== */
+      gradientColorStops: {
+        "crimson-dark": "var(--hw-dark-crimson)",
+        "crimson-light": "#7A0000",
+        "steel-dark": "var(--hw-steel-teal)",
+        "steel-light": "#1A6B8A",
       },
+
+      /* ========================================
+         SPACING & RADII
+         ======================================== */
       spacing: {
         xs: "var(--spacing-xs)",
         sm: "var(--spacing-sm)",
@@ -86,20 +114,28 @@ export default {
         "2xl": "var(--spacing-2xl)",
         "3xl": "var(--spacing-3xl)",
       },
-      transitionDuration: {
-        fast: "var(--transition-fast)",
-        base: "var(--transition-base)",
-        slow: "var(--transition-slow)",
+
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        full: "var(--radius-full)",
       },
-      zIndex: {
-        dropdown: "var(--z-dropdown)",
-        sticky: "var(--z-sticky)",
-        fixed: "var(--z-fixed)",
-        modal: "var(--z-modal)",
-        popover: "var(--z-popover)",
-        tooltip: "var(--z-tooltip)",
+
+    
+
+      /* ========================================
+         FONTS
+         ======================================== */
+      fontFamily: {
+        sans: "var(--font-inter), sans-serif",
+        mono: "var(--font-jetbrains-mono), monospace",
       },
     },
   },
+
   plugins: [],
-}
+};
+
+export default config;

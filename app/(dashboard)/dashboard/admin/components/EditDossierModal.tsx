@@ -14,11 +14,13 @@ type Subdivision = {
   divisionId: number;
 };
 
-type Dossier = {
+// ⬇️ Allow divisionId to be null (matches query data)
+//    subdivisionId is already nullable
+export type Dossier = {
   id: string;
   characterName: string;
   bio: string;
-  divisionId: number;
+  divisionId: number | null;
   subdivisionId: number | null;
 };
 
@@ -39,7 +41,9 @@ export default function EditDossierModal({
 }: EditDossierModalProps) {
   const [characterName, setCharacterName] = useState(dossier.characterName);
   const [bio, setBio] = useState(dossier.bio);
-  const [divisionId, setDivisionId] = useState(dossier.divisionId.toString());
+  const [divisionId, setDivisionId] = useState(
+    dossier.divisionId?.toString() ?? ""
+  );
   const [subdivisionId, setSubdivisionId] = useState(
     dossier.subdivisionId?.toString() || ""
   );

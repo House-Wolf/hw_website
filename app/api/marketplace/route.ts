@@ -1,52 +1,77 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ListingStatus } from '@prisma/client';
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // Prisma schema is out-of-sync with DB enums; use a raw query to avoid enum casting issues
-    const listings = (await prisma.$queryRaw`
-      SELECT
-        l.id,
-        l.title,
-        l.description,
-        l.quantity,
-        l.price,
-        c.name AS category,
-        c.slug AS category_slug,
-        u.discord_id,
-        COALESCE(u.discord_display_name, u.discord_username) AS seller_username,
-        (
-          SELECT image_url
-          FROM marketplace_listing_images i
-          WHERE i.listing_id = l.id
-          ORDER BY i.sort_order ASC
-          LIMIT 1
-        ) AS image_url,
-        l.created_at
-      FROM marketplace_listings l
-      JOIN marketplace_categories c ON c.id = l.category_id
-      JOIN users u ON u.id = l.seller_user_id
-      WHERE l.deleted_at IS NULL
-        AND l.status = 'ACTIVE'::"ListingStatus"
-      ORDER BY l.created_at DESC;
-    `) as any[];
+    // Rate limiting for public marketplace listing
+    const identifier = getRateLimitIdentifier(
+      null,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.PUBLIC);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // Use Prisma ORM for type-safe queries
+    const listings = await prisma.marketplaceListings.findMany({
+      where: {
+        deletedAt: null,
+        status: ListingStatus.ACTIVE,
+      },
+      include: {
+        category: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+        seller: {
+          select: {
+            discordId: true,
+            discordUsername: true,
+            discordDisplayName: true,
+          },
+        },
+        images: {
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          select: {
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     const serialized = listings.map((listing) => ({
       id: listing.id,
       title: listing.title,
       description: listing.description,
       quantity: listing.quantity,
-      price: parseFloat(listing.price),
-      category: listing.category,
-      categorySlug: listing.category_slug,
-      discordId: listing.discord_id,
-      imageUrl: listing.image_url,
-      sellerUsername: listing.seller_username,
+      price: parseFloat(listing.price.toString()),
+      category: listing.category.name,
+      categorySlug: listing.category.slug,
+      discordId: listing.seller.discordId,
+      imageUrl: listing.images[0]?.imageUrl || null,
+      sellerUsername: listing.seller.discordDisplayName || listing.seller.discordUsername,
     }));
 
     return NextResponse.json(serialized);
   } catch (error) {
     console.error('Error fetching listings:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch marketplace listings' },
+      { status: 500 }
+    );
   }
 }
