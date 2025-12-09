@@ -1,10 +1,22 @@
-import type { Config } from "tailwindcss";
+/**
+ * @config Tailwind Configuration
+ * @description Defines the full TailwindCSS theme for House Wolf, including custom colors,
+ * variables, fonts, spacing, and semantic design tokens. Expanded content paths ensure
+ * compatibility with Next.js 16 App Router and grouped route segments.
+ * @returns {import('tailwindcss').Config} Tailwind configuration object
+ * @author House Wolf Dev Team
+ *  ### REVIEWED 12/08/2025 ###
+ */
+// eslint-disable-next-line import/no-anonymous-default-export
+export default {
+  darkMode: ["class"],
 
-const config: Config = {
   content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{ts,tsx,mdx}",
+    "./components/**/*.{ts,tsx,mdx}",
+    "./app/**/(.)*/**/*.{ts,tsx,mdx}",
+    "./lib/**/*.{ts,tsx}",
+    "./utils/**/*.{ts,tsx}",
   ],
 
   theme: {
@@ -13,30 +25,35 @@ const config: Config = {
          COLOR SYSTEM (Mapped to globals.css)
          ======================================== */
       colors: {
-        /* Core brand colors */
-        crimson: "var(--hw-dark-crimson)",
-        "crimson-light": "#FF6B6B",
-        "crimson-dark": "var(--accent-primary)",
+        crimson: {
+          DEFAULT: "#470000",
+          dark: "#2a0000",
+          light: "#6b0000",
+          lighter: "#8a0000",
+        },
+        night: {
+          deep: "#09171E",
+          midnight: "#071F27",
+        },
+        steel: {
+          DEFAULT: "#114E62",
+          light: "#1a6b8a",
+          dark: "#0d3a4a",
+        },
+        obsidian: "#0D1517",
+        shadow: "#070B0C",
 
-        steel: "var(--hw-steel-teal)",
-        "steel-light": "#60A5FA",
-        "steel-dark": "var(--accent-secondary)",
-
-        
-
-        /* Background layers */
-        background: {
-          base: "var(--background-base)",
+        "hw-background": {
+          DEFAULT: "var(--background-base)",
+          soft: "var(--background-soft)",
           elevated: "var(--background-elevated)",
           card: "var(--background-card)",
           soft: "var(--background-soft)",
         },
-        /* Foreground (text) */
-        foreground: "var(--text-primary)",
-        "foreground-muted": "var(--text-secondary)",
-        "foreground-inverse": "var(--text-inverse)",
-
-        /* Accents */
+        "hw-foreground": {
+          DEFAULT: "var(--text-primary)",
+          muted: "var(--text-secondary)",
+        },
         accent: {
           main: "var(--accent-primary)",
           secondary: "var(--accent-secondary)",
@@ -71,18 +88,11 @@ const config: Config = {
         },
       },
 
-      /* ========================================
-         BORDER COLORS (shortcut utilities)
-         ======================================== */
-      borderColor: {
-        crimson: "var(--border-crimson)",
-        steel: "var(--border-teal)",
-        strong: "var(--border-strong)",
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
 
-      /* ========================================
-         SHADOWS (matches globals.css token shadows)
-         ======================================== */
       boxShadow: {
         sm: "var(--shadow-sm)",
         md: "var(--shadow-md)",
@@ -92,19 +102,13 @@ const config: Config = {
         "steel-glow": "0 0 20px rgba(17,78,98,0.3)",
       },
 
-      /* ========================================
-         GRADIENTS
-         ======================================== */
-      gradientColorStops: {
-        "crimson-dark": "var(--hw-dark-crimson)",
-        "crimson-light": "#7A0000",
-        "steel-dark": "var(--hw-steel-teal)",
-        "steel-light": "#1A6B8A",
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
       },
 
-      /* ========================================
-         SPACING & RADII
-         ======================================== */
       spacing: {
         xs: "var(--spacing-xs)",
         sm: "var(--spacing-sm)",
@@ -115,27 +119,22 @@ const config: Config = {
         "3xl": "var(--spacing-3xl)",
       },
 
-      borderRadius: {
-        sm: "var(--radius-sm)",
-        md: "var(--radius-md)",
-        lg: "var(--radius-lg)",
-        xl: "var(--radius-xl)",
-        full: "var(--radius-full)",
+      transitionDuration: {
+        fast: "var(--transition-fast)",
+        base: "var(--transition-base)",
+        slow: "var(--transition-slow)",
       },
 
-    
-
-      /* ========================================
-         FONTS
-         ======================================== */
-      fontFamily: {
-        sans: "var(--font-inter), sans-serif",
-        mono: "var(--font-jetbrains-mono), monospace",
+      zIndex: {
+        dropdown: "var(--z-dropdown)",
+        sticky: "var(--z-sticky)",
+        fixed: "var(--z-fixed)",
+        modal: "var(--z-modal)",
+        popover: "var(--z-popover)",
+        tooltip: "var(--z-tooltip)",
       },
     },
   },
 
   plugins: [],
 };
-
-export default config;
