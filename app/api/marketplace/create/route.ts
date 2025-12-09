@@ -1,16 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { validateCreateListingInput } from "@/lib/marketplace/validation";
-import { MarketplaceListings } from "@prisma/client";
+import { ListingStatus, ListingVisibility } from "@prisma/client";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json(
       { error: "Unauthorized - Please sign in" },
       { status: 401 }
+    );
+  }
+
+  // Rate limiting for marketplace creation
+  const identifier = getRateLimitIdentifier(
+    session.user.id,
+    getClientIp(req.headers)
+  );
+  const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_WRITE);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: createRateLimitHeaders(rateLimitResult),
+      }
     );
   }
 
@@ -53,51 +71,21 @@ export async function POST(req: Request) {
     } = validation.parsed;
 
     const listing = await prisma.$transaction(async (tx) => {
-      // Prisma schema is currently out of sync with the DB enums for status/visibility,
-      // so use a raw insert with explicit enum casts to avoid conversion errors.
-      const insertResults = await tx.$queryRaw<MarketplaceListings[]>`
-        INSERT INTO "marketplace_listings"
-          (
-            "id",
-            "seller_user_id",
-            "title",
-            "description",
-            "category_id",
-            "price",
-            "currency",
-            "quantity",
-            "location",
-            "status",
-            "visibility",
-            "view_count",
-            "message_count",
-            "created_at",
-            "updated_at"
-          )
-        VALUES
-          (
-            gen_random_uuid(),
-            ${session.user.id}::uuid,
-            ${title},
-            ${description},
-            ${categoryId},
-            ${price},
-            'aUEC',
-            ${quantity},
-            ${location || null},
-            'ACTIVE'::"ListingStatus",
-            'PUBLIC'::"ListingVisibility",
-            0,
-            0,
-            NOW(),
-            NOW()
-          )
-        RETURNING *;
-      `;
+      const newListing = await tx.marketplaceListings.create({
+        data: {
+          sellerUserId: session.user.id,
+          title,
+          description,
+          categoryId,
+          price,
+          currency: "aUEC",
+          quantity,
+          location,
+          status: ListingStatus.ACTIVE,
+          visibility: ListingVisibility.PUBLIC,
+        },
+      });
 
-      const newListing = insertResults[0];
-
-      // Add image if provided
       if (imageUrl && imageUrl.trim()) {
         await tx.marketplaceListingImage.create({
           data: {

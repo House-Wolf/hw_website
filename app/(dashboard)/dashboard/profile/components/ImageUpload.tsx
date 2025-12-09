@@ -17,48 +17,43 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
   const [urlInputValue, setUrlInputValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Upload handler using NEW static `/uploads/profiles` system
+   */
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     setIsUploading(true);
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const response = await fetch('/api/marketplace/upload', {
-        method: 'POST',
+      // IMPORTANT: New upload API route
+      const response = await fetch("/api/profiles/upload", {
+        method: "POST",
         body: formData,
       });
 
-      const contentType = response.headers.get('content-type');
+      const contentType = response.headers.get("content-type");
 
       if (!response.ok) {
-        let errorMessage = 'Failed to upload image';
-
-        if (contentType?.includes('application/json')) {
-          const data = await response.json();
-          errorMessage = data.error || errorMessage;
-        } else {
-          const text = await response.text();
-          console.error('Upload error response:', text);
-          errorMessage = `Server error (${response.status}): ${text.substring(0, 100)}`;
-        }
-
-        throw new Error(errorMessage);
+        const errText = await response.text();
+        throw new Error(errText || "Failed to upload image");
       }
 
-      if (!contentType?.includes('application/json')) {
-        const text = await response.text();
-        console.error('Unexpected response:', text);
-        throw new Error('Unexpected server response');
+      if (!contentType?.includes("application/json")) {
+        throw new Error("Unexpected server response");
       }
 
       const data = await response.json();
+
+      // SUCCESS → Use new static URL (e.g. "/uploads/profiles/xxxx.png")
       onChange(data.url);
       setShowUrlInput(false);
+
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to upload image');
+      console.error("Upload error:", err);
+      setError(err instanceof Error ? err.message : "Failed to upload image");
     } finally {
       setIsUploading(false);
     }
@@ -69,30 +64,14 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const imageFile = files.find(file => file.type.startsWith('image/'));
+    const imageFile = files.find(f => f.type.startsWith("image/"));
 
-    if (imageFile) {
-      handleFile(imageFile);
-    } else {
-      setError('Please drop an image file');
+    if (!imageFile) {
+      setError("Please drop an image file.");
+      return;
     }
-  }, [handleFile]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
-    }
+    handleFile(imageFile);
   }, [handleFile]);
 
   const handleUrlSubmit = useCallback(() => {
@@ -108,13 +87,13 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
     onClear();
     setError(null);
     setUrlInputValue("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }, [onClear]);
 
   return (
     <div className="space-y-3">
+
+      {/* Preview MODE */}
       {value ? (
         <div className="relative">
           <div className="rounded-lg overflow-hidden border border-[var(--border-soft)] bg-[var(--background-elevated)]">
@@ -124,32 +103,32 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
               className="w-full h-48 object-cover"
             />
           </div>
+
           <button
             type="button"
             onClick={handleClear}
             className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white transition-colors cursor-pointer"
-            title="Remove image"
           >
             <X size={16} />
           </button>
         </div>
       ) : (
+
+        /* Upload Box */
         <div
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
           className={`relative rounded-lg border-2 border-dashed transition-all ${
             isDragging
-              ? 'border-[var(--accent-main)] bg-[var(--accent-soft)]/10'
-              : 'border-[var(--border-soft)] bg-[var(--background-elevated)]'
+              ? "border-[var(--accent-main)] bg-[var(--accent-soft)]/10"
+              : "border-[var(--border-soft)] bg-[var(--background-elevated)]"
           }`}
         >
           <div className="p-8 text-center">
             <div className="flex justify-center mb-4">
               <div className={`p-4 rounded-full ${
-                isDragging
-                  ? 'bg-[var(--accent-soft)]/20'
-                  : 'bg-[var(--background-secondary)]'
+                isDragging ? "bg-[var(--accent-soft)]/20" : "bg-[var(--background-secondary)]"
               }`}>
                 {isUploading ? (
                   <div className="animate-spin">
@@ -162,9 +141,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
             </div>
 
             {isUploading ? (
-              <p className="text-sm text-[var(--foreground-muted)]">
-                Uploading image...
-              </p>
+              <p className="text-sm text-[var(--foreground-muted)]">Uploading image...</p>
             ) : (
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)] mb-1">
@@ -175,15 +152,18 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
+
+                  {/* Button: Choose File */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] inline-flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--accent-soft)] bg-[var(--accent-soft)]/15 hover:bg-[var(--accent-soft)]/25 transition-colors text-[var(--foreground)] cursor-pointer"
                   >
                     <Upload size={16} />
                     Choose File
                   </button>
 
+                  {/* Button: URL Input */}
                   <button
                     type="button"
                     onClick={() => setShowUrlInput(!showUrlInput)}
@@ -191,6 +171,7 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
                   >
                     Use URL Instead
                   </button>
+
                 </div>
               </>
             )}
@@ -200,12 +181,13 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={handleFileSelect}
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             className="hidden"
           />
         </div>
       )}
 
+      {/* URL INPUT MODE */}
       {showUrlInput && !value && (
         <div className="flex gap-2">
           <input
@@ -213,14 +195,10 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
             value={urlInputValue}
             onChange={(e) => setUrlInputValue(e.target.value)}
             placeholder="https://example.com/image.png"
-            className="flex-1 px-3 py-2 rounded-md border border-[var(--border-soft)] bg-[var(--background-elevated)] text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleUrlSubmit();
-              }
-            }}
+            className="flex-1 px-3 py-2 rounded-md border border-[var(--border-soft)] bg-[var(--background-elevated)] text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+            onKeyDown={(e) => e.key === "Enter" && handleUrlSubmit()}
           />
+
           <button
             type="button"
             onClick={handleUrlSubmit}
@@ -228,13 +206,11 @@ export default function ImageUpload({ value, onChange, onClear }: ImageUploadPro
           >
             Add
           </button>
+
           <button
             type="button"
-            onClick={() => {
-              setShowUrlInput(false);
-              setUrlInputValue("");
-            }}
-            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors text-[var(--foreground)] cursor-pointer"
+            onClick={() => { setShowUrlInput(false); setUrlInputValue(""); }}
+            className="px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border-soft)] bg-[var(--background-secondary)]/60 hover:bg-[var(--background-secondary)] transition-colors cursor-pointer"
           >
             Cancel
           </button>

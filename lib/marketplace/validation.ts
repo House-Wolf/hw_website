@@ -194,7 +194,26 @@ export function validateUpdateListingInput(input: UpdateInput): ValidationResult
     if (input.imageUrl !== null && typeof input.imageUrl !== "string") {
       return { ok: false, error: "Image URL must be a string" };
     }
-    parsed.imageUrl = input.imageUrl?.trim() || null;
+
+    const trimmedUrl = input.imageUrl?.trim();
+    if (trimmedUrl) {
+      // Basic URL validation to prevent XSS/SSRF
+      try {
+        const url = new URL(trimmedUrl);
+        // Only allow HTTP/HTTPS protocols
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+          return { ok: false, error: "Image URL must use HTTP or HTTPS protocol" };
+        }
+        // Block dangerous protocols
+        if (/^(javascript|data|file|vbscript|blob):/i.test(trimmedUrl)) {
+          return { ok: false, error: "Invalid image URL protocol" };
+        }
+      } catch {
+        return { ok: false, error: "Invalid image URL format" };
+      }
+    }
+
+    parsed.imageUrl = trimmedUrl || null;
   }
 
   return { ok: true, parsed };

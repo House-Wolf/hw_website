@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Edit2, Trash2 } from "lucide-react";
-import EditDossierModal from "./EditDossierModal";
+import EditDossierModal, { Dossier as BaseDossier } from "./EditDossierModal";
 
 type User = {
-  discordUsername: string;
+  discordUsername: string | null; // ⬅️ can be null from DB
 };
 
 type Division = {
@@ -19,18 +19,15 @@ type Subdivision = {
   divisionId: number;
 };
 
-type Dossier = {
-  id: string;
-  characterName: string;
-  bio: string;
-  divisionId: number | null;
-  subdivisionId: number | null;
+// ⬇️ Extend the base dossier with view-only / joined fields
+type Dossier = BaseDossier & {
   division?: { name: string } | null;
   subdivision?: { name: string } | null;
   user?: User;
   displayName?: string | null;
   divisionName?: string | null;
   subdivisionName?: string | null;
+  discordUsername?: string | null;
 };
 
 type ApprovedDossiersSectionProps = {
@@ -51,18 +48,17 @@ export default function ApprovedDossiersSection({
   onUnapprove,
 }: ApprovedDossiersSectionProps) {
   const [editingDossier, setEditingDossier] = useState<Dossier | null>(null);
-  const [deletingDossierId, setDeletingDossierId] = useState<string | null>(null);
+  const [deletingDossierId, setDeletingDossierId] = useState<string | null>(
+    null
+  );
 
   const handleDelete = (dossierId: string) => {
     if (deletingDossierId === dossierId) {
-      // Confirmed - submit the delete
       const formData = new FormData();
       formData.append("dossierId", dossierId);
       onDelete(formData);
     } else {
-      // First click - show confirmation
       setDeletingDossierId(dossierId);
-      // Reset after 3 seconds
       setTimeout(() => setDeletingDossierId(null), 3000);
     }
   };
@@ -131,7 +127,7 @@ export default function ApprovedDossiersSection({
         )}
       </div>
 
-      {editingDossier && (
+     {editingDossier && (
         <EditDossierModal
           dossier={editingDossier}
           divisions={divisions}
@@ -143,4 +139,3 @@ export default function ApprovedDossiersSection({
     </>
   );
 }
-
