@@ -1,36 +1,51 @@
+/**
+ * @component AuthMiddleware
+ * @description Authentication + authorization gate for the House Wolf Next.js App Router.
+ *              Prevents unauthenticated/suspended users from accessing protected dashboard
+ *              routes and redirects authenticated users away from the sign-in page.
+ * @param {Request} req The incoming request wrapped by Auth.js middleware
+ * @returns {NextResponse} A redirect or pass-through response based on authentication state
+ * @author House Wolf Dev Team
+ *  ### REVIEWED 12/08/25 ###
+ */
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-// Force Node.js runtime for middleware (required for Prisma with pg adapter)
 export const runtime = "nodejs";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isAuthenticated = !!req.auth;
-  const isSuspended = req.auth?.user && (req.auth.user as any).isActive === false;
 
-  // Protected routes that require authentication
-  const protectedRoutes = ["/dashboard"];
+  const user = req.auth?.user ?? null;
+  const isAuthenticated = !!user;
 
-  // Check if current path is protected
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isSuspended = user ? user.isActive !== true : false;
 
-  // Redirect to signin if accessing protected route without auth
+  const isProtectedRoute = pathname.startsWith("/dashboard");
+
+  /**
+   * 1️⃣ Block unauthenticated users from protected routes
+   */
   if (isProtectedRoute && !isAuthenticated) {
     const signInUrl = new URL("/auth/signin", req.url);
-    signInUrl.searchParams.set("callbackUrl", pathname);
+
+    signInUrl.searchParams.set("callbackUrl", encodeURIComponent(pathname));
+
     return NextResponse.redirect(signInUrl);
   }
 
+  /**
+   * 2️⃣ Block suspended users from dashboard routes
+   */
   if (isProtectedRoute && isSuspended) {
     const suspendedUrl = new URL("/auth/error", req.url);
     suspendedUrl.searchParams.set("error", "Suspended");
     return NextResponse.redirect(suspendedUrl);
   }
 
-  // Redirect authenticated users away from auth pages
+  /**
+   * 3️⃣ Redirect authenticated users *away* from the signin page
+   */
   if (isAuthenticated && pathname.startsWith("/auth/signin")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
@@ -38,16 +53,23 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+/**
+ * @component MiddlewareMatcher
+ * @description Defines which incoming paths should be processed by middleware.
+ *              Uses the official Next.js pattern, avoiding brittle regex and ensuring
+ *              static assets, images, and upload endpoints bypass middleware cleanly.
+ * @returns {object} Matcher configuration for Next.js runtime
+ * @author House Wolf Dev Team
+ */
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api/marketplace/upload (file upload endpoint - body consumed by formidable)
+    /**
+     * Matches ALL routes **except**:
+     * - /_next/*
+     * - /favicon.ico
+     * - public static files
+     * - upload endpoints (must bypass middleware or upload will break)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/marketplace/upload|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next|favicon.ico|api/marketplace/upload|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
