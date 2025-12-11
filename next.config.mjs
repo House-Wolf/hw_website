@@ -60,3 +60,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+// Middleware configuration has been moved to proxy.ts (required for Next.js 15+)

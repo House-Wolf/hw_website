@@ -36,7 +36,6 @@ interface CardComponentProps {
  * </CardComponent>
  * @author House Wolf Dev Team
  */
-
 export default function CardComponent({
   title,
   image,

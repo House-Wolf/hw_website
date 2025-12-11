@@ -14,11 +14,13 @@ type Subdivision = {
   divisionId: number;
 };
 
-type Dossier = {
+// ⬇️ Allow divisionId to be null (matches query data)
+//    subdivisionId is already nullable
+export type Dossier = {
   id: string;
   characterName: string;
   bio: string;
-  divisionId: number;
+  divisionId: number | null;
   subdivisionId: number | null;
 };
 
@@ -39,7 +41,9 @@ export default function EditDossierModal({
 }: EditDossierModalProps) {
   const [characterName, setCharacterName] = useState(dossier.characterName);
   const [bio, setBio] = useState(dossier.bio);
-  const [divisionId, setDivisionId] = useState(dossier.divisionId.toString());
+  const [divisionId, setDivisionId] = useState(
+    dossier.divisionId?.toString() ?? ""
+  );
   const [subdivisionId, setSubdivisionId] = useState(
     dossier.subdivisionId?.toString() || ""
   );
@@ -83,7 +87,7 @@ export default function EditDossierModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-[var(--background-secondary)] transition-colors"
+            className="p-2 rounded-md hover:bg-[var(--background-secondary)] transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X size={20} className="text-[var(--foreground-muted)]" />
@@ -174,13 +178,13 @@ export default function EditDossierModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md font-semibold border border-[var(--border)] bg-[var(--background-secondary)] hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground)]"
+              className="px-4 py-2 rounded-md font-semibold border border-[var(--border)] bg-[var(--background-secondary)] hover:bg-[var(--background-elevated)] transition-colors text-[var(--foreground)] cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors"
+              className="px-4 py-2 rounded-md font-semibold bg-[var(--accent-strong)] text-[var(--graphite-50)] border border-[var(--border)] hover:bg-[var(--maroon-500)] transition-colors cursor-pointer"
             >
               Save Changes
             </button>

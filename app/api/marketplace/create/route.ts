@@ -1,14 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { validateCreateListingInput } from "@/lib/marketplace/validation";
+import { ListingStatus, ListingVisibility } from "@prisma/client";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json(
       { error: "Unauthorized - Please sign in" },
       { status: 401 }
+    );
+  }
+
+  // Rate limiting for marketplace creation
+  const identifier = getRateLimitIdentifier(
+    session.user.id,
+    getClientIp(req.headers)
+  );
+  const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_WRITE);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: createRateLimitHeaders(rateLimitResult),
+      }
     );
   }
 
@@ -26,57 +46,68 @@ export async function POST(req: Request) {
     }
 
     const data = await req.formData();
-    const title = data.get("title")?.toString();
-    const description = data.get("description")?.toString();
-    const categoryId = data.get("categoryId")?.toString();
-    const price = data.get("price")?.toString();
-    const quantity = data.get("quantity")?.toString();
-    const location = data.get("location")?.toString();
-    const imageUrl = data.get("imageUrl")?.toString();
-
-    // Validation
-    if (!title || !description || !categoryId || !price) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Create listing
-    const listing = await prisma.marketplaceListings.create({
-      data: {
-        sellerUserId: session.user.id,
-        title: title.trim(),
-        description: description.trim(),
-        categoryId: parseInt(categoryId),
-        price: parseFloat(price),
-        currency: "aUEC",
-        quantity: quantity ? parseInt(quantity) : 1,
-        location: location?.trim() || null,
-        status: "ACTIVE",
-        visibility: "PUBLIC",
-      },
+    const validation = validateCreateListingInput({
+      title: data.get("title")?.toString() ?? "",
+      description: data.get("description")?.toString() ?? "",
+      categoryId: data.get("categoryId")?.toString() ?? "",
+      price: data.get("price")?.toString() ?? "",
+      quantity: data.get("quantity")?.toString(),
+      location: data.get("location")?.toString() ?? "",
+      imageUrl: data.get("imageUrl")?.toString() ?? "",
     });
 
-    // Add image if provided
-    if (imageUrl && imageUrl.trim()) {
-      await prisma.marketplaceListingImage.create({
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const {
+      title,
+      description,
+      categoryId,
+      price,
+      quantity,
+      location,
+      imageUrl,
+    } = validation.parsed;
+
+    const listing = await prisma.$transaction(async (tx) => {
+      const newListing = await tx.marketplaceListings.create({
         data: {
-          listingId: listing.id,
-          imageUrl: imageUrl.trim(),
-          sortOrder: 0,
+          sellerUserId: session.user.id,
+          title,
+          description,
+          categoryId,
+          price,
+          currency: "aUEC",
+          quantity,
+          location,
+          status: ListingStatus.ACTIVE,
+          visibility: ListingVisibility.PUBLIC,
         },
       });
-    }
+
+      if (imageUrl && imageUrl.trim()) {
+        await tx.marketplaceListingImage.create({
+          data: {
+            listingId: newListing.id,
+            imageUrl: imageUrl.trim(),
+            sortOrder: 0,
+          },
+        });
+      }
+
+      return newListing;
+    });
 
     return NextResponse.json(
       { success: true, listing },
       { status: 201 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error creating listing:", err);
+    const message = err instanceof Error ? err.message : "Failed to create listing";
     return NextResponse.json(
-      { error: err.message || "Failed to create listing" },
+      { error: message },
       { status: 500 }
     );
   }

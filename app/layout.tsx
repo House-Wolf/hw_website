@@ -1,92 +1,26 @@
-import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import ErrorBoundary from "@/components/utils/ErrorBoundary";
-import { SessionProvider } from "@/components/auth/SessionProvider";
+import { Providers } from "./providers";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import Navbar from "@/components/layout/Navbar";
+import { validateEnv } from "@/lib/env";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
+/**
+ * Root Layout Component
+ * @description The root layout for the application, wrapping all pages with common components like header and navbar.
+ * @author House Wolf Dev Team
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Fail fast if required environment variables are missing
+  validateEnv();
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-export const metadata: Metadata = {
-  title: "House Wolf – Home of the Dragoons",
-  description:
-    "House Wolf is a Mercenary Star Citizen organization embodying the Dragoon Code of Honor: Strength, Honor, and Death. As warriors devoted to armor, weapons, and war, the Dragoons live by the creed — 'Strength is life, for the strong have the right to rule; Honor is life, for without honor one may as well be dead; Death is life, one should die as they have lived.' Join the pack and rise among the ranks of House Wolf.",
-  keywords: [
-    "Star Citizen",
-    "House Wolf",
-    "Dragoons",
-    "Gaming Organization",
-    "Mercenary Clan",
-    "Space Sim",
-    "Tactical Operations",
-    "Special Operations",
-    "Warrior Culture",
-  ],
-  authors: [{ name: "House Wolf" }],
-  metadataBase: new URL("https://www.housewolf.co"),
-
-  // Open Graph (for Facebook, Discord, LinkedIn, etc.)
-  openGraph: {
-    title: "House Wolf - Home of the Dragoons",
-    description:
-      "Elite Star Citizen organization specializing in tactical operations, logistics, and special operations. Join the pack!",
-    url: "https://www.housewolf.co",
-    siteName: "House Wolf",
-    images: [
-      {
-        url: "/images/global/Websitebgnew.png",
-        width: 1200,
-        height: 630,
-        alt: "House Wolf - Home of the Dragoons",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-
-  // Twitter Card
-  twitter: {
-    card: "summary_large_image",
-    title: "House Wolf - Home of the Dragoons",
-    description:
-      "Mercenary Star Citizen organization specializing in tactical operations, logistics, and special operations.",
-    images: ["/images/global/Websitebgnew.png"],
-  },
-
-  // Additional Meta
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        suppressHydrationWarning
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
-      >
-        <SessionProvider>
+      <body className="antialiased" suppressHydrationWarning>
+        <Providers>
           <HeaderWrapper />
           <Navbar />
-          <ErrorBoundary>{children}</ErrorBoundary>
-        </SessionProvider>
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -1,14 +1,17 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { deriveUserPermissions } from "@/lib/derive-permissions";
+import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Ban, CheckCircle2, FileText, Shield, UserCog } from "lucide-react";
+import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2 } from "lucide-react";
 import ApprovedDossiersSection from "./components/ApprovedDossiersSection";
+import SocialLinksSection from "./components/SocialLinksSection";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+
+
 
 async function suspendUserAction(formData: FormData) {
   "use server";
@@ -210,9 +213,11 @@ export default async function AdminPanelPage({
   const params = await searchParams;
   const requestedTab =
     typeof params?.tab === "string" ? (params.tab as string) : "users";
-  let activeTab: "users" | "dossiers" = "users";
+  let activeTab: "users" | "dossiers" | "social" = "users";
   if (requestedTab === "dossiers" && hasDossierAdmin) {
     activeTab = "dossiers";
+  } else if (requestedTab === "social" && hasDossierAdmin) {
+    activeTab = "social";
   } else if (!hasUserAdmin && hasDossierAdmin) {
     activeTab = "dossiers";
   }
@@ -245,14 +250,45 @@ export default async function AdminPanelPage({
     : [];
 
   const dossiers = hasDossierAdmin
-    ? await prisma.mercenaryProfile.findMany({
-        orderBy: { lastSubmittedAt: "desc" },
-        include: {
-          user: true,
-          division: true,
-          subdivision: true,
-        },
-      })
+    ? ((await prisma.$queryRaw`
+        SELECT
+          mp.id,
+          mp.user_id AS "userId",
+          mp.character_name AS "characterName",
+          mp.bio,
+          mp.division_id AS "divisionId",
+          mp.subdivision_id AS "subdivisionId",
+          mp.status::text AS status,
+          mp.last_submitted_at AS "lastSubmittedAt",
+          mp.approved_at AS "approvedAt",
+          mp.rejected_at AS "rejectedAt",
+          mp.rejection_reason AS "rejectionReason",
+          COALESCE(u.discord_display_name, u.discord_username) AS "displayName",
+          u.discord_username AS "discordUsername",
+          d.name AS "divisionName",
+          s.name AS "subdivisionName"
+        FROM mercenary_profiles mp
+        LEFT JOIN users u ON u.id = mp.user_id
+        LEFT JOIN divisions d ON d.id = mp.division_id
+        LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
+        ORDER BY mp.last_submitted_at DESC NULLS LAST;
+      `) as Array<{
+        id: string;
+        userId: string;
+        characterName: string;
+        bio: string;
+        divisionId: number | null;
+        subdivisionId: number | null;
+        status: string;
+        lastSubmittedAt: Date | null;
+        approvedAt: Date | null;
+        rejectedAt: Date | null;
+        rejectionReason: string | null;
+        displayName: string | null;
+        discordUsername: string | null;
+        divisionName: string | null;
+        subdivisionName: string | null;
+      }>)
     : [];
 
   const divisions = hasDossierAdmin
@@ -267,10 +303,20 @@ export default async function AdminPanelPage({
         select: {
           id: true,
           name: true,
+          
           divisionId: true,
         },
       })
     : [];
+
+  const approvedDossiers = dossiers
+    .filter((d) => d.status === "APPROVED")
+    .map((d) => ({
+      ...d,
+      user: { discordUsername: d.discordUsername || "unknown" },
+      division: d.divisionName ? { name: d.divisionName } : null,
+      subdivision: d.subdivisionName ? { name: d.subdivisionName } : null,
+    }));
 
   return (
     <div className="space-y-6">
@@ -294,7 +340,7 @@ export default async function AdminPanelPage({
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] pb-3">
           <Link
             href="/dashboard/admin?tab=users"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
               activeTab === "users"
                 ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
                 : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
@@ -306,7 +352,7 @@ export default async function AdminPanelPage({
           </Link>
           <Link
             href="/dashboard/admin?tab=dossiers"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border ${
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
               activeTab === "dossiers"
                 ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
                 : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
@@ -315,6 +361,18 @@ export default async function AdminPanelPage({
             aria-disabled={!hasDossierAdmin}
           >
             Dossiers
+          </Link>
+          <Link
+            href="/dashboard/admin?tab=social"
+            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
+              activeTab === "social"
+                ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
+                : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
+            } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
+            aria-current={activeTab === "social" ? "page" : undefined}
+            aria-disabled={!hasDossierAdmin}
+          >
+            Social Links
           </Link>
         </div>
 
@@ -418,7 +476,7 @@ export default async function AdminPanelPage({
                                 <input type="hidden" name="userId" value={user.id} />
                                 <button
                                   type="submit"
-                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   aria-label="Suspend user"
                                   title="Suspend user from dashboard access"
                                 >
@@ -430,7 +488,7 @@ export default async function AdminPanelPage({
                                 <input type="hidden" name="userId" value={user.id} />
                                 <button
                                   type="submit"
-                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                                   aria-label="Revoke suspension"
                                   title="Revoke suspension and restore access"
                                 >
@@ -501,12 +559,12 @@ export default async function AdminPanelPage({
                                 {dossier.characterName}
                               </p>
                               <p className="text-xs text-[var(--foreground-muted)]">
-                                @{dossier.user.discordUsername}
+                                @{dossier.discordUsername || "unknown"}
                               </p>
                             </div>
                             <span className="text-xs text-[var(--foreground-muted)]">
-                              {dossier.division?.name}
-                              {dossier.subdivision ? ` • ${dossier.subdivision.name}` : ""}
+                              {dossier.divisionName ?? ""}
+                              {dossier.subdivisionName ? ` • ${dossier.subdivisionName}` : ""}
                             </span>
                           </div>
                           <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-hidden">
@@ -516,7 +574,7 @@ export default async function AdminPanelPage({
                             <input type="hidden" name="dossierId" value={dossier.id} />
                             <button
                               type="submit"
-                              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)]"
+                              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-soft)]/15 hover:border-[var(--accent-soft)] transition-colors text-[var(--foreground)] cursor-pointer"
                             >
                               Approve
                             </button>
@@ -536,14 +594,15 @@ export default async function AdminPanelPage({
                     <h3 className="text-lg font-semibold text-[var(--foreground)]">
                       Published
                     </h3>
+                    
                   </div>
                   <span className="text-sm font-semibold px-3 py-1 rounded-full bg-[var(--accent-soft)]/15 border border-[var(--accent-soft)] text-[var(--foreground)]">
                     {dossiers.filter((d) => d.status === "APPROVED").length}
                   </span>
                 </div>
 
-                <ApprovedDossiersSection
-                  dossiers={dossiers.filter((d) => d.status === "APPROVED")}
+                <ApprovedDossiersSection 
+                  dossiers={approvedDossiers}
                   divisions={divisions}
                   subdivisions={subdivisions}
                   onEdit={editDossierAction}
@@ -554,7 +613,29 @@ export default async function AdminPanelPage({
             </div>
           </>
         )}
+
+        {activeTab === "social" && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.1em] text-[var(--foreground-muted)]">
+                  Social Workflow
+                </p>
+                <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                  Community Streamers
+                </h2>
+                <p className="text-sm text-[var(--foreground-muted)]">
+                  Review and approve Twitch channel submissions from House Wolf members.
+                </p>
+              </div>
+              <Link2 className="text-[var(--accent-main)]" size={20} />
+            </div>
+
+            <SocialLinksSection />
+          </>
+        )}
       </section>
     </div>
   );
 }
+

@@ -2,21 +2,31 @@ export const metadata = {
   title: "The Dragoon Code | House Wolf Dragoons",
   description:
     "Discover the warrior creed of the Kamposian Dragoons — Strength, Honor, and Death. Explore the sacred principles that define House Wolf.",
+
   openGraph: {
     title: "The Dragoon Code | House Wolf Dragoons",
     description:
       "Explore the warrior code of the Dragoons and the traditions House Wolf carries forward.",
     url: "https://housewolf.co/code",
-    images: ["/images/global/HWiconnew.png"],
+    images: [
+      {
+        url: "/images/global/social-card.png",
+        width: 1200,
+        height: 630,
+        alt: "House Wolf Dragoons – Dragoon Code",
+      },
+    ],
     type: "article",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "The Dragoon Code | House Wolf Dragoons",
     description:
       "Explore the core values: Strength, Honor, and Death — the Dragoon way.",
-    images: ["/images/global/HWiconnew.png"],
+    images: ["/images/global/social-card.png"],
   },
+
   alternates: {
     canonical: "https://housewolf.co/code",
   },
@@ -33,7 +43,10 @@ interface CodeLayoutProps {
  * @returns {JSX.Element} The rendered layout component.
  * @author House Wolf Dev Team
  */
-
-export default function CodeLayout({ children } : CodeLayoutProps) {
-  return children;
+export default function CodeLayout({ children }: CodeLayoutProps) {
+  return (
+    <section className="min-h-screen w-full">
+      {children}
+    </section>
+  );
 }

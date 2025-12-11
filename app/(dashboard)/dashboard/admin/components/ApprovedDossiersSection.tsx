@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Edit2, Trash2 } from "lucide-react";
-import EditDossierModal from "./EditDossierModal";
+import EditDossierModal, { Dossier as BaseDossier } from "./EditDossierModal";
 
 type User = {
-  discordUsername: string;
+  discordUsername: string | null; // ⬅️ can be null from DB
 };
 
 type Division = {
@@ -19,15 +19,15 @@ type Subdivision = {
   divisionId: number;
 };
 
-type Dossier = {
-  id: string;
-  characterName: string;
-  bio: string;
-  divisionId: number;
-  subdivisionId: number | null;
+// ⬇️ Extend the base dossier with view-only / joined fields
+type Dossier = BaseDossier & {
   division?: { name: string } | null;
   subdivision?: { name: string } | null;
-  user: User;
+  user?: User;
+  displayName?: string | null;
+  divisionName?: string | null;
+  subdivisionName?: string | null;
+  discordUsername?: string | null;
 };
 
 type ApprovedDossiersSectionProps = {
@@ -48,18 +48,17 @@ export default function ApprovedDossiersSection({
   onUnapprove,
 }: ApprovedDossiersSectionProps) {
   const [editingDossier, setEditingDossier] = useState<Dossier | null>(null);
-  const [deletingDossierId, setDeletingDossierId] = useState<string | null>(null);
+  const [deletingDossierId, setDeletingDossierId] = useState<string | null>(
+    null
+  );
 
   const handleDelete = (dossierId: string) => {
     if (deletingDossierId === dossierId) {
-      // Confirmed - submit the delete
       const formData = new FormData();
       formData.append("dossierId", dossierId);
       onDelete(formData);
     } else {
-      // First click - show confirmation
       setDeletingDossierId(dossierId);
-      // Reset after 3 seconds
       setTimeout(() => setDeletingDossierId(null), 3000);
     }
   };
@@ -83,7 +82,7 @@ export default function ApprovedDossiersSection({
                     {dossier.characterName}
                   </p>
                   <p className="text-xs text-[var(--foreground-muted)]">
-                    @{dossier.user.discordUsername}
+                    @{dossier.user?.discordUsername ?? dossier.discordUsername ?? ""}
                   </p>
                 </div>
                 <span className="text-xs text-[var(--foreground-muted)]">
@@ -97,14 +96,14 @@ export default function ApprovedDossiersSection({
               <div className="flex items-center gap-2 mt-3">
                 <button
                   onClick={() => setEditingDossier(dossier)}
-                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-main)] bg-[var(--background-elevated)] hover:bg-[var(--accent-main)]/15 hover:border-[var(--accent-main)] transition-colors text-[var(--foreground)] flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-main)] bg-[var(--background-elevated)] hover:bg-[var(--accent-main)]/15 hover:border-[var(--accent-main)] transition-colors text-[var(--foreground)] flex items-center gap-1 cursor-pointer"
                 >
                   <Edit2 size={14} />
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(dossier.id)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors flex items-center gap-1 ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors flex items-center gap-1 cursor-pointer ${
                     deletingDossierId === dossier.id
                       ? "border-red-500 bg-red-500/20 text-red-400 hover:bg-red-500/30"
                       : "border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] text-[var(--foreground)]"
@@ -117,7 +116,7 @@ export default function ApprovedDossiersSection({
                   <input type="hidden" name="dossierId" value={dossier.id} />
                   <button
                     type="submit"
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/10 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)]"
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--accent-soft)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/10 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] cursor-pointer"
                   >
                     Unapprove
                   </button>
@@ -128,7 +127,7 @@ export default function ApprovedDossiersSection({
         )}
       </div>
 
-      {editingDossier && (
+     {editingDossier && (
         <EditDossierModal
           dossier={editingDossier}
           divisions={divisions}

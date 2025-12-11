@@ -1,9 +1,16 @@
-import NextAuth from "next-auth";
+import NextAuth, { Profile } from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import { deriveUserPermissions } from "./derive-permissions";
-import { ROLE_IDS, DOSSIER_ADMIN_RANKS } from "./role-constants";
+import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
+
+type DiscordGuild = {
+  id: string;
+  name: string;
+  icon: string | null;
+  owner: boolean;
+  permissions: string;
+};
 
 type DiscordGuildRole = {
   id: string;
@@ -13,22 +20,34 @@ type DiscordGuildRole = {
   managed: boolean;
 };
 
-// Role constants moved to lib/role-constants.ts to avoid duplication
-
-function normalizeName(value?: string | null) {
-  return (value || "").trim().toLowerCase();
+interface DiscordProfile extends Profile {
+  id: string;
+  username: string;
+  global_name: string | null;
+  avatar: string | null;
+  email: string | null;
 }
 
+type DiscordMember = {
+  roles: string[];
+};
+
+/**
+ * @function syncGuildRolesMetadata
+ * @description Syncs Discord guild roles metadata into the database.
+ * @param {string} guildId - The ID of the Discord guild.
+ * @param {string | undefined} botToken - The Discord bot token for authentication.
+ * @returns {Promise<void>}
+ * @author House Wolf Dev Team
+ */
 async function syncGuildRolesMetadata(guildId: string, botToken?: string) {
   if (!botToken) {
     console.warn("DISCORD_BOT_TOKEN missing; cannot sync role metadata");
     return;
   }
-
+  
   const resp = await fetch(`https://discord.com/api/guilds/${guildId}/roles`, {
-    headers: {
-      Authorization: `Bot ${botToken}`,
-    },
+    headers: { Authorization: `Bot ${botToken}` },
   });
 
   if (!resp.ok) {
@@ -58,8 +77,14 @@ async function syncGuildRolesMetadata(guildId: string, botToken?: string) {
   }
 }
 
+/**
+ * @module Auth
+ * @description - NextAuth configuration for Discord OAuth and user session management.
+ * @author House Wolf Dev Team
+ */
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -69,8 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           scope: "identify email guilds guilds.members.read",
         },
       },
-      profile(profile) {
-        // Map Discord profile to NextAuth user format
+      profile(profile: DiscordProfile) {
         return {
           id: profile.id,
           name: profile.global_name ?? profile.username,
@@ -78,20 +102,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           image: profile.avatar
             ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
             : null,
-          // Custom fields for our database
           discordId: profile.id,
           discordUsername: profile.username,
           discordDisplayName: profile.global_name ?? null,
+          avatarUrl: profile.avatar
+            ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+            : null,
         };
       },
     }),
   ],
+
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (!account || !profile) return false;
+    // 1) Gate by House Wolf guild membership
+    async signIn({ account }) {
+      if (!account?.access_token) return false;
 
       try {
-        // Fetch user's guilds to check membership
         const guildsResponse = await fetch(
           "https://discord.com/api/users/@me/guilds",
           {
@@ -106,35 +133,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return false;
         }
 
-        const guilds = await guildsResponse.json();
+        const guilds: DiscordGuild[] = await guildsResponse.json();
         const guildId = process.env.DISCORD_GUILD_ID;
 
-        // Check if user is member of the House Wolf Discord
-        const isMember = guilds.some((guild: any) => guild.id === guildId);
-
+        const isMember = guilds.some((guild) => guild.id === guildId);
         if (!isMember) {
           console.log("User is not a member of the House Wolf Discord");
-          return false;
         }
 
-        // Let NextAuth adapter handle user creation/linking
-        // We'll sync Discord data and roles in the jwt/session callback after user is created
-        return true;
+        return isMember;
       } catch (error) {
         console.error("Error in signIn callback:", error);
         return false;
       }
     },
 
-    async jwt({ token, user, account, profile, trigger }) {
-      // JWT callback is primarily for adding custom claims to the token
-      // Role syncing is handled in the signIn event to avoid duplication
-      return token;
-    },
+    // 2) JWT – hydrate with user data, roles, permissions, rank on sign-in
+    async jwt({ token, user, trigger }) {
+      const isInitialSignIn = user && (trigger === "signIn" || !("initialized" in token));
 
-    async session({ session, user }) {
-      if (session.user) {
-        // Fetch user from database with roles
+      if (isInitialSignIn) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           include: {
@@ -151,47 +169,92 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 },
               },
             },
+            mercenaryProfiles: {
+              include: { rank: true },
+            },
           },
         });
 
         if (dbUser) {
-          // Add custom fields to session
-          session.user.id = dbUser.id;
-          session.user.discordId = dbUser.discordId;
-          session.user.discordUsername = dbUser.discordUsername;
-          session.user.isActive = dbUser.isActive;
+          token.id = dbUser.id;
+          token.discordId = dbUser.discordId;
+          token.discordUsername = dbUser.discordUsername;
+          token.discordDisplayName = dbUser.discordDisplayName;
+          token.avatarUrl = dbUser.avatarUrl;
+          token.isActive = dbUser.isActive;
 
-          // Derive permissions using centralized logic
-          const permissions = deriveUserPermissions(dbUser.roles);
-          session.user.permissions = Array.from(permissions);
+          token.roles = dbUser.roles.map((r) => ({
+            discordRoleId: r.discordRoleId,
+            name: r.discordRole.name,
+          }));
+
+          const primaryProfile = dbUser.mercenaryProfiles[0];
+          token.rankName = primaryProfile?.rank?.name ?? null;
+
+          const permSet = deriveUserPermissions(dbUser.roles);
+          token.permissions = Array.from(permSet);
+
+          (token as any).initialized = true;
         }
       }
+
+      return token;
+    },
+
+    // 3) Session – just mirror JWT into session.user (no DB hits)
+    async session({ session, token }) {
+      if (!session.user) return session;
+
+      session.user.id = (token.id as string) ?? session.user.id;
+      session.user.discordId =
+        (token.discordId as string) ?? session.user.discordId;
+      session.user.discordUsername =
+        (token.discordUsername as string) ?? session.user.discordUsername;
+      session.user.discordDisplayName =
+        (token.discordDisplayName as string | null) ??
+        session.user.discordDisplayName ??
+        null;
+      session.user.avatarUrl =
+        (token.avatarUrl as string | null) ?? session.user.avatarUrl ?? null;
+      session.user.isActive =
+        (token.isActive as boolean) ?? session.user.isActive;
+
+      session.user.roles =
+        (token.roles as { discordRoleId: string; name?: string }[]) ??
+        session.user.roles ??
+        [];
+
+      session.user.rankName =
+        (token.rankName as string | null) ?? session.user.rankName ?? null;
+
+      session.user.permissions =
+        (token.permissions as string[]) ?? session.user.permissions ?? [];
 
       return session;
     },
   },
+
+  // 4) Events – sync roles & update lastLoginAt
   events: {
     async signIn({ user, account, profile }) {
       if (!account?.access_token || !user?.id) return;
+      const discordProfile = profile as DiscordProfile | undefined;
 
       try {
-        // Refresh Discord profile details and last login timestamp
+        // Refresh Discord profile + last login
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            discordId: (profile as any)?.id ?? undefined,
-            discordUsername: (profile as any)?.username ?? undefined,
-            discordDisplayName: (profile as any)?.global_name ?? null,
-            avatarUrl: (profile as any)?.avatar
-              ? `https://cdn.discordapp.com/avatars/${(profile as any).id}/${
-                  (profile as any).avatar
-                }.png`
+            discordId: discordProfile?.id ?? undefined,
+            discordUsername: discordProfile?.username ?? undefined,
+            discordDisplayName: discordProfile?.global_name ?? null,
+            avatarUrl: discordProfile?.avatar
+              ? `https://cdn.discordapp.com/avatars/${discordProfile.id}/${discordProfile.avatar}.png`
               : undefined,
             lastLoginAt: new Date(),
           },
         });
 
-        // Sync guild roles from Discord
         const guildId = process.env.DISCORD_GUILD_ID;
         if (!guildId) return;
 
@@ -211,39 +274,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return;
         }
 
-        const member = await memberResponse.json();
+        const member: DiscordMember = await memberResponse.json();
         const roleIds: string[] = member.roles ?? [];
 
-        // Replace role assignments with current Discord roles
-        await prisma.userRole.deleteMany({ where: { userId: user.id } });
+        await prisma.$transaction(async (tx) => {
+          await tx.userRole.deleteMany({ where: { userId: user.id } });
 
-        for (const roleId of roleIds) {
-          await prisma.discordRole.upsert({
-            where: { id: roleId },
-            update: {},
-            create: {
-              id: roleId,
-              name: "Unknown Role",
-            },
-          });
+          for (const roleId of roleIds) {
+            await tx.discordRole.upsert({
+              where: { id: roleId },
+              update: {},
+              create: {
+                id: roleId,
+                name: "Unknown Role",
+              },
+            });
 
-          await prisma.userRole.create({
-            data: {
-              userId: user.id,
-              discordRoleId: roleId,
-            },
-          });
-        }
+            await tx.userRole.create({
+              data: {
+                userId: user.id,
+                discordRoleId: roleId,
+              },
+            });
+          }
+        });
       } catch (error) {
         console.error("Error syncing Discord data on signIn event:", error);
       }
     },
   },
+
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
+
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
 });

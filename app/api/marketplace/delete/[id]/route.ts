@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { ListingStatus } from "@prisma/client";
+import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -14,6 +16,23 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting for marketplace deletion
+    const identifier = getRateLimitIdentifier(
+      session.user.id,
+      getClientIp(req.headers)
+    );
+    const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.API_WRITE);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
       );
     }
 
@@ -56,12 +75,11 @@ export async function DELETE(
       );
     }
 
-    // Soft delete
     await prisma.marketplaceListings.update({
       where: { id },
       data: {
         deletedAt: new Date(),
-        status: "DELETED",
+        status: ListingStatus.DELETED,
       },
     });
 
@@ -69,10 +87,11 @@ export async function DELETE(
       { success: true },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete listing error:", error);
+    const message = error instanceof Error ? error.message : "Failed to delete listing";
     return NextResponse.json(
-      { error: error.message || "Failed to delete listing" },
+      { error: message },
       { status: 500 }
     );
   }

@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-
 }
 
 model User {
@@ -34,6 +33,9 @@ model User {
   mercenaryProfiles         MercenaryProfile[]                @relation("UserProfiles")
   notifications             notifications[]
   sessions                  Session[]
+  approvedSocialLinks       SocialLink[]                      @relation("ApprovedSocialLinks")
+  rejectedSocialLinks       SocialLink[]                      @relation("RejectedSocialLinks")
+  socialLinks               SocialLink[]
   roles                     UserRole[]
 
   @@map("users")
@@ -201,7 +203,7 @@ model MercenaryProfile {
   subdivisionId   Int?                              @map("subdivision_id")
   portraitUrl     String?                           @map("portrait_url")
   bio             String
-  status          String
+  status          String                            @default("PENDING")
   isPublic        Boolean                           @default(true) @map("is_public")
   lastSubmittedAt DateTime?                         @map("last_submitted_at") @db.Timestamptz(6)
   approvedAt      DateTime?                         @map("approved_at") @db.Timestamptz(6)
@@ -226,7 +228,7 @@ model MercenaryProfile {
 model MercenaryProfileApprovalHistory {
   id        Int              @id @default(autoincrement())
   profileId String           @map("profile_id") @db.Uuid
-  action    String
+  action    ProfileAction
   actorId   String           @map("actor_id") @db.Uuid
   reason    String?
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -263,7 +265,7 @@ model MarketplaceListings {
   currency         String
   quantity         Int                          @default(1)
   condition        String?
-  status           String
+  status           ListingStatus                @default(DRAFT)
   discordThreadId  String?                      @map("discord_thread_id")
   discordChannelId String?                      @map("discord_channel_id")
   expiresAt        DateTime?                    @map("expires_at") @db.Timestamptz(6)
@@ -271,15 +273,15 @@ model MarketplaceListings {
   createdAt        DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt        DateTime?                    @map("deleted_at") @db.Timestamptz(6)
-  visibility       String                       @default("PUBLIC")
-  location         String?
-  view_count       Int                          @default(0)
-  message_count    Int                          @default(0)
+  archived_at      DateTime?                    @db.Timestamptz(6)
+  external_data    Json?
   external_id      String?
   external_source  String?
-  external_data    Json?
+  location         String?
+  message_count    Int                          @default(0)
   published_at     DateTime?                    @db.Timestamptz(6)
-  archived_at      DateTime?                    @db.Timestamptz(6)
+  view_count       Int                          @default(0)
+  visibility       ListingVisibility            @default(PUBLIC)
   audits           MarketplaceListingAuditLog[]
   images           MarketplaceListingImage[]
   category         MarketplaceCategory          @relation(fields: [categoryId], references: [id])
@@ -296,6 +298,7 @@ model MarketplaceListingImage {
   createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   listing   MarketplaceListings @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
+  @@unique([listingId, sortOrder])
   @@map("marketplace_listing_images")
 }
 
@@ -327,6 +330,23 @@ model MarketplaceListingAuditLog {
 
   @@map("marketplace_listing_audit_log")
 }
+
+model MarketplaceGuest {
+  id            Int       @id @default(autoincrement())
+  discordUserId String    @map("discord_user_id")
+  discordTag    String?   @map("discord_tag")
+  guildId       String    @map("guild_id")
+
+  joinedAt      DateTime  @map("joined_at") @db.Timestamptz(6)
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  warningAt     DateTime  @map("warning_at") @db.Timestamptz(6)
+
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("marketplace_guests")
+}
+
 
 model AuditLog {
   id         Int      @id @default(autoincrement())
@@ -361,6 +381,39 @@ model notifications {
   users      User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+model SocialLink {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  platform        String
+  channelName     String    @map("channel_name")
+  channelUrl      String    @map("channel_url")
+  description     String?
+  status          String    @default("PENDING")
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz(6)
+  approvedBy      String?   @map("approved_by") @db.Uuid
+  rejectedAt      DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectedBy      String?   @map("rejected_by") @db.Uuid
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  approver        User?     @relation("ApprovedSocialLinks", fields: [approvedBy], references: [id])
+  rejecter        User?     @relation("RejectedSocialLinks", fields: [rejectedBy], references: [id])
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("social_links")
+}
+
+model featured_videos {
+  id         Int      @id @default(autoincrement())
+  youtube_id String
+  title      String
+  thumbnail  String?
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @db.Timestamptz(6)
+  updated_by String?  @db.Uuid
+}
+
 enum notification_type_enum {
   PROFILE_APPROVED
   PROFILE_REJECTED
@@ -368,4 +421,25 @@ enum notification_type_enum {
   LISTING_SOLD
   SUSPENSION
   SYSTEM
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  EXPIRED
+  DELETED
+}
+
+enum ListingVisibility {
+  PUBLIC
+  PRIVATE
+  HIDDEN
+}
+
+enum ProfileAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  REVERTED
 }

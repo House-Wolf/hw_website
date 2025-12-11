@@ -1,3 +1,5 @@
+import { normalizeDiscordMentions } from "./discord/formatMentions";
+
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 interface DiscordMessage {
@@ -55,9 +57,13 @@ interface FeaturedVideo {
   youtubeId: string;
 }
 
-/* ---------------------------------------------
-   BASE DISCORD FETCHER
---------------------------------------------- */
+/**
+ * @component - FetchDiscord
+ * @description - Helper function to fetch data from Discord API with bot token
+ * @param endpoint - API endpoint to fetch
+ * @returns The JSON response from the Discord API or null if an error occurs
+ * @author House Wolf Dev Team
+ */
 async function fetchDiscord(endpoint: string) {
   const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -84,9 +90,12 @@ async function fetchDiscord(endpoint: string) {
   }
 }
 
-/* ---------------------------------------------
-   REAL EVENTS (NO MOCK)
---------------------------------------------- */
+/**
+ * @component - GetUpcomingEvents
+ * @description - Fetch upcoming Discord events from the guild scheduled events API
+ * @returns - A promise that resolves to an array of upcoming events
+ * @author House Wolf Dev Team
+ */
 export async function getUpcomingEvents(): Promise<Event[]> {
   const guildId = process.env.DISCORD_GUILD_ID;
   if (!guildId) return [];
@@ -115,9 +124,12 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     });
 }
 
-/* ---------------------------------------------
-   REAL ANNOUNCEMENTS (NO MOCK)
---------------------------------------------- */
+
+/** * @component - GetAnnouncements
+ * @description - Fetch latest announcements from a Discord channel
+ * @returns - A promise that resolves to an array of announcements
+ * @author House Wolf Dev Team
+ */
 export async function getAnnouncements(): Promise<Announcement[]> {
   const channelId = process.env.DISCORD_ANNOUNCEMENTS_CHANNEL_ID;
   if (!channelId) return [];
@@ -135,25 +147,39 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
 
-    let timeAgo = diffDays > 0
-      ? `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
-      : diffHours > 0
-      ? `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
-      : "Just now";
+    const timeAgo =
+      diffDays > 0
+        ? `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
+        : diffHours > 0
+        ? `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
+        : "Just now";
+
+    // 🧠 Prefer embed description → fallback to message content (never both)
+    const rawText =
+      msg.embeds?.[0]?.description ||
+      msg.embeds?.[0]?.title ||
+      msg.content ||
+      "";
+
+    // Optional: Normalize mentions
+    const cleanedText = normalizeDiscordMentions(rawText.trim());
 
     return {
       id: msg.id,
-      title: msg.embeds?.[0]?.title || msg.content.split("\n")[0] || "Announcement",
-      content:
-        msg.embeds?.[0]?.description || msg.content || "",
-      timestamp: timeAgo
+      title: cleanedText.split("\n")[0], // First line as "title"
+      content: cleanedText, // Full announcement
+      timestamp: timeAgo,
     };
   });
 }
 
-/* ---------------------------------------------
-   REAL FEATURED PHOTOS (NO MOCK)
---------------------------------------------- */
+
+/**
+ * @component - GetFeaturedPhotos
+ * @description - Fetch featured photos from a Discord channel
+ * @returns - A promise that resolves to an array of featured photos
+ * @author House Wolf Dev Team
+ */
 export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
   const channelId = process.env.DISCORD_FEATURED_PHOTOS_CHANNEL_ID;
   if (!channelId) {
@@ -210,9 +236,12 @@ export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
 }
 
 
-/* ---------------------------------------------
-   FEATURED VIDEO (no mock except default)
---------------------------------------------- */
+/**
+ * @component - GetFeaturedVideo
+ * @description - Fetch featured video details from environment variables
+ * @returns - A promise that resolves to the featured video details
+ * @author House Wolf Dev Team
+ */
 export async function getFeaturedVideo(): Promise<FeaturedVideo> {
   const youtubeId = process.env.YOUTUBE_FEATURED_VIDEO_ID;
   const thumbnail = process.env.YOUTUBE_FEATURED_VIDEO_THUMBNAIL;
@@ -231,4 +260,52 @@ export async function getFeaturedVideo(): Promise<FeaturedVideo> {
     thumbnail: "/images/video-thumb.jpg",
     title: "Featured Video"
   };
+}
+
+/**
+ * @component - CreateTemporaryChannelInvite
+ * @description - Create a temporary invite to a specific channel with 3-day expiration
+ * @param channelId - The Discord channel ID to create invite for
+ * @returns - A promise that resolves to the invite URL or null if failed
+ * @author House Wolf Dev Team
+ */
+export async function createTemporaryChannelInvite(
+  channelId: string
+): Promise<string | null> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+
+  if (!token) {
+    console.warn("Discord bot token not configured");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${DISCORD_API_BASE}/channels/${channelId}/invites`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          max_age: 259200, // 3 days in seconds (3 * 24 * 60 * 60)
+          max_uses: 1, // Single use invite
+          unique: true, // Always create a new unique invite
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Failed to create Discord invite:", errorData);
+      return null;
+    }
+
+    const data = await response.json();
+    return `https://discord.gg/${data.code}`;
+  } catch (error) {
+    console.error("Error creating Discord invite:", error);
+    return null;
+  }
 }

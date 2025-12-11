@@ -21,6 +21,9 @@ export default {
 
   theme: {
     extend: {
+      /* ========================================
+         COLOR SYSTEM (Mapped to globals.css)
+         ======================================== */
       colors: {
         crimson: {
           DEFAULT: "#470000",
@@ -45,28 +48,43 @@ export default {
           soft: "var(--background-soft)",
           elevated: "var(--background-elevated)",
           card: "var(--background-card)",
+          soft: "var(--background-soft)",
         },
         "hw-foreground": {
           DEFAULT: "var(--text-primary)",
           muted: "var(--text-secondary)",
         },
         accent: {
-          DEFAULT: "var(--accent-primary)",
+          main: "var(--accent-primary)",
           secondary: "var(--accent-secondary)",
-          hover: "var(--accent-primary-hover)",
         },
+
+        /* Borders */
         border: {
-          DEFAULT: "var(--border-default)",
-          subtle: "var(--border-subtle)",
+          soft: "var(--border-subtle)",
+          base: "var(--border-default)",
           strong: "var(--border-strong)",
           crimson: "var(--border-crimson)",
-          teal: "var(--border-teal)",
+          steel: "var(--border-teal)",
         },
-        status: {
-          success: "var(--status-success)",
-          warning: "var(--status-warning)",
-          error: "var(--status-error)",
-          info: "var(--status-info)",
+
+
+        /* Status colors */
+        success: {
+          DEFAULT: "var(--status-success)",
+          text: "var(--status-success-text)",
+        },
+        warning: {
+          DEFAULT: "var(--status-warning)",
+          text: "var(--status-warning-text)",
+        },
+        error: {
+          DEFAULT: "var(--status-error)",
+          text: "var(--status-error-text)",
+        },
+        info: {
+          DEFAULT: "var(--status-info)",
+          text: "var(--status-info-text)",
         },
       },
 
@@ -80,8 +98,8 @@ export default {
         md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
-        crimson: "var(--shadow-crimson)",
-        teal: "var(--shadow-teal)",
+        "crimson-glow": "0 0 20px rgba(71,0,0,0.4)",
+        "steel-glow": "0 0 20px rgba(17,78,98,0.3)",
       },
 
       borderRadius: {

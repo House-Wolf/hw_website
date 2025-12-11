@@ -17,10 +17,9 @@ interface SafeImageProps extends ImageProps {
  * <SafeImage src="/images/example.png" alt="Example Image" width={500} height={300} />
  * @author House Wolf Dev Team
  */
-
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
-  fallbackSrc = "/images/global/HWiconnwew.png",
+  fallbackSrc = "/images/global/HWiconnew.png",
   ...props
 }) => {
   const [error, setError] = useState(false);
