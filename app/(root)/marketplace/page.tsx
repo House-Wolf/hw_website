@@ -136,7 +136,7 @@ export default function MarketplacePage() {
   };
 
   // -------------------------------------------------------------
-  // CONTACT SELLER — ✔ FIXED SIGNATURE + MODAL OPENING
+  // CONTACT SELLER — Updated to handle unauthenticated users
   // -------------------------------------------------------------
   async function handleContactSeller(
     listingId: string,
@@ -146,9 +146,31 @@ export default function MarketplacePage() {
     imageUrl: string,
     sellerUsername: string
   ) {
-    if (status === "unauthenticated") return alert("Please sign in.");
-    if (!session?.user) return alert("Session unavailable.");
+    // For unauthenticated users: show modal first, store context
+    if (status === "unauthenticated" || !session?.user) {
+      // Store the listing context for post-auth processing
+      const transactionIntent = {
+        listingId,
+        sellerDiscordId: discordId,
+        itemTitle: title,
+        itemPrice: price,
+        itemImageUrl: imageUrl,
+        sellerUsername,
+        timestamp: Date.now(),
+      };
 
+      setWithExpiry("pendingMarketplaceTransaction", transactionIntent, CONTACT_TTL_MS);
+
+      // Show modal immediately
+      setInviteModal({
+        isOpen: true,
+        itemTitle: title,
+        threadUrl: null,
+      });
+      return;
+    }
+
+    // For authenticated users: create thread first, then show modal
     try {
       const res = await fetch("/api/marketplace/contact-seller", {
         method: "POST",
@@ -218,6 +240,7 @@ export default function MarketplacePage() {
         isOpen={inviteModal.isOpen}
         itemTitle={inviteModal.itemTitle}
         threadUrl={inviteModal.threadUrl ?? undefined}
+        isAuthenticated={status === "authenticated"}
         onJoinDiscord={() => handleSecureRedirect(inviteModal.itemTitle)}
         onClose={() =>
           setInviteModal({ isOpen: false, itemTitle: "", threadUrl: null })

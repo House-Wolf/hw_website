@@ -59,8 +59,19 @@ export function validateCreateListingInput(input: CreateInput): ValidationResult
   const trimmedLocation = location?.trim();
   const trimmedImage = imageUrl?.trim();
 
-  if (!trimmedTitle || !trimmedDescription || !categoryId || !price) {
-    return { ok: false, error: "Missing required fields" };
+  // Check for missing required fields and provide specific error messages
+  const missingFields: string[] = [];
+  if (!trimmedTitle) missingFields.push("title");
+  if (!trimmedDescription) missingFields.push("description");
+  if (!categoryId) missingFields.push("category");
+  if (!price) missingFields.push("price");
+
+  if (missingFields.length > 0) {
+    const fieldList = missingFields.join(", ");
+    return {
+      ok: false,
+      error: `Missing required field${missingFields.length > 1 ? 's' : ''}: ${fieldList}`
+    };
   }
 
   if (trimmedTitle.length > LISTING_LIMITS.titleMax) {
