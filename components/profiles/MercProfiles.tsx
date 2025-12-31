@@ -30,7 +30,7 @@ export default function MercProfileCard({ member, compact = false }: MercProfile
   const profileImage =
     member.imageUrl && member.imageUrl.trim() !== ""
       ? member.imageUrl
-      : "/images/default-avatar.png";
+      : "/images/global/HWiconnew.png";
 
   return (
     <article className="flex-shrink-0 w-full group rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-1 transition hover:shadow-[0_15px_40px_rgba(220,38,38,0.6)]">

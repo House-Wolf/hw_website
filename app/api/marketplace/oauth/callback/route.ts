@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
 
     const userData = await userResponse.json();
     const userId = userData.id;
-    const userTag = `${userData.username}#${userData.discriminator}`;
+    // Discord deprecated discriminator - use username only (new system)
+    const userTag = userData.global_name || userData.username;
 
     devLog.debug("👤 User identified:", userTag, `(${userId})`);
 
