@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { devLog } from "@/lib/devLogger";
 
 /**
  * @route GET /api/marketplace/oauth
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const guildId = process.env.DISCORD_GUILD_ID;
 
     if (!clientId || !redirectUri || !guildId) {
-      console.error("Missing OAuth2 configuration");
+      devLog.error("Missing OAuth2 configuration");
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
@@ -32,11 +33,11 @@ export async function GET(request: NextRequest) {
 
     const authUrl = `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 
-    console.log("🔐 Redirecting to OAuth2:", authUrl);
+    devLog.debug("🔐 Redirecting to OAuth2:", authUrl);
 
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    console.error("OAuth2 initiation error:", error);
+    devLog.error("OAuth2 initiation error:", error);
     return NextResponse.json(
       { error: "Failed to initiate OAuth2 flow" },
       { status: 500 }

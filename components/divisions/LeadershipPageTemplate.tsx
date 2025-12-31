@@ -34,12 +34,30 @@ async function fetchDivisionMembers(divisionSlug: string) {
   const text = await res.text();
 
   if (!res.ok) {
+    // Parse error response for detailed message
+    let errorMessage = `Failed to fetch division members (${res.status})`;
+    let errorDetails = text;
+
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+      errorDetails = JSON.stringify(errorData, null, 2);
+    } catch {
+      // If not JSON, use raw text
+    }
+
     console.error("Backend returned error:", {
       status: res.status,
-      body: text || "<empty>",
+      message: errorMessage,
+      body: errorDetails,
       slug: divisionSlug,
     });
-    throw new Error(`Failed to fetch division members: ${res.status}`);
+
+    throw new Error(errorMessage);
   }
 
   return JSON.parse(text);

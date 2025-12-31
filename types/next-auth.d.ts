@@ -29,6 +29,24 @@ declare module "next-auth" {
   }
 }
 
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    discordId?: string;
+    discordUsername?: string;
+    discordDisplayName?: string | null;
+    avatarUrl?: string | null;
+    isActive?: boolean;
+    roles?: Array<{
+      discordRoleId: string;
+      name?: string;
+    }>;
+    rankName?: string | null;
+    permissions?: string[];
+    initialized?: boolean;
+  }
+}
+
 declare module "@auth/core/adapters" {
   interface AdapterUser {
     discordId?: string;

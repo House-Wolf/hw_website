@@ -194,7 +194,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const permSet = deriveUserPermissions(dbUser.roles);
           token.permissions = Array.from(permSet);
 
-          (token as any).initialized = true;
+          token.initialized = true;
         }
       }
 

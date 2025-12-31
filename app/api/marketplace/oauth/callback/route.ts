@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { devLog } from "@/lib/devLogger";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
@@ -15,14 +16,14 @@ export async function GET(request: NextRequest) {
 
     // Handle OAuth2 errors
     if (error) {
-      console.error("OAuth2 error:", error);
+      devLog.error("OAuth2 error:", error);
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/marketplace?error=oauth_denied`
       );
     }
 
     if (!code) {
-      console.error("No authorization code received");
+      devLog.error("No authorization code received");
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/marketplace?error=no_code`
       );
@@ -35,11 +36,11 @@ export async function GET(request: NextRequest) {
         const decoded = JSON.parse(Buffer.from(state, "base64").toString());
         itemTitle = decoded.itemTitle || itemTitle;
       } catch (e) {
-        console.warn("Failed to decode state:", e);
+        devLog.warn("Failed to decode state:", e);
       }
     }
 
-    console.log("🔐 OAuth2 callback received for:", itemTitle);
+    devLog.debug("🔐 OAuth2 callback received for:", itemTitle);
 
     // Exchange authorization code for access token
     const tokenResponse = await fetch(`${DISCORD_API_BASE}/oauth2/token`, {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
-      console.error("Token exchange failed:", errorData);
+      devLog.error("Token exchange failed:", errorData);
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/marketplace?error=token_exchange_failed`
       );
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    console.log("✅ Access token obtained");
+    devLog.info("✅ Access token obtained");
 
     // Get user info
     const userResponse = await fetch(`${DISCORD_API_BASE}/users/@me`, {
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userResponse.ok) {
-      console.error("Failed to get user info");
+      devLog.error("Failed to get user info");
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/marketplace?error=user_fetch_failed`
       );
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     const userId = userData.id;
     const userTag = `${userData.username}#${userData.discriminator}`;
 
-    console.log("👤 User identified:", userTag, `(${userId})`);
+    devLog.debug("👤 User identified:", userTag, `(${userId})`);
 
     // Add user to guild with Buyer role using bot token
     const guildId = process.env.DISCORD_GUILD_ID!;
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
 
     // Discord returns 201 for new members, 204 if already in server
     if (addMemberResponse.status === 204 || addMemberResponse.status === 201) {
-      console.log("⚠️ Need to ensure ONLY Buyer role is assigned...");
+      devLog.info("⚠️ Need to ensure ONLY Buyer role is assigned...");
 
       // Get current member data to see what roles they have
       const memberResponse = await fetch(
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
         const memberData = await memberResponse.json();
         const currentRoles = memberData.roles || [];
 
-        console.log(`👤 Current roles for ${userTag}:`, currentRoles);
+        devLog.debug(`👤 Current roles for ${userTag}:`, currentRoles);
 
         // Replace ALL roles with ONLY the Buyer role
         const updateResponse = await fetch(
@@ -144,19 +145,19 @@ export async function GET(request: NextRequest) {
         );
 
         if (!updateResponse.ok) {
-          console.error("Failed to update member roles:", await updateResponse.text());
+          devLog.error("Failed to update member roles:", await updateResponse.text());
         } else {
-          console.log("✅ Member roles updated - ONLY Buyer role assigned!");
+          devLog.info("✅ Member roles updated - ONLY Buyer role assigned!");
         }
       }
     } else if (!addMemberResponse.ok) {
       const errorData = await addMemberResponse.text();
-      console.error("Failed to add member to guild:", addMemberResponse.status, errorData);
+      devLog.error("Failed to add member to guild:", addMemberResponse.status, errorData);
       return NextResponse.redirect(
         `${process.env.NEXTAUTH_URL}/marketplace?error=guild_add_failed`
       );
     }
-    console.log("🎉 OAuth2 flow complete for:", userTag);
+    devLog.debug("🎉 OAuth2 flow complete for:", userTag);
 
     // Notify bot service to schedule removal
     try {
@@ -170,18 +171,18 @@ export async function GET(request: NextRequest) {
         }),
       });
     } catch (e) {
-      console.error("Failed to track guest for auto-removal:", e);
+      devLog.error("Failed to track guest for auto-removal:", e);
     }
 
     // Redirect to Discord marketplace channel
     const marketplaceChannelId = process.env.MARKETPLACE_CHANNEL_ID!;
     const discordChannelUrl = `https://discord.com/channels/${guildId}/${marketplaceChannelId}`;
 
-    console.log("✅ Redirecting user to Discord marketplace channel");
+    devLog.info("✅ Redirecting user to Discord marketplace channel");
 
     return NextResponse.redirect(discordChannelUrl);
   } catch (error) {
-    console.error("OAuth2 callback error:", error);
+    devLog.error("OAuth2 callback error:", error);
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/marketplace?error=oauth_error`
     );

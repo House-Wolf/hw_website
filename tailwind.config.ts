@@ -48,7 +48,6 @@ export default {
           soft: "var(--background-soft)",
           elevated: "var(--background-elevated)",
           card: "var(--background-card)",
-          soft: "var(--background-soft)",
         },
         "hw-foreground": {
           DEFAULT: "var(--text-primary)",
