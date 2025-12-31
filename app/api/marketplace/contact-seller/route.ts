@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { devLog } from "@/lib/devLogger";
 
 export async function POST(req: Request) {
   try {
@@ -32,10 +33,8 @@ export async function POST(req: Request) {
       itemImageUrl: itemImageUrl || null,
     };
 
-    console.log("📞 ═══════════════════════════════════════════");
-    console.log("📞 API ROUTE: Creating transaction thread");
-    console.log("📞 Payload:", JSON.stringify(payload, null, 2));
-    console.log("📞 ═══════════════════════════════════════════");
+    devLog.debug("📞 Creating transaction thread");
+    devLog.debug("📞 Payload:", JSON.stringify(payload, null, 2));
 
     // Create private thread in #marketplace-transactions channel
     const res = await fetch(`${process.env.BOT_SERVICE_URL}/create-transaction-thread`, {
@@ -46,14 +45,12 @@ export async function POST(req: Request) {
 
     const data = await res.json();
 
-    console.log("📥 ═══════════════════════════════════════════");
-    console.log("📥 API ROUTE: Received response from bot service");
-    console.log("📥 Status:", res.ok ? "✅ OK" : "❌ ERROR");
-    console.log("📥 Response data:", JSON.stringify(data, null, 2));
-    console.log("📥 ═══════════════════════════════════════════");
+    devLog.debug("📥 Received response from bot service");
+    devLog.debug("📥 Status:", res.ok ? "✅ OK" : "❌ ERROR");
+    devLog.debug("📥 Response data:", JSON.stringify(data, null, 2));
 
     if (!res.ok) {
-      console.error("❌ Bot service error:", data);
+      devLog.error("❌ Bot service error:", data);
       return NextResponse.json(
         { error: data.error || "Failed to create transaction thread" },
         { status: res.status }
@@ -69,15 +66,13 @@ export async function POST(req: Request) {
       inviteUrl: data.inviteUrl, // IMPORTANT: Pass through invite URL!
     };
 
-    console.log("📤 ═══════════════════════════════════════════");
-    console.log("📤 API ROUTE: Sending response to frontend");
-    console.log("📤 Response:", JSON.stringify(responseToFrontend, null, 2));
-    console.log("📤 ═══════════════════════════════════════════");
+    devLog.debug("📤 Sending response to frontend");
+    devLog.debug("📤 Response:", JSON.stringify(responseToFrontend, null, 2));
 
     // Pass through the response from bot service
     return NextResponse.json(responseToFrontend);
   } catch (e: any) {
-    console.error("❌ Contact seller error:", e);
+    devLog.error("❌ Contact seller error:", e);
     return NextResponse.json({ error: "Failed to send message to seller" }, { status: 500 });
   }
 }

@@ -181,14 +181,15 @@ export default function MarketplacePage() {
 
       const data = await res.json();
 
-      // ALWAYS open modal
+      // Check response status BEFORE opening modal
+      if (!res.ok) throw new Error(data.error || "Failed to contact seller");
+
+      // Only open modal on success
       setInviteModal({
         isOpen: true,
         itemTitle: title,
         threadUrl: data.threadUrl,
       });
-
-      if (!res.ok) throw new Error(data.error);
 
       const updated = {
         ...contactedListings,
