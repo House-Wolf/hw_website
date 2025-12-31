@@ -34,6 +34,20 @@ export async function GET(request: NextRequest) {
     if (state) {
       try {
         const decoded = JSON.parse(Buffer.from(state, "base64").toString());
+
+        // Validate timestamp for CSRF protection (state must be < 10 minutes old)
+        if (decoded.timestamp) {
+          const age = Date.now() - decoded.timestamp;
+          const maxAge = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+          if (age > maxAge) {
+            devLog.warn("OAuth state expired:", { age: Math.floor(age / 1000) + "s" });
+            return NextResponse.redirect(
+              `${process.env.NEXTAUTH_URL}/marketplace?error=state_expired`
+            );
+          }
+        }
+
         itemTitle = decoded.itemTitle || itemTitle;
       } catch (e) {
         devLog.warn("Failed to decode state:", e);
