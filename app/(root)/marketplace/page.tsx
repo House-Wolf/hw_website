@@ -112,31 +112,26 @@ export default function MarketplacePage() {
   }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage]);
 
   // -------------------------------------------------------------
-  // SECURE REDIRECT
+  // SECURE REDIRECT - OAuth2 Flow
   // -------------------------------------------------------------
   const handleSecureRedirect = async (title?: string) => {
     try {
-      const res = await fetch("/api/marketplace/guest-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemTitle: title ?? inviteModal.itemTitle,
-        }),
-      });
+      const itemTitle = title ?? inviteModal.itemTitle;
 
-      const data = await res.json();
-      const url = data.inviteUrl || FALLBACK_DISCORD_INVITE;
+      // Redirect to OAuth2 flow which will add user to server with Buyer role
+      // This bypasses Discord onboarding since the role is assigned immediately
+      const oauthUrl = `/api/marketplace/oauth?item=${encodeURIComponent(itemTitle)}`;
 
-      const encoded = btoa(url);
-      window.open(`/api/marketplace/redirect?key=${encoded}`, "_blank");
+      console.log("🔐 Initiating OAuth2 flow for:", itemTitle);
+      window.location.href = oauthUrl; // Use location.href instead of window.open for OAuth2
     } catch (e) {
-      console.error("Redirect failed:", e);
+      console.error("OAuth2 redirect failed:", e);
       window.open(FALLBACK_DISCORD_INVITE, "_blank");
     }
   };
 
   // -------------------------------------------------------------
-  // CONTACT SELLER — ✔ FIXED SIGNATURE + MODAL OPENING
+  // CONTACT SELLER — Updated to handle unauthenticated users
   // -------------------------------------------------------------
   async function handleContactSeller(
     listingId: string,
@@ -146,9 +141,31 @@ export default function MarketplacePage() {
     imageUrl: string,
     sellerUsername: string
   ) {
-    if (status === "unauthenticated") return alert("Please sign in.");
-    if (!session?.user) return alert("Session unavailable.");
+    // For unauthenticated users: show modal first, store context
+    if (status === "unauthenticated" || !session?.user) {
+      // Store the listing context for post-auth processing
+      const transactionIntent = {
+        listingId,
+        sellerDiscordId: discordId,
+        itemTitle: title,
+        itemPrice: price,
+        itemImageUrl: imageUrl,
+        sellerUsername,
+        timestamp: Date.now(),
+      };
 
+      setWithExpiry("pendingMarketplaceTransaction", transactionIntent, CONTACT_TTL_MS);
+
+      // Show modal immediately
+      setInviteModal({
+        isOpen: true,
+        itemTitle: title,
+        threadUrl: null,
+      });
+      return;
+    }
+
+    // For authenticated users: create thread first, then show modal
     try {
       const res = await fetch("/api/marketplace/contact-seller", {
         method: "POST",
@@ -218,6 +235,7 @@ export default function MarketplacePage() {
         isOpen={inviteModal.isOpen}
         itemTitle={inviteModal.itemTitle}
         threadUrl={inviteModal.threadUrl ?? undefined}
+        isAuthenticated={status === "authenticated"}
         onJoinDiscord={() => handleSecureRedirect(inviteModal.itemTitle)}
         onClose={() =>
           setInviteModal({ isOpen: false, itemTitle: "", threadUrl: null })

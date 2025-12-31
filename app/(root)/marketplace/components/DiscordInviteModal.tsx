@@ -119,8 +119,8 @@ export default function DiscordInviteModal({
                   Marketplace Channel Required
                 </h2>
                 <p className="mt-2 text-sm text-foreground-muted max-w-xl">
-                  To contact this seller, you&apos;ll need **temporary, limited access** to the House Wolf marketplace channel.  
-                  This does <span className="font-semibold text-foreground">not</span> grant full server access.
+                  To contact this seller, you&apos;ll need **temporary, limited access** to the House Wolf marketplace channel.
+                  You&apos;ll be added with a restricted &quot;Buyer&quot; role that only shows the marketplace.
                 </p>
               </div>
             </div>
@@ -214,18 +214,18 @@ export default function DiscordInviteModal({
               <div className="space-y-3">
                 {[
                   {
-                    label: "Join the marketplace channel",
-                    detail: "You will be redirected to Discord using a secure invite flow.",
+                    label: "Authorize access to Discord",
+                    detail: "You'll be asked to authorize our bot to add you to the server with the restricted Buyer role.",
                   },
                   {
-                    label: "Return to the House Wolf marketplace",
-                    detail: "Come back to this page after joining to continue the transaction.",
+                    label: "Join with limited access",
+                    detail: "You'll be added to the server automatically with access ONLY to the marketplace-transactions channel. No onboarding required!",
                   },
                   {
                     label: "Access your listing thread",
                     detail:
                       threadUrl
-                        ? "If a thread already exists, you’ll be able to jump directly into the conversation."
+                        ? "If a thread already exists, you'll be able to jump directly into the conversation."
                         : "Once the seller responds, a dedicated thread will be created for your transaction.",
                   },
                 ].map((step, index) => (
@@ -288,7 +288,7 @@ export default function DiscordInviteModal({
               disabled={inviteClicked}
             >
               <ExternalLink size={18} aria-hidden="true" />
-              {inviteClicked ? "Opening Discord..." : "Join Marketplace Channel"}
+              {inviteClicked ? "Authorizing..." : "Authorize & Join Server"}
             </button>
           </div>
         </div>

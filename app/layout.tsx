@@ -10,9 +10,7 @@ import { validateEnv } from "@/lib/env";
  * @author House Wolf Dev Team
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Fail fast if required environment variables are missing
   validateEnv();
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
