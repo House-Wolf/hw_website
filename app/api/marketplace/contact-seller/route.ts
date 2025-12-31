@@ -5,7 +5,7 @@ import { devLog } from "@/lib/devLogger";
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const user = session?.user as any;
+    const user = session?.user;
 
     if (!user?.discordId) {
       return NextResponse.json({ error: "Sign in with Discord first." }, { status: 401 });

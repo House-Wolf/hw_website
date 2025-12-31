@@ -44,7 +44,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const socialLink = await (prisma as any).socialLink.findUnique({
+    const socialLink = await (prisma).socialLink.findUnique({
       where: { id },
     });
 
@@ -65,7 +65,7 @@ export async function PATCH(
     let updatedLink;
 
     if (action === "approve") {
-      updatedLink = await (prisma as any).socialLink.update({
+      updatedLink = await (prisma).socialLink.update({
         where: { id },
         data: {
           status: "APPROVED",
@@ -91,7 +91,7 @@ export async function PATCH(
         );
       }
 
-      updatedLink = await (prisma as any).socialLink.update({
+      updatedLink = await (prisma).socialLink.update({
         where: { id },
         data: {
           status: "REJECTED",
@@ -155,7 +155,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const socialLink = await (prisma as any).socialLink.findUnique({
+    const socialLink = await (prisma).socialLink.findUnique({
       where: { id },
     });
 
@@ -175,7 +175,7 @@ export async function DELETE(
       );
     }
 
-    await (prisma as any).socialLink.delete({
+    await (prisma).socialLink.delete({
       where: { id },
     });
 

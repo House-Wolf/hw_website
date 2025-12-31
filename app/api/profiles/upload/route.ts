@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Prefer a stable user identifier for the filename
-    const userId = (session.user as any).id ?? session.user.email ?? "unknown";
+    const userId = session.user.id ?? session.user.email ?? "unknown";
     const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "");
 
     // 2) Parse form data & get file
