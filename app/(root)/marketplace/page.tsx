@@ -235,7 +235,6 @@ export default function MarketplacePage() {
         isOpen={inviteModal.isOpen}
         itemTitle={inviteModal.itemTitle}
         threadUrl={inviteModal.threadUrl ?? undefined}
-        isAuthenticated={status === "authenticated"}
         onJoinDiscord={() => handleSecureRedirect(inviteModal.itemTitle)}
         onClose={() =>
           setInviteModal({ isOpen: false, itemTitle: "", threadUrl: null })
@@ -255,7 +254,8 @@ export default function MarketplacePage() {
           <SearchSortBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            sortOption={(v: string) => setSortOption(v as SortOption)}
+            sortOption={sortOption}
+            setSortOption={(v) => setSortOption(v as SortOption)}
             showAdminControls={showAdminControls}
             setShowAdminControls={setShowAdminControls}
             isAdmin={session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
