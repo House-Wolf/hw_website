@@ -112,25 +112,20 @@ export default function MarketplacePage() {
   }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage]);
 
   // -------------------------------------------------------------
-  // SECURE REDIRECT
+  // SECURE REDIRECT - OAuth2 Flow
   // -------------------------------------------------------------
   const handleSecureRedirect = async (title?: string) => {
     try {
-      const res = await fetch("/api/marketplace/guest-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemTitle: title ?? inviteModal.itemTitle,
-        }),
-      });
+      const itemTitle = title ?? inviteModal.itemTitle;
 
-      const data = await res.json();
-      const url = data.inviteUrl || FALLBACK_DISCORD_INVITE;
+      // Redirect to OAuth2 flow which will add user to server with Buyer role
+      // This bypasses Discord onboarding since the role is assigned immediately
+      const oauthUrl = `/api/marketplace/oauth?item=${encodeURIComponent(itemTitle)}`;
 
-      const encoded = btoa(url);
-      window.open(`/api/marketplace/redirect?key=${encoded}`, "_blank");
+      console.log("🔐 Initiating OAuth2 flow for:", itemTitle);
+      window.location.href = oauthUrl; // Use location.href instead of window.open for OAuth2
     } catch (e) {
-      console.error("Redirect failed:", e);
+      console.error("OAuth2 redirect failed:", e);
       window.open(FALLBACK_DISCORD_INVITE, "_blank");
     }
   };

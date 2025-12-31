@@ -21,10 +21,35 @@ console.log(`   - DISCORD_GUILD_ID: ${process.env.DISCORD_GUILD_ID ? '✅ SET' :
 console.log(`   - MARKETPLACE_CHANNEL_ID: ${process.env.MARKETPLACE_CHANNEL_ID ? '✅ SET' : '❌ MISSING'}`);
 console.log(`   - DISCORD_INVITE_URL: ${process.env.DISCORD_INVITE_URL ? '✅ SET (' + process.env.DISCORD_INVITE_URL + ')' : '❌ MISSING'}`);
 console.log(`   - MARKETPLACE_GUEST_ROLE: ${process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest (default)'}`);
+console.log(`   - BUYER_ROLE_ID: ${process.env.BUYER_ROLE_ID ? '✅ SET' : '❌ MISSING'}`);
 
 const MARKETPLACE_GUEST_ROLE_NAME = process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest';
+const BUYER_ROLE_ID = process.env.BUYER_ROLE_ID;
 const app = express();
 app.use(express.json());
+
+/**
+ * Helper function to get the marketplace guest role from a guild
+ * Prefers role ID lookup (more reliable), falls back to name search
+ */
+function getMarketplaceGuestRole(guild) {
+  let role = null;
+
+  if (BUYER_ROLE_ID) {
+    role = guild.roles.cache.get(BUYER_ROLE_ID);
+    if (role) {
+      console.log(`🔍 Found role by ID: ${BUYER_ROLE_ID} (${role.name})`);
+      return role;
+    }
+  }
+
+  role = guild.roles.cache.find(r => r.name === MARKETPLACE_GUEST_ROLE_NAME);
+  if (role) {
+    console.log(`🔍 Found role by name: "${MARKETPLACE_GUEST_ROLE_NAME}"`);
+  }
+
+  return role;
+}
 
 // ✅ Discord.js client
 const client = new Client({
@@ -264,11 +289,9 @@ async function scheduleMarketplaceGuestRemoval(userId, guildId, userTag) {
       const member = await guild.members.fetch(userId).catch(() => null);
 
       if (member) {
-        const marketplaceGuestRole = member.roles.cache.find(
-          role => role.name === MARKETPLACE_GUEST_ROLE_NAME
-        );
+        const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
 
-        if (marketplaceGuestRole) {
+        if (marketplaceGuestRole && member.roles.cache.has(marketplaceGuestRole.id)) {
           console.log(`⚠️ Sending 24-hour warning to ${member.user.tag}`);
 
           try {
@@ -301,11 +324,9 @@ async function scheduleMarketplaceGuestRemoval(userId, guildId, userTag) {
       const member = await guild.members.fetch(userId).catch(() => null);
 
       if (member) {
-        const marketplaceGuestRole = member.roles.cache.find(
-          role => role.name === MARKETPLACE_GUEST_ROLE_NAME
-        );
+        const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
 
-        if (marketplaceGuestRole) {
+        if (marketplaceGuestRole && member.roles.cache.has(marketplaceGuestRole.id)) {
           console.log(`🚫 Removing ${member.user.tag} - 7 days expired`);
 
           // Send farewell DM before kicking
@@ -375,14 +396,12 @@ client.on('guildMemberAdd', async (member) => {
   if (pendingMarketplaceBuyers.has(member.id)) {
     console.log(`🛒 User ${member.user.tag} is a marketplace buyer, assigning guest role...`);
 
-    const marketplaceGuestRole = member.guild.roles.cache.find(
-      role => role.name === MARKETPLACE_GUEST_ROLE_NAME
-    );
+    const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
 
     if (marketplaceGuestRole) {
       try {
         await member.roles.add(marketplaceGuestRole);
-        console.log(`✅ Assigned Marketplace Guest role to ${member.user.tag}`);
+        console.log(`✅ Assigned ${marketplaceGuestRole.name} role to ${member.user.tag}`);
 
         // Remove from pending set
         pendingMarketplaceBuyers.delete(member.id);
@@ -410,10 +429,12 @@ client.on('guildMemberAdd', async (member) => {
           console.log("⚠️ Could not send welcome DM to new member");
         }
       } catch (roleError) {
-        console.error(`❌ Failed to assign ${MARKETPLACE_GUEST_ROLE_NAME} role to ${member.user.tag}:`, roleError.message);
+        console.error(`❌ Failed to assign Buyer role to ${member.user.tag}:`, roleError.message);
       }
     } else {
-      console.error(`❌ ${MARKETPLACE_GUEST_ROLE_NAME} role not found! Please create a role with that exact name in your Discord server.`);
+      console.error(`❌ Buyer role not found! Please ensure:`);
+      console.error(`   - BUYER_ROLE_ID (${BUYER_ROLE_ID || 'NOT SET'}) points to valid role ID`);
+      console.error(`   - OR a role named "${MARKETPLACE_GUEST_ROLE_NAME}" exists in Discord server`);
     }
   }
 });
@@ -885,6 +906,27 @@ app.post("/get-member-roles", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Failed to fetch member roles:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ POST /track-marketplace-guest — Track OAuth2-added marketplace guest for auto-removal
+app.post("/track-marketplace-guest", async (req, res) => {
+  try {
+    const { userId, guildId, userTag } = req.body;
+
+    if (!userId || !guildId || !userTag) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    console.log(`📝 Tracking marketplace guest ${userTag} (${userId}) for auto-removal`);
+
+    // Schedule the 7-day removal
+    await scheduleMarketplaceGuestRemoval(userId, guildId, userTag);
+
+    res.json({ success: true, message: "Guest tracked for auto-removal" });
+  } catch (err) {
+    console.error("❌ Failed to track marketplace guest:", err);
     res.status(500).json({ error: err.message });
   }
 });
