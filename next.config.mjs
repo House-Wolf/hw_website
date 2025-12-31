@@ -19,7 +19,7 @@ const nextConfig = {
    reactStrictMode: true,
   outputFileTracingRoot: __dirname,
 
-  turboppack: {
+  turbopack: {
     root: __dirname,
   },
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
