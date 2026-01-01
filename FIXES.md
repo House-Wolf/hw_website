@@ -366,32 +366,76 @@ NextAuth session type doesn't include custom user properties (id, discordId, per
 
 ## Medium Priority Issues
 
-### ❌ MEDIUM-001: Missing Page Metadata (SEO)
-**Status**: 🔴 NOT FIXED
+### ✅ MEDIUM-001: Missing Page Metadata (SEO)
+**Status**: ✅ FIXED
 **Date Identified**: December 31, 2024
-**Date Fixed**: _Pending_
+**Date Fixed**: December 31, 2024
 **Severity**: MEDIUM - SEO/UX
 
 **Problem**:
 Multiple public-facing pages lack metadata exports, resulting in poor SEO and missing Open Graph tags for social media sharing.
 
 **Affected Pages**:
-- `app/(root)/marketplace/page.tsx` - No metadata
-- `app/(root)/origins/page.tsx` - No metadata
-- `app/(root)/socials/page.tsx` - No metadata
-- `app/(root)/code/page.tsx` - No metadata
-- `app/(root)/(commands)/commands/page.tsx` - No metadata
-- All dashboard pages (acceptable - behind auth)
+- `app/(root)/marketplace/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/origins/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/socials/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/code/page.tsx` - Already had metadata ✅
+- `app/(root)/(commands)/commands/page.tsx` - No metadata ✅ FIXED
+
+**Root Cause**:
+Pages were client components ("use client") and couldn't export metadata directly. In Next.js 13+ App Router, metadata must be exported from Server Components or layout files.
+
+**Solution**:
+Created layout.tsx files for each affected page that export metadata and wrap the client component:
+
+**Files Created**:
+- `app/(root)/marketplace/layout.tsx` - Marketplace metadata with trading/commerce focus
+- `app/(root)/origins/layout.tsx` - Origins/history metadata
+- `app/(root)/socials/layout.tsx` - Community/social media metadata
+- `app/(root)/(commands)/commands/layout.tsx` - Division overview metadata
+
+**Metadata Includes**:
+- Page title with consistent branding
+- SEO-optimized description
+- Open Graph tags for social media sharing (Facebook, LinkedIn)
+- Twitter Card tags for Twitter previews
+- Canonical URLs for SEO
+- Social card image (`/images/global/social-card.png`)
+
+**Example Pattern**:
+```typescript
+export const metadata = {
+  title: "Marketplace | House Wolf Dragoons",
+  description: "Browse and trade items...",
+  openGraph: {
+    title: "Marketplace | House Wolf Dragoons",
+    description: "Trade weapons, armor, and gear...",
+    url: "https://housewolf.co/marketplace",
+    images: [{ url: "/images/global/social-card.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Marketplace | House Wolf Dragoons",
+    description: "Browse and trade items...",
+    images: ["/images/global/social-card.png"],
+  },
+  alternates: { canonical: "https://housewolf.co/marketplace" },
+};
+```
 
 **Impact**:
-- Poor search engine visibility
-- Social media previews show generic/incorrect content
-- Missing page titles in browser tabs
-- Reduced organic traffic potential
+✅ Improved search engine visibility for all public pages
+✅ Professional social media previews with images and descriptions
+✅ Proper page titles in browser tabs
+✅ Canonical URLs prevent duplicate content issues
+✅ Increased organic traffic potential
 
-**Solution**: _To be documented after fix_
-
-**Testing**: _To be documented after fix_
+**Testing**:
+- ✅ All 4 layout files created following Next.js App Router best practices
+- ✅ Consistent branding and domain (housewolf.co) across all metadata
+- ✅ Open Graph and Twitter Card tags for social sharing
+- Test social previews: Use https://developers.facebook.com/tools/debug/ and https://cards-dev.twitter.com/validator
 
 ---
 
