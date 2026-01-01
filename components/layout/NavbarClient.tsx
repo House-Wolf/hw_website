@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { DIVISIONS } from "@/lib/divisions/divisionConfig";
+import DivisionsPage from "@/app/(root)/divisions/page";
 
 interface NavItem {
   label: string;
@@ -20,28 +22,48 @@ const navItems: NavItem[] = [
       {
         label: "Who We Are",
         items: [
-          { label: "Our History", href: "/origins", description: "The story of House Wolf" },
-          { label: "Dragoon Code", href: "/code", description: "Our values and principles" },
-          { label: "Leadership", href: "/LEADERSHIP", description: "Meet our commanders" },
+          {
+            label: "Our History",
+            href: "/origins",
+            description: "The story of House Wolf",
+          },
+          {
+            label: "Dragoon Code",
+            href: "/code",
+            description: "Our values and principles",
+          },
+          {
+            label: "Leadership",
+            href: "/leadership",
+            description: "Meet our commanders",
+          },
         ],
       },
     ],
   },
-  {
-    label: "Commands",
-    submenu: [
-      {
-        label: "Operational Units",
-        items: [
-          { label: "Commands Overview", href: "/commands", description: "Commands Overview" },
-          { label: "LOCOPS", href: "/commands/LOCOPS", description: "Logistics Operations" },
-          { label: "TACOPS", href: "/commands/TACOPS", description: "Tactical Operations" },
-          { label: "SPECOPS", href: "/commands/SPECOPS", description: "Special Operations" },
-          { label: "ARCCOPS", href: "/commands/ARCCOPS", description: "Arctic Operations" },
-        ],
-      },
-    ],
-  },
+ {
+  label: "Commands",
+  submenu: [
+    {
+      label: "Overview",
+      items: [
+        {
+          label: "All Divisions",
+          href: "/divisions",
+          description: "Explore our specialized divisions",
+        },
+      ],
+    },
+    {
+      label: "Divisions",
+      items: Object.values(DIVISIONS).map((division) => ({
+        label: division.name,
+        href: `/divisions/${division.slug}`,
+        description: division.navDescription,
+      })),
+    },
+  ],
+},
   {
     label: "Marketplace",
     href: "/marketplace",
@@ -51,6 +73,7 @@ const navItems: NavItem[] = [
     href: "/socials",
   },
 ];
+
 
 /** 
  * @component NavbarClient

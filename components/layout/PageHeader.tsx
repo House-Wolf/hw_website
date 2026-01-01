@@ -86,8 +86,8 @@ export default function HeroSection({
           <SafeImage
             src={iconSrc}
             alt={iconAlt}
-            width={120}
-            height={0}
+            width={220}
+            height={220}
             style={{ height: "auto" }}
             className="mx-auto drop-shadow-[0_0_30px_rgba(17,78,98,0.8)] mb-8"
           />

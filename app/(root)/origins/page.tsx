@@ -189,10 +189,10 @@ export default function OriginsPage(): JSX.Element {
               The Dragoon Code
             </Link>
             <Link
-              href="/commands"
+              href="/LEADERSHIP"
               className="px-8 py-4 bg-steel text-foreground font-bold rounded-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] transition-all will-change-transform"
             >
-              Our Commands
+              Leadership
             </Link>
           </div>
         </div>

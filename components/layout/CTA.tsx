@@ -91,7 +91,7 @@ export default function EpicCTA() {
             </div>
             <div className="animate-float" style={{ animationDelay: "0.6s" }}>
               <SafeImage
-                src="/images/divisions/arccops/arccops.png"
+                src="/images/divisions/arcops/arcops.png"
                 alt="ARCCOPS Division"
                 width={65}
                 height={65}
@@ -118,10 +118,10 @@ export default function EpicCTA() {
 
           {/* Feature Pills */}
           <div className="flex flex-wrap justify-center gap-4 pt-8">
-            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-crimson/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-crimson/20">
+            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">
               ELITE OPERATIONS
             </div>
-            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-steel/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-steel/20">
+            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">
               BROTHERHOOD
             </div>
             <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">

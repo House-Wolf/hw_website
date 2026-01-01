@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 export const metadata = {
   title: "Divisions | House Wolf Dragoons",
   description:
@@ -7,7 +9,7 @@ export const metadata = {
     title: "Divisions | House Wolf Dragoons",
     description:
       "Discover the four divisions of House Wolf and the specialists who lead them into battle.",
-    url: "https://housewolf.co/commands",
+    url: "https://housewolf.co/divisions",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -28,7 +30,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/commands",
+    canonical: "https://housewolf.co/divisions",
   },
 };
 
@@ -44,10 +46,14 @@ interface CommandsLayoutProps {
  * @returns {JSX.Element} The rendered layout component.
  * @author House Wolf Dev Team
  */
-export default function CommandsLayout({ children }: CommandsLayoutProps) {
+export default function DivisionsLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <section className="min-h-screen w-full">
+    <main className="min-h-screen w-full bg-linear-to-b from-shadow via-obsidian to-night-deep">
       {children}
-    </section>
+    </main>
   );
 }
