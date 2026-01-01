@@ -201,7 +201,7 @@ function DivisionSection({
 
 /* Card Component */
 function DivisionCard({ member }: { member: DivisionMember }) {
-  const profileImage = member.portraitUrl || "/images/default-avatar.png";
+  const profileImage = member.portraitUrl || "/images/global/HWiconnew.png";
 
   return (
     <article className="group rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-1 transition">

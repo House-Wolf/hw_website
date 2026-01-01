@@ -366,32 +366,76 @@ NextAuth session type doesn't include custom user properties (id, discordId, per
 
 ## Medium Priority Issues
 
-### ❌ MEDIUM-001: Missing Page Metadata (SEO)
-**Status**: 🔴 NOT FIXED
+### ✅ MEDIUM-001: Missing Page Metadata (SEO)
+**Status**: ✅ FIXED
 **Date Identified**: December 31, 2024
-**Date Fixed**: _Pending_
+**Date Fixed**: December 31, 2024
 **Severity**: MEDIUM - SEO/UX
 
 **Problem**:
 Multiple public-facing pages lack metadata exports, resulting in poor SEO and missing Open Graph tags for social media sharing.
 
 **Affected Pages**:
-- `app/(root)/marketplace/page.tsx` - No metadata
-- `app/(root)/origins/page.tsx` - No metadata
-- `app/(root)/socials/page.tsx` - No metadata
-- `app/(root)/code/page.tsx` - No metadata
-- `app/(root)/(commands)/commands/page.tsx` - No metadata
-- All dashboard pages (acceptable - behind auth)
+- `app/(root)/marketplace/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/origins/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/socials/page.tsx` - No metadata ✅ FIXED
+- `app/(root)/code/page.tsx` - Already had metadata ✅
+- `app/(root)/(commands)/commands/page.tsx` - No metadata ✅ FIXED
+
+**Root Cause**:
+Pages were client components ("use client") and couldn't export metadata directly. In Next.js 13+ App Router, metadata must be exported from Server Components or layout files.
+
+**Solution**:
+Created layout.tsx files for each affected page that export metadata and wrap the client component:
+
+**Files Created**:
+- `app/(root)/marketplace/layout.tsx` - Marketplace metadata with trading/commerce focus
+- `app/(root)/origins/layout.tsx` - Origins/history metadata
+- `app/(root)/socials/layout.tsx` - Community/social media metadata
+- `app/(root)/(commands)/commands/layout.tsx` - Division overview metadata
+
+**Metadata Includes**:
+- Page title with consistent branding
+- SEO-optimized description
+- Open Graph tags for social media sharing (Facebook, LinkedIn)
+- Twitter Card tags for Twitter previews
+- Canonical URLs for SEO
+- Social card image (`/images/global/social-card.png`)
+
+**Example Pattern**:
+```typescript
+export const metadata = {
+  title: "Marketplace | House Wolf Dragoons",
+  description: "Browse and trade items...",
+  openGraph: {
+    title: "Marketplace | House Wolf Dragoons",
+    description: "Trade weapons, armor, and gear...",
+    url: "https://housewolf.co/marketplace",
+    images: [{ url: "/images/global/social-card.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Marketplace | House Wolf Dragoons",
+    description: "Browse and trade items...",
+    images: ["/images/global/social-card.png"],
+  },
+  alternates: { canonical: "https://housewolf.co/marketplace" },
+};
+```
 
 **Impact**:
-- Poor search engine visibility
-- Social media previews show generic/incorrect content
-- Missing page titles in browser tabs
-- Reduced organic traffic potential
+✅ Improved search engine visibility for all public pages
+✅ Professional social media previews with images and descriptions
+✅ Proper page titles in browser tabs
+✅ Canonical URLs prevent duplicate content issues
+✅ Increased organic traffic potential
 
-**Solution**: _To be documented after fix_
-
-**Testing**: _To be documented after fix_
+**Testing**:
+- ✅ All 4 layout files created following Next.js App Router best practices
+- ✅ Consistent branding and domain (housewolf.co) across all metadata
+- ✅ Open Graph and Twitter Card tags for social sharing
+- Test social previews: Use https://developers.facebook.com/tools/debug/ and https://cards-dev.twitter.com/validator
 
 ---
 
@@ -619,29 +663,46 @@ const userTag = `${userData.username}#${userData.discriminator}`;
 
 ---
 
-### ❌ LOW-002: Image Fallback Path Needs Verification
-**Status**: 🔴 NOT FIXED
+### ✅ LOW-002: Image Fallback Path Needs Verification
+**Status**: ✅ FIXED
 **Date Identified**: December 31, 2024
-**Date Fixed**: _Pending_
+**Date Fixed**: December 31, 2024
 **Severity**: LOW - Quality
 
 **Problem**:
-Fallback image path may not match actual file name in public directory.
+Multiple components referenced non-existent `/images/default-avatar.png` as a fallback image. The file does not exist in the public directory, which could cause fallback failures.
 
-**Location**: `components/utils/SafeImage.tsx` (Line 22)
+**Locations**:
+- `components/divisions/DivisionPageTemplate.tsx` (Line 209)
+- `components/divisions/LeadershipPageTemplate.tsx` (Line 204)
+- `components/profiles/MercProfiles.tsx` (Line 33)
 
 **Code Before**:
 ```typescript
-fallbackSrc = "/images/global/HWiconnew.png"  // File may not exist
+const profileImage = member.portraitUrl || "/images/default-avatar.png";
+// ❌ File doesn't exist in public directory
+```
+
+**Root Cause**:
+Hardcoded fallback path without verification that the file exists. Since SafeImage component already cascades to `/images/global/HWiconnew.png`, using the non-existent path adds an unnecessary layer.
+
+**Solution**:
+Updated all three components to use the existing House Wolf icon directly:
+
+```typescript
+const profileImage = member.portraitUrl || "/images/global/HWiconnew.png";
+// ✅ Uses verified existing file
 ```
 
 **Impact**:
-- Fallback may fail if file doesn't exist
-- Needs verification
+- Eliminates potential fallback failures
+- Ensures consistent branding with House Wolf logo
+- Removes dependency on non-existent file
 
-**Solution**: _To be documented after fix_
-
-**Testing**: _To be documented after fix_
+**Testing**:
+✅ Verified `/images/global/HWiconnew.png` exists in public directory
+✅ Updated all three component files
+✅ Consistent fallback behavior across division and profile pages
 
 ---
 
