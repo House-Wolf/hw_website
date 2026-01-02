@@ -292,7 +292,7 @@ function MarketplaceDashboardContent() {
 
             const data = await res.json();
             setMyListings(data.listings || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error fetching listings:", err);
             showMessage("error", "Failed to load your listings.");
         }
@@ -527,8 +527,9 @@ function MarketplaceDashboardContent() {
             if (activeTab === "manage") {
                 fetchMyListings();
             }
-        } catch (err: any) {
-            showMessage("error", err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "An error occurred";
+            showMessage("error", message);
         } finally {
             setLoading(false);
         }
@@ -572,8 +573,9 @@ function MarketplaceDashboardContent() {
             if (!res.ok) throw new Error("Failed to delete listing");
             showMessage("success", "Listing deleted!");
             fetchMyListings();
-        } catch (err: any) {
-            showMessage("error", err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to delete listing";
+            showMessage("error", message);
         } finally {
             setLoading(false);
         }
@@ -1137,7 +1139,7 @@ function MarketplaceDashboardContent() {
                     <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">Your Active Listings ({myListings.length})</h2>
                     {loading && <p className="text-indigo-400">Loading listings...</p>}
                     {!loading && myListings.length === 0 && (
-                        <p className="text-[var(--foreground-muted)]">You have no active listings. Create one in the "Create Listing" tab.</p>
+                        <p className="text-[var(--foreground-muted)]">You have no active listings. Create one in the &quot;Create Listing&quot; tab.</p>
                     )}
                     
                     {!loading && myListings.length > 0 && (

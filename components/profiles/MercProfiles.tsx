@@ -26,7 +26,7 @@ interface MercProfileCardProps {
  * @returns {JSX.Element} The rendered profile card.
  * @author House Wolf Dev Team
  */
-export default function MercProfileCard({ member, compact = false }: MercProfileCardProps) {
+export default function MercProfileCard({ member}: MercProfileCardProps) {
   const profileImage =
     member.imageUrl && member.imageUrl.trim() !== ""
       ? member.imageUrl

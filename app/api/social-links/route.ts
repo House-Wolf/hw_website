@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const where: any = { status: statusParam };
+    const where: { status: string; platform?: string } = { status: statusParam };
 
     // Public may only access approved links; other statuses require dossier admin
     const isApprovedOnly = statusParam === "APPROVED";

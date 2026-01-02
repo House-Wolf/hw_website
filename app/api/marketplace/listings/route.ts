@@ -9,6 +9,20 @@ import {
   rateLimit,
 } from "@/lib/rate-limit";
 
+interface Listing {
+      id: string;
+      title: string;
+      description: string;
+      price: string;
+      quantity: number;
+      category: string;
+      category_slug: string;
+      discord_id: string;
+      seller_username: string;
+      image_url: string | null;
+      created_at: string;
+    }
+
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
 
@@ -109,16 +123,18 @@ export async function GET(request: NextRequest) {
     `;
     
     // Stitch all pieces together using Prisma.join to prevent serialization error
-    const fullQuery = Prisma.join([
-      fullSelect,
-      where,
-      Prisma.sql`ORDER BY ${orderBy}`, 
-      Prisma.sql`LIMIT ${limit} OFFSET ${offset}`
-    ], ' ');
+    const fullQuery = Prisma.sql`
+      ${fullSelect}
+      ${where}
+      ORDER BY ${orderBy}
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    const listings = await prisma.$queryRaw<any>(fullQuery);
+    const listings = await prisma.$queryRaw<Listing[]>(fullQuery);
 
-    const serialized = (listings as any[]).map((listing) => ({
+    
+
+    const serialized = (listings as Listing[]).map((listing) => ({
       id: listing.id,
       title: listing.title,
       description: listing.description,

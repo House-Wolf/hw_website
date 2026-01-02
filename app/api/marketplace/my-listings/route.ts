@@ -56,7 +56,19 @@ export async function GET(req: NextRequest) {
       WHERE l.seller_user_id = ${session.user.id}::uuid
         AND l.deleted_at IS NULL
       ORDER BY l.created_at DESC
-    `) as any[];
+    `) as Array<{
+      id: string;
+      title: string;
+      description: string;
+      price: string;
+      quantity: number;
+      location: string;
+      status: string;
+      category: string;
+      category_id: string;
+      image_url: string | null;
+      created_at: string;
+    }>;
 
     const serialized = listings.map((listing) => ({
       id: listing.id,
@@ -76,10 +88,11 @@ export async function GET(req: NextRequest) {
       { listings: serialized },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Fetch my listings error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch listings";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch listings" },
+      { error: message },
       { status: 500 }
     );
   }

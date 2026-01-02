@@ -4,8 +4,8 @@ import { Trash2, Pencil } from "lucide-react";
 import { useState } from "react";
 
 interface AdminControlsProps {
-  item: any;
-  onEdit: (item: any) => void;
+  item: { id: string; title: string };
+  onEdit: (item: { id: string; title: string }) => void;
   onDelete: (id: string) => Promise<void>;
 }
 
@@ -13,8 +13,8 @@ interface AdminControlsProps {
  * @component AdminControls
  * @description Renders admin controls for editing and deleting an item, with a confirmation popup for deletion.
  * @param {AdminControlsProps} props - The component props.
- * @param {any} props.item - The item to be managed.
- * @param {(item: any) => void} props.onEdit - Callback function to handle editing the item.
+ * @param {{ id: string; title: string }} props.item - The item to be managed.
+ * @param {(item: { id: string; title: string }) => void} props.onEdit - Callback function to handle editing the item.
  * @param {(id: string) => Promise<void>} props.onDelete - Callback function to handle deleting the item.
  * @returns {JSX.Element} The rendered AdminControls component.
  * @author House Wolf Dev Team

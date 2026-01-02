@@ -62,9 +62,9 @@ export function setWithExpiry<T>(
 
   try {
     localStorage.setItem(key, JSON.stringify(item));
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle browser storage quota errors
-    if (error?.name === "QuotaExceededError") {
+    if (error instanceof Error && error.name === "QuotaExceededError") {
       console.error("localStorage quota exceeded. Clearing expired items…");
       clearExpired();
     } else {

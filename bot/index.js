@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { Client, GatewayIntentBits, Partials, ChannelType, EmbedBuilder } from "discord.js";
+import { Client, GatewayIntentBits, Partials, EmbedBuilder } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -126,7 +126,7 @@ async function rescheduleMarketplaceGuestTimers() {
                 .setFooter({ text: "House Wolf - Home of the Dragoons" });
 
               await member.send({ embeds: [farewellEmbed] }).catch(() => {});
-            } catch (e) {}
+            } catch {}
 
             await member.kick("Marketplace guest access expired after 7 days");
             console.log(`✅ Removed expired guest ${guest.discordUserId}`);
@@ -216,7 +216,7 @@ async function rescheduleMarketplaceGuestTimers() {
                 .setFooter({ text: "House Wolf - Home of the Dragoons" });
 
               await member.send({ embeds: [farewellEmbed] }).catch(() => {});
-            } catch (e) {}
+            } catch {}
 
             await member.kick("Marketplace guest access expired after 7 days");
             console.log(`✅ Removed ${guest.discordUserId} (scheduled from db)`);
@@ -307,7 +307,7 @@ async function scheduleMarketplaceGuestRemoval(userId, guildId, userTag) {
               .setFooter({ text: "This is an automated reminder from House Wolf Marketplace." });
 
             await member.send({ embeds: [warningEmbed] });
-          } catch (dmError) {
+          } catch {
             console.log(`⚠️ Could not send warning DM to ${member.user.tag}`);
           }
         }
@@ -343,7 +343,7 @@ async function scheduleMarketplaceGuestRemoval(userId, guildId, userTag) {
               .setFooter({ text: "House Wolf - Home of the Dragoons" });
 
             await member.send({ embeds: [farewellEmbed] });
-          } catch (dmError) {
+          } catch {
             console.log(`⚠️ Could not send farewell DM to ${member.user.tag}`);
           }
 
@@ -425,7 +425,7 @@ client.on('guildMemberAdd', async (member) => {
             .setFooter({ text: "This is a limited 7-day access role for marketplace transactions only." });
 
           await member.send({ embeds: [welcomeEmbed] });
-        } catch (dmError) {
+        } catch {
           console.log("⚠️ Could not send welcome DM to new member");
         }
       } catch (roleError) {
@@ -722,7 +722,7 @@ app.post("/create-transaction-thread", async (req, res) => {
         await sellerUser.send({ embeds: [sellerDM] }).catch(() => {
           console.log("⚠️ Could not DM seller (DMs disabled)");
         });
-      } catch (dmError) {
+      } catch {
         console.log("⚠️ DM notifications skipped (one or both users have DMs disabled)");
       }
 

@@ -12,7 +12,19 @@ import { SafeImage } from "../../../../components/utils/SafeImage";
 export default function MarketplaceHero(): JSX.Element {
   const [scrollY, setScrollY] = useState(0);
   const [showGlitch, setShowGlitch] = useState(false);
+  const [errorCode, setErrorCode] = useState('');
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  // Generate error code when glitch shows
+  useEffect(() => {
+    if (showGlitch) {
+      // Defer state update to avoid cascading render
+      const timer = setTimeout(() => {
+        setErrorCode(Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0'));
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [showGlitch]);
 
   useEffect(() => {
     // Throttle scroll handler for better performance
@@ -77,33 +89,29 @@ export default function MarketplaceHero(): JSX.Element {
   }, [showGlitch]);
 
   useEffect(() => {
-    // DISABLED: Glitch effect is too performance-intensive for initial page load
-    // Can be re-enabled later if needed for special events
+    const triggerGlitch = () => {
+      setShowGlitch(true);
+      setTimeout(() => setShowGlitch(false), 5000); // Reduced from 10s to 5s
+    };
 
-    // Random glitch effect - occurs randomly, minimum 5 minutes apart
-    // const triggerGlitch = () => {
-    //   setShowGlitch(true);
-    //   setTimeout(() => setShowGlitch(false), 5000); // Reduced from 10s to 5s
-    // };
+    const scheduleNextGlitch = () => {
+      // Random interval between 10-15 minutes (increased from 5-10)
+      const nextGlitchDelay = 600000 + Math.random() * 300000;
 
-    // const scheduleNextGlitch = () => {
-    //   // Random interval between 10-15 minutes (increased from 5-10)
-    //   const nextGlitchDelay = 600000 + Math.random() * 300000;
+      setTimeout(() => {
+        triggerGlitch();
+        scheduleNextGlitch();
+      }, nextGlitchDelay);
+    };
 
-    //   setTimeout(() => {
-    //     triggerGlitch();
-    //     scheduleNextGlitch();
-    //   }, nextGlitchDelay);
-    // };
+    // Initial delay before first glitch (5-10 minutes) - much longer
+    const initialDelay = 300000 + Math.random() * 300000;
+    const initialTimer = setTimeout(() => {
+      triggerGlitch();
+      scheduleNextGlitch();
+    }, initialDelay);
 
-    // // Initial delay before first glitch (5-10 minutes) - much longer
-    // const initialDelay = 300000 + Math.random() * 300000;
-    // const initialTimer = setTimeout(() => {
-    //   triggerGlitch();
-    //   scheduleNextGlitch();
-    // }, initialDelay);
-
-    // return () => clearTimeout(initialTimer);
+    return () => clearTimeout(initialTimer);
   }, []);
 
   return (
@@ -240,7 +248,7 @@ export default function MarketplaceHero(): JSX.Element {
 
                 {/* Error code */}
                 <div className="text-[10px] md:text-xs text-red-700/70 font-mono mt-3 tracking-widest">
-                  ERROR CODE: 0x{Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0')}
+                  ERROR CODE: 0x{errorCode}
                 </div>
               </div>
             </div>

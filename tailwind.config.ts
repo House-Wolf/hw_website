@@ -67,7 +67,6 @@ export default {
           steel: "var(--border-teal)",
         },
 
-
         /* Status colors */
         success: {
           DEFAULT: "var(--status-success)",
@@ -84,6 +83,16 @@ export default {
         info: {
           DEFAULT: "var(--status-info)",
           text: "var(--status-info-text)",
+        },
+        keyframes: {
+          "tracking-tighten": {
+            "0%": { letterSpacing: "0.35em", opacity: "0.6" },
+            "50%": { letterSpacing: "0.15em", opacity: "1" },
+            "100%": { letterSpacing: "0.35em", opacity: "0.6" },
+          },
+        },
+        animation: {
+          "tracking-tighten": "tracking-tighten 2.5s ease-in-out infinite",
         },
       },
 

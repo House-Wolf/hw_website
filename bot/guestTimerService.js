@@ -73,7 +73,7 @@ async function sendWarning(record) {
  * Called when the guest hits 72 hours (kick + cleanup)
  */
 async function expireGuest(record) {
-  const { id, guildId, discordUserId, expiresAt } = record;
+  const { id, guildId, discordUserId } = record;
   const client = getDiscordClient();
 
   try {

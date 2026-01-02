@@ -57,7 +57,10 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
     }
 
     const detailJson = await detailRes.json();
-    const page = Object.values(detailJson.query.pages)[0] as any;
+    const page = Object.values(detailJson.query.pages)[0] as {
+      extract?: string;
+      original?: { source?: string };
+    };
 
     const description = page.extract || "No description available.";
     const image = page.original?.source || null;

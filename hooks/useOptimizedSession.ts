@@ -4,8 +4,12 @@ import { useSession as useNextAuthSession } from "next-auth/react";
 import { useRef, useEffect } from "react";
 
 // Cache to deduplicate session requests
-const sessionCache = {
-  data: null as any,
+const sessionCache: {
+  data: unknown;
+  timestamp: number;
+  CACHE_DURATION: number;
+} = {
+  data: null,
   timestamp: 0,
   CACHE_DURATION: 5000, // 5 seconds
 };

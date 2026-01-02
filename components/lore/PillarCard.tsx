@@ -9,22 +9,6 @@ interface PillarCardProps {
   children: JSX.Element | JSX.Element[];
 }
 
-const COLOR_MAP = {
-  crimson: {
-    border: "border-crimson",
-    title: "text-crimson-light",
-    gradientFrom: "from-crimson-dark/20",
-    gradientTo: "to-obsidian",
-    shadow: "hover:shadow-crimson-glow",
-  },
-  steel: {
-    border: "border-steel",
-    title: "text-steel-light",
-    gradientFrom: "from-steel-dark/20",
-    gradientTo: "to-obsidian",
-    shadow: "hover:shadow-steel-glow",
-  },
-};
 
 /**
  * @component PillarCard

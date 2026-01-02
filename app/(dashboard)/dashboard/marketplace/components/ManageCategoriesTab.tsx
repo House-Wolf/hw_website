@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Folder, Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2, X } from "lucide-react";
 
 interface Category {
   id: number;
@@ -173,8 +173,12 @@ function CategoryModal({ title, category, categories, onClose, action }: Categor
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
+    // Defer state update to avoid cascading render
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => {
+      clearTimeout(timer);
+      setMounted(false);
+    };
   }, []);
 
   const generateSlug = (text: string) => {

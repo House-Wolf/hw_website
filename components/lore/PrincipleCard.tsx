@@ -9,25 +9,6 @@ interface PrincipleCardProps {
   color: "crimson" | "steel";
 } 
 
-const COLOR_MAP = {
-  crimson: {
-    border: "border-crimson",
-    title: "text-crimson-light",
-    iconBg: "bg-crimson to-crimson-light",
-    gradientFrom: "from-crimson-dark/20",
-    gradientTo: "to-obsidian",
-    shadow: "hover:shadow-crimson-glow",
-  },
-  steel: {
-    border: "border-steel",
-    title: "text-steel-light",
-    iconBg: "bg-steel to-steel-light",
-    gradientFrom: "from-steel-dark/20",
-    gradientTo: "to-obsidian",
-    shadow: "hover:shadow-steel-glow",
-  },
-};
-
 /**
  * @component PrincipleCard
  * @description Reusable card for each of the Six Principles (Resol'nare).
