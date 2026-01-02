@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
 
@@ -114,8 +115,12 @@ export default function MercenaryBioForm({
       setShowAddModal(false);
       setLinkFormData({ channelName: "", channelUrl: "", description: "" });
       await fetchMyLinks();
-    } catch (err: any) {
-      setLinkError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setLinkError(err.message);
+      } else {
+        setLinkError("An unknown error occurred.");
+      }
     } finally {
       setIsSubmittingLink(false);
     }
@@ -292,7 +297,7 @@ export default function MercenaryBioForm({
                     <div className="rounded-xl bg-[#0b0e17] overflow-hidden flex flex-col">
                       {/* Image */}
                       <div className="relative h-64 w-full border-b border-white/5 bg-slate-900">
-                        <img
+                        <Image
                           src={portraitUrl}
                           alt="Character Portrait Preview"
                           className="w-full h-full object-cover"

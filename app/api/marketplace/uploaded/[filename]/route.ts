@@ -4,7 +4,6 @@ import { stat } from "fs/promises";
 import { join, extname } from "path";
 import crypto from "crypto";
 import { auth } from "@/lib/auth";
-import { Readable } from "stream";
 
 const STORAGE_ROOT = join(process.cwd(), "uploads", "marketplace"); // outside /public
 const SIGNING_SECRET =

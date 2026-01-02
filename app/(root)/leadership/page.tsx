@@ -2,7 +2,11 @@ import LeadershipPageTemplate from "@/components/divisions/LeadershipPageTemplat
 import { getLeadershipRoster } from "@/lib/divisions/getLeadershipRoster";
 
 export default async function LeadershipPage() {
-    const leaders = await getLeadershipRoster();
+    const leaders = (await getLeadershipRoster()).map((leader: { id: string; characterName: string; rank: string; rankSortOrder: number; isLeadershipCore: boolean; bio: string; portraitUrl: string | null; subdivisionName: string | undefined; discordUsername: string; callSign?: string; }) => ({
+        ...leader,
+        callSign: leader.callSign || "Unknown",
+        isOfficerCore: leader.isLeadershipCore, 
+    }));
   return (
     <LeadershipPageTemplate
       divisionSlug="division"

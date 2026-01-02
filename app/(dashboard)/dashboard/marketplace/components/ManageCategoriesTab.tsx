@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Folder, Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2, X } from "lucide-react";
 
 interface Category {
   id: number;

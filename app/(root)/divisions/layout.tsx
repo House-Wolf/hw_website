@@ -34,9 +34,6 @@ export const metadata = {
   },
 };
 
-interface CommandsLayoutProps {
-  children: React.ReactNode;
-}
 
 /**
  * @component CommandsLayout - Layout for the Divisions/Commands section.

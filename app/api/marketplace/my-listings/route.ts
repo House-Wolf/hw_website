@@ -56,7 +56,19 @@ export async function GET(req: NextRequest) {
       WHERE l.seller_user_id = ${session.user.id}::uuid
         AND l.deleted_at IS NULL
       ORDER BY l.created_at DESC
-    `) as any[];
+    `) as Array<{
+      id: string;
+      title: string;
+      description: string;
+      price: string;
+      quantity: number;
+      location: string;
+      status: string;
+      category: string;
+      category_id: string;
+      image_url: string | null;
+      created_at: string;
+    }>;
 
     const serialized = listings.map((listing) => ({
       id: listing.id,

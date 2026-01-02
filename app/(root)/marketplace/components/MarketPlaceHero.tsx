@@ -77,33 +77,29 @@ export default function MarketplaceHero(): JSX.Element {
   }, [showGlitch]);
 
   useEffect(() => {
-    // DISABLED: Glitch effect is too performance-intensive for initial page load
-    // Can be re-enabled later if needed for special events
+    const triggerGlitch = () => {
+      setShowGlitch(true);
+      setTimeout(() => setShowGlitch(false), 5000); // Reduced from 10s to 5s
+    };
 
-    // Random glitch effect - occurs randomly, minimum 5 minutes apart
-    // const triggerGlitch = () => {
-    //   setShowGlitch(true);
-    //   setTimeout(() => setShowGlitch(false), 5000); // Reduced from 10s to 5s
-    // };
+    const scheduleNextGlitch = () => {
+      // Random interval between 10-15 minutes (increased from 5-10)
+      const nextGlitchDelay = 600000 + Math.random() * 300000;
 
-    // const scheduleNextGlitch = () => {
-    //   // Random interval between 10-15 minutes (increased from 5-10)
-    //   const nextGlitchDelay = 600000 + Math.random() * 300000;
+      setTimeout(() => {
+        triggerGlitch();
+        scheduleNextGlitch();
+      }, nextGlitchDelay);
+    };
 
-    //   setTimeout(() => {
-    //     triggerGlitch();
-    //     scheduleNextGlitch();
-    //   }, nextGlitchDelay);
-    // };
+    // Initial delay before first glitch (5-10 minutes) - much longer
+    const initialDelay = 300000 + Math.random() * 300000;
+    const initialTimer = setTimeout(() => {
+      triggerGlitch();
+      scheduleNextGlitch();
+    }, initialDelay);
 
-    // // Initial delay before first glitch (5-10 minutes) - much longer
-    // const initialDelay = 300000 + Math.random() * 300000;
-    // const initialTimer = setTimeout(() => {
-    //   triggerGlitch();
-    //   scheduleNextGlitch();
-    // }, initialDelay);
-
-    // return () => clearTimeout(initialTimer);
+    return () => clearTimeout(initialTimer);
   }, []);
 
   return (

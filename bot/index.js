@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { Client, GatewayIntentBits, Partials, ChannelType, EmbedBuilder } from "discord.js";
+import { Client, GatewayIntentBits, Partials, EmbedBuilder } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';

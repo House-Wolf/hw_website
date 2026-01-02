@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { DIVISIONS } from "@/lib/divisions/divisionConfig";
-import DivisionsPage from "@/app/(root)/divisions/page";
 
 interface NavItem {
   label: string;

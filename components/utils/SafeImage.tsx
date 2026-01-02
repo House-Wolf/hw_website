@@ -24,11 +24,14 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 }) => {
   const [error, setError] = useState(false);
 
+  const { alt, ...restProps } = props;
+
   return (
     <Image
       src={error ? fallbackSrc : src}
+      alt={alt || "image"}
       onError={() => setError(true)}
-      {...props}
+      {...restProps}
     />
   );
 };
