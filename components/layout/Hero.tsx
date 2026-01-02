@@ -204,7 +204,7 @@ export default function Hero({
         {/* RIGHT — ANNOUNCEMENTS + EVENTS */}
         <div className="flex flex-col w-full h-full bg-background-soft overflow-hidden">
           {/* Announcements */}
-          <div className="flex-1 min-h-0 border-b border-border-subtle p-3 overflow-y-auto">
+          <div className="flex-1 min-h-0 border-b border-border-subtle p-3 overflow-y-auto scrollbar-hide">
             <header className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold uppercase tracking-widest text-crimson-light">
                 Announcements
@@ -220,22 +220,22 @@ export default function Hero({
                     className="p-3 rounded-md bg-background-elevated/50 border border-border-subtle hover:border-crimson transition-colors"
                   >
                     <div className="flex justify-between mb-1">
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-md font-semibold text-foreground">
                         {a.title}
                       </p>
-                      <span className="text-xs text-foreground-muted font-mono whitespace-nowrap">
+                      <span className="text-md text-foreground-muted font-mono whitespace-nowrap">
                         {a.timestamp}
                       </span>
                     </div>
 
                     <MarkdownContent
                       content={a.content}
-                      className="text-xs text-foreground-muted leading-relaxed"
+                      className="text-md text-foreground-muted leading-relaxed"
                     />
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-foreground-muted italic">
+                <p className="text-md text-foreground-muted italic">
                   No announcements at the moment.
                 </p>
               )}
@@ -243,7 +243,7 @@ export default function Hero({
           </div>
 
           {/* Events */}
-          <div className="flex-1 min-h-0 p-4 overflow-y-auto">
+          <div className="flex-1 min-h-0 p-4 overflow-y-auto scrollbar-hide">
             <header className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold uppercase tracking-widest text-steel-light">
                 Upcoming Events
@@ -258,11 +258,11 @@ export default function Hero({
                     key={e.id}
                     className="p-3 rounded-md bg-background-elevated/50 border border-border-subtle hover:border-teal transition-colors"
                   >
-                    <p className="font-semibold text-sm text-foreground mb-1">
+                    <p className="font-semibold text-md text-foreground mb-1">
                       {e.title}
                     </p>
 
-                    <p className="text-xs text-steel-light font-mono mb-1">
+                    <p className="text-md text-steel-light font-mono mb-1">
                       {new Date(e.date).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -270,13 +270,13 @@ export default function Hero({
                       • {e.time}
                     </p>
 
-                    <p className="text-xs text-foreground-muted leading-relaxed">
+                    <p className="text-md text-foreground-muted leading-relaxed">
                       {e.description}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-foreground-muted italic">
+                <p className="text-md text-foreground-muted italic">
                   No upcoming events posted.
                 </p>
               )}

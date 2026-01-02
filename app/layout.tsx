@@ -12,8 +12,8 @@ import { validateEnv } from "@/lib/env";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   validateEnv();
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="scrollbar-hide">
+      <body className="antialiased scrollbar-hide" suppressHydrationWarning>
         <Providers>
           <HeaderWrapper />
           <Navbar />
