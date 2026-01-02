@@ -779,3 +779,31 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================
+   SCROLLBAR UTILITIES
+   ============================================ */
+
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
+/* Also target html and body specifically */
+html.scrollbar-hide,
+body.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+html.scrollbar-hide::-webkit-scrollbar,
+body.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
