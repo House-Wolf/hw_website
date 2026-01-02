@@ -10,10 +10,10 @@ import Pagination from "@/app/(root)/marketplace/components/Pagination";
 import DiscordInviteModal from "@/app/(root)/marketplace/components/DiscordInviteModal";
 import MarketplaceLoader from "@/app/(root)/marketplace/components/MarketplaceLoader";
 import AdminControls from "@/app/(root)/marketplace/components/AdminControls";
-import EditListingModal from "@/app/(root)/marketplace/components/EditListingModal";
-import { getWithExpiry, setWithExpiry, clearExpired } from "@/lib/localStorage";
+import { setWithExpiry, clearExpired } from "@/lib/localStorage";
 
-const FALLBACK_DISCORD_INVITE = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL || "https://discord.gg/AGDTgRSG93";
+const FALLBACK_DISCORD_INVITE =
+  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL || "https://discord.gg/AGDTgRSG93";
 const CONTACT_TTL_MS = 1000 * 60 * 60 * 24 * 3;
 
 type SortOption = "price-asc" | "price-desc" | "newest";
@@ -21,15 +21,13 @@ type SortOption = "price-asc" | "price-desc" | "newest";
 type Listing = {
   id: string;
   title: string;
-  description?: string;
   price: number;
-  quantity?: number;
   category: string;
+  createdAt: string;
   discordId?: string | null;
   imageUrl?: string;
   images?: { imageUrl: string }[];
   sellerUsername?: string | null;
-  createdAt: string;
 };
 
 type ContactedInfo = {
@@ -38,18 +36,20 @@ type ContactedInfo = {
   threadName?: string;
 };
 
+
+
+
 export default function MarketplacePage() {
   const { data: session, status } = useSession();
-
   const [listings, setListings] = useState<Listing[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("price-asc");
-  const [contactedListings, setContactedListings] =
-    useState<Record<string, ContactedInfo>>({});
+  const [contactedListings, setContactedListings] = useState<
+    Record<string, ContactedInfo>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminControls, setShowAdminControls] = useState(false);
-  const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
@@ -80,16 +80,14 @@ export default function MarketplacePage() {
   // FETCH LISTINGS
   // -------------------------------------------------------------
   useEffect(() => {
-    const stored = getWithExpiry("contactedListings") ?? null;
-    // if (stored) setContactedListings(stored);
-
     clearExpired();
 
     async function run() {
       setIsLoading(true);
       try {
         const params = new URLSearchParams();
-        if (selectedCategory !== "All") params.append("category", selectedCategory);
+        if (selectedCategory !== "All")
+          params.append("category", selectedCategory);
         if (searchQuery) params.append("search", searchQuery);
 
         params.append("sort", sortOption);
@@ -122,7 +120,9 @@ export default function MarketplacePage() {
 
       // Redirect to OAuth2 flow which will add user to server with Buyer role
       // This bypasses Discord onboarding since the role is assigned immediately
-      const oauthUrl = `/api/marketplace/oauth?item=${encodeURIComponent(itemTitle)}`;
+      const oauthUrl = `/api/marketplace/oauth?item=${encodeURIComponent(
+        itemTitle
+      )}`;
 
       console.log("🔐 Initiating OAuth2 flow for:", itemTitle);
       window.location.href = oauthUrl; // Use location.href instead of window.open for OAuth2
@@ -156,7 +156,11 @@ export default function MarketplacePage() {
         timestamp: Date.now(),
       };
 
-      setWithExpiry("pendingMarketplaceTransaction", transactionIntent, CONTACT_TTL_MS);
+      setWithExpiry(
+        "pendingMarketplaceTransaction",
+        transactionIntent,
+        CONTACT_TTL_MS
+      );
 
       // Show modal immediately
       setInviteModal({
@@ -201,7 +205,8 @@ export default function MarketplacePage() {
       setContactedListings(updated);
       setWithExpiry("contactedListings", updated, CONTACT_TTL_MS);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to contact seller";
+      const message =
+        err instanceof Error ? err.message : "Failed to contact seller";
       setError(message);
       setTimeout(() => setError(null), 5000); // Clear after 5 seconds
     }
@@ -223,7 +228,8 @@ export default function MarketplacePage() {
 
       setListings((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete listing";
+      const message =
+        err instanceof Error ? err.message : "Failed to delete listing";
       setError(message);
       setTimeout(() => setError(null), 5000); // Clear after 5 seconds
     }
@@ -253,8 +259,16 @@ export default function MarketplacePage() {
 
         {error && (
           <div className="mt-4 p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-200 flex items-start gap-3">
-            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
             <div className="flex-1">
               <p className="font-medium">{error}</p>
@@ -264,7 +278,11 @@ export default function MarketplacePage() {
               className="text-red-200 hover:text-white transition"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           </div>
@@ -287,13 +305,28 @@ export default function MarketplacePage() {
             isAdmin={session?.user?.permissions?.includes("MARKETPLACE_ADMIN")}
           />
 
-         <ListingsGrid
-          listings={listingsByCategory}
-          contactedListings={contactedListings}
-          handleContactSeller={handleContactSeller}
-          adminControlsFn={item => showAdminControls ? <AdminControls item={item} onEdit={handleEditListing} onDelete={handleDeleteListing} /> : null}
-        />
-
+          <ListingsGrid
+            listings={listingsByCategory}
+            contactedListings={contactedListings}
+            handleContactSeller={handleContactSeller}
+            adminControlsFn={(item) =>
+              showAdminControls ? (
+                <AdminControls
+                  item={item}
+                  onEdit={(item) =>
+                    handleEditListing({
+                      id: item.id,
+                      title: item.title,
+                      price: 0, // Provide default or placeholder values
+                      category: "",
+                      createdAt: "",
+                    })
+                  }
+                  onDelete={handleDeleteListing}
+                />
+              ) : null
+            }
+          />
         </div>
 
         <Pagination

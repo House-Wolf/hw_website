@@ -173,8 +173,12 @@ function CategoryModal({ title, category, categories, onClose, action }: Categor
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
+    // Defer state update to avoid cascading render
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => {
+      clearTimeout(timer);
+      setMounted(false);
+    };
   }, []);
 
   const generateSlug = (text: string) => {

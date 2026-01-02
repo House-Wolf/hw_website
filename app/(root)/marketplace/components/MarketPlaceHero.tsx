@@ -12,7 +12,19 @@ import { SafeImage } from "../../../../components/utils/SafeImage";
 export default function MarketplaceHero(): JSX.Element {
   const [scrollY, setScrollY] = useState(0);
   const [showGlitch, setShowGlitch] = useState(false);
+  const [errorCode, setErrorCode] = useState('');
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  // Generate error code when glitch shows
+  useEffect(() => {
+    if (showGlitch) {
+      // Defer state update to avoid cascading render
+      const timer = setTimeout(() => {
+        setErrorCode(Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0'));
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [showGlitch]);
 
   useEffect(() => {
     // Throttle scroll handler for better performance
@@ -236,7 +248,7 @@ export default function MarketplaceHero(): JSX.Element {
 
                 {/* Error code */}
                 <div className="text-[10px] md:text-xs text-red-700/70 font-mono mt-3 tracking-widest">
-                  ERROR CODE: 0x{Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0')}
+                  ERROR CODE: 0x{errorCode}
                 </div>
               </div>
             </div>

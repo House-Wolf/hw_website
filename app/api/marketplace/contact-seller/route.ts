@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
     // Pass through the response from bot service
     return NextResponse.json(responseToFrontend);
-  } catch (e: any) {
+  } catch (e: unknown) {
     devLog.error("❌ Contact seller error:", e);
     return NextResponse.json({ error: "Failed to send message to seller" }, { status: 500 });
   }

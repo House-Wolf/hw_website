@@ -88,10 +88,11 @@ export async function GET(req: NextRequest) {
       { listings: serialized },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Fetch my listings error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch listings";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch listings" },
+      { error: message },
       { status: 500 }
     );
   }

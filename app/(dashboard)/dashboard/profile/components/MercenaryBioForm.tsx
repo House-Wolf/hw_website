@@ -299,6 +299,8 @@ export default function MercenaryBioForm({
                       <div className="relative h-64 w-full border-b border-white/5 bg-slate-900">
                         <Image
                           src={portraitUrl}
+                          width={400}
+                          height={400}
                           alt="Character Portrait Preview"
                           className="w-full h-full object-cover"
                         />

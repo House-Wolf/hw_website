@@ -79,14 +79,14 @@ export async function getDivisionRoster(
   }));
 
   const commandRoster = profiles
-    .filter((p) => p.isLeadershipCore || COMMAND_RANKS.includes(p.rank as any))
+    .filter((p) => p.isLeadershipCore || (COMMAND_RANKS as readonly string[]).includes(p.rank))
     .sort((a, b) => a.rankSortOrder - b.rankSortOrder);
 
   const officers = profiles
     .filter(
       (p) =>
         !p.isLeadershipCore &&
-        !COMMAND_RANKS.includes(p.rank as any) &&
+        !(COMMAND_RANKS as readonly string[]).includes(p.rank) &&
         p.isOfficerCore
     )
     .sort((a, b) => a.rankSortOrder - b.rankSortOrder);
@@ -95,7 +95,7 @@ export async function getDivisionRoster(
     .filter(
       (p) =>
         !p.isLeadershipCore &&
-        !COMMAND_RANKS.includes(p.rank as any) &&
+        !(COMMAND_RANKS as readonly string[]).includes(p.rank) &&
         !p.isOfficerCore
     )
     .sort((a, b) => a.rankSortOrder - b.rankSortOrder);

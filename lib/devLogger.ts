@@ -11,7 +11,7 @@ export const devLog = {
   /**
    * Log informational messages (development only)
    */
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
@@ -20,7 +20,7 @@ export const devLog = {
   /**
    * Log warning messages (development only)
    */
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (isDevelopment) {
       console.warn(...args);
     }
@@ -29,7 +29,7 @@ export const devLog = {
   /**
    * Log error messages (always logged, but sanitized in production)
    */
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     if (isDevelopment) {
       console.error(...args);
     } else {
@@ -41,7 +41,7 @@ export const devLog = {
   /**
    * Log debug messages with sensitive data (development only)
    */
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log("[DEBUG]", ...args);
     }

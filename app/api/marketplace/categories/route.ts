@@ -12,10 +12,11 @@ export async function GET() {
     `) as Array<{ id: number; name: string; slug: string }>;
 
     return NextResponse.json(categories, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Fetch categories error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch categories";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch categories" },
+      { error: message },
       { status: 500 }
     );
   }
