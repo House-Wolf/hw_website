@@ -3,41 +3,30 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = params;
+  const { id } = await context.params;
 
-    const listing = await prisma.marketplaceListings.findUnique({
-      where: { id },
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        images: {
-          orderBy: { sortOrder: "asc" },
-        },
-        seller: {
-          select: {
-            discordUsername: true,
-            discordDisplayName: true,
-          },
+  const listing = await prisma.marketplaceListings.findUnique({
+    where: { id },
+    include: {
+      category: { select: { id: true, name: true, slug: true } },
+      images: { orderBy: { sortOrder: "asc" } },
+      seller: {
+        select: {
+          discordUsername: true,
+          discordDisplayName: true,
         },
       },
-    });
+    },
+  });
 
-    if (!listing || listing.deletedAt) {
-      return NextResponse.json(
-        { error: "Listing not found" },
-        { status: 404 }
-      );
-    }
+  if (!listing || listing.deletedAt) {
+    return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+  }
 
-    const serialized = {
+  return NextResponse.json({
+    listing: {
       id: listing.id,
       title: listing.title,
       description: listing.description,
@@ -52,14 +41,6 @@ export async function GET(
         listing.seller.discordDisplayName ??
         listing.seller.discordUsername,
       createdAt: listing.createdAt.toISOString(),
-    };
-
-    return NextResponse.json({ listing: serialized });
-  } catch (error: any) {
-    console.error("Fetch listing error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch listing" },
-      { status: 500 }
-    );
-  }
+    },
+  });
 }
