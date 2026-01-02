@@ -799,6 +799,8 @@ html.scrollbar-hide,
 body.scrollbar-hide {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+  overscroll-behavior: none !important; /* Prevent bounce/elastic scrolling */
+  overflow-x: hidden !important; /* Prevent horizontal scroll */
 }
 
 html.scrollbar-hide::-webkit-scrollbar,

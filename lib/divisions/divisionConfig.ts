@@ -22,7 +22,7 @@ export const DIVISIONS: Record<DivisionSlug, DivisionDefinition> = {
     slug: "arcops",
     name: "ARCOPS",
     navDescription: "Advanced Research & Cartography Operations",
-    divsionQuote: "We map the unknown so others may conquer it.",
+    divsionQuote: "“We map the unknown so others may conquer it.”",
     description:
       "ARCOPS is the forward edge of House Wolf—venturing into uncharted systems to explore, analyze, and understand what lies beyond known space.Through scientific study, data collection, and advanced crafting, ARCOPS transforms discovery into capability, providing the knowledge, technology, and equipment that empower every other command to succeed.",
     patchImagePath: "/images/divisions/arcops/arcops.png",
@@ -44,7 +44,7 @@ export const DIVISIONS: Record<DivisionSlug, DivisionDefinition> = {
     slug: "specops",
     name: "SPECOPS",
     navDescription: "Elite Special Operations and Covert Missions",
-    divsionQuote: "Silent when needed. Relentless when unleashed.",
+    divsionQuote: "“Silent when needed. Relentless when unleashed.”",
     description:
       "SPECOPS operates beyond the reach of conventional forces. Composed of special forces operators, combat medics, and reconnaissance elements, they conduct infiltration, intelligence gathering, precision strikes, and critical extractions. When missions demand stealth, speed, and absolute control, SPECOPS moves unseen—and leaves no margin for failure.",
     patchImagePath: "/images/divisions/specops/specops.png",
@@ -55,7 +55,7 @@ export const DIVISIONS: Record<DivisionSlug, DivisionDefinition> = {
     slug: "tacops",
     name: "TACOPS",
     navDescription: "Frontline Air Superiority and Bombardment",
-    divsionQuote: "When the battle ignites, we lead the charge.",
+    divsionQuote: "“When the battle ignites, we lead the charge.”",
     description:
       "TACOPS is the decisive combat arm of House Wolf. Through coordinated fighter wings, support wings, and heavy bomber elements, TACOPS dominates the battlespace from atmosphere to vacuum. Whether securing air superiority, delivering close support, or executing strategic strikes, TACOPS brings disciplined firepower to bear until victory is assured.",
     patchImagePath: "/images/divisions/tacops/tacops.png",

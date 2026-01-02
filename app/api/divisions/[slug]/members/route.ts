@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, RATE_LIMITS, getRateLimitIdentifier, getClientIp, createRateLimitHeaders } from "@/lib/rate-limit";
 import { getDivisionRoster } from "@/lib/divisions/getDivisionsRoster";
 import { DIVISIONS } from "@/lib/divisions/divisionConfig";
-/**
- * GET /api/divisions/[slug]/members
- * Returns the roster for a specific division
- */
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ slug: string }> }
@@ -13,9 +10,6 @@ export async function GET(
   let slug: string | undefined;
 
   try {
-    /* ----------------------------- */
-    /* Rate limiting                 */
-    /* ----------------------------- */
     const identifier = getRateLimitIdentifier(
       null,
       getClientIp(request.headers)
@@ -33,9 +27,6 @@ export async function GET(
       );
     }
 
-    /* ----------------------------- */
-    /* Extract & validate slug       */
-    /* ----------------------------- */
     const params = await context.params;
     slug = params?.slug;
 
@@ -62,20 +53,12 @@ export async function GET(
         { status: 400 }
       );
     }
-
-    /* ----------------------------- */
-    /* Canonical division validation */
-    /* ----------------------------- */
     if (!(normalizedSlug in DIVISIONS)) {
       return NextResponse.json(
         { error: "Division not found" },
         { status: 404 }
       );
     }
-
-    /* ----------------------------- */
-    /* Single source of truth        */
-    /* ----------------------------- */
     const data = await getDivisionRoster(
       normalizedSlug as keyof typeof DIVISIONS
     );
