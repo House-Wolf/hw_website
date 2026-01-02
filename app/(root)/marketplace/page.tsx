@@ -50,6 +50,7 @@ export default function MarketplacePage() {
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminControls, setShowAdminControls] = useState(false);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
