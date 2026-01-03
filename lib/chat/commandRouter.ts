@@ -20,6 +20,8 @@ export function routeWolfCommand(input: string): CommandResult {
 
     case cmd === "lore":
       return { type: "navigate", path: "/code" };
+    case cmd.includes("fleet"):
+      return { type: "navigate", path: "/fleet" };
 
     // -----------------
     // Lore Topics
@@ -43,7 +45,7 @@ export function routeWolfCommand(input: string): CommandResult {
     case cmd.includes("discord"):
       return {
         type: "external",
-        label: "House Wolf Discord",
+        label: "<<< Click here >>> ->House Wolf Discord",
         url: "https://discord.gg/AGDTgRSG93",
       };
 
@@ -51,7 +53,7 @@ export function routeWolfCommand(input: string): CommandResult {
     case cmd.includes("join") || cmd.includes("enlist"):
       return { 
         type: "external",
-        label: "Join House Wolf",
+        label: "<<< Click here >>> -> Join House Wolf",
         url: "https://robertsspaceindustries.com/en/orgs/CUTTERWOLF",
       };
 
@@ -70,9 +72,8 @@ export function routeWolfCommand(input: string): CommandResult {
           "• kampos\n" +
           "• dragoon code\n" +
           "• discord\n" +
-          "• join\n" +
-          "• continue / more\n" +
-          "• expand lore",
+          "• fleet\n" +
+          "• join\n" 
       };
 
     // -----------------
