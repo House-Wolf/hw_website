@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
-// import LoreSmithAssistant from "./LoreSmithAssistant";
 
 type DivisionOption = {
   name: string;
@@ -167,21 +166,6 @@ export default function MercenaryBioForm({
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1.2fr)] gap-6 lg:gap-8">
           {/* LEFT COLUMN – Core details */}
           <div className="space-y-6">
-         
-            {/* AI GENERATED BIO ASSISTANT DISABLED FOR NOW */}
-           
-            {/* <LoreSmithAssistant
-              characterName={characterName}
-              discordRole={
-                allowedDivisions.find((d) => d.name === division)
-                  ?.discordRole || ""
-              }
-              division={division}
-              subdivision={subdivision}
-              onApply={(generatedBio) => setBio(generatedBio)}
-            /> */}
-
-            
             {/* Character + division */}
             <section className="space-y-4">
               <div>
