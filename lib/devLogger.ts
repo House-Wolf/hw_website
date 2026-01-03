@@ -1,25 +1,29 @@
-// lib/devLogger.ts
+/**
+ * Development logger utility
+ * Only logs in development mode
+ */
 
-type LogLevel = "info" | "warn" | "error";
+const isDev = process.env.NODE_ENV === 'development';
 
-export function devLog(
-  scope: string,
-  message: string,
-  level: LogLevel = "info",
-  data?: unknown
-) {
-  if (process.env.NODE_ENV === "production") return;
-
-  const prefix = `[${scope}]`;
-
-  switch (level) {
-    case "warn":
-      console.warn(prefix, message, data ?? "");
-      break;
-    case "error":
-      console.error(prefix, message, data ?? "");
-      break;
-    default:
-      console.log(prefix, message, data ?? "");
-  }
-}
+export const devLog = {
+  info: (...args: unknown[]) => {
+    if (isDev) {
+      console.log('[INFO]', ...args);
+    }
+  },
+  warn: (...args: unknown[]) => {
+    if (isDev) {
+      console.warn('[WARN]', ...args);
+    }
+  },
+  error: (...args: unknown[]) => {
+    if (isDev) {
+      console.error('[ERROR]', ...args);
+    }
+  },
+  debug: (...args: unknown[]) => {
+    if (isDev) {
+      console.debug('[DEBUG]', ...args);
+    }
+  },
+};

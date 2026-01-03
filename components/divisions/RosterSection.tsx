@@ -1,5 +1,5 @@
 import type { DivisionMember } from "@/lib/divisions/getDivisionsRoster";
-import { MemberCard } from "./MemeberCard";
+import { MemberCard } from "./MemberCard";
 
 export function RosterSection({
   title,
