@@ -40,9 +40,9 @@ export default function FleetyardsEmbed() {
 
     window.FleetYardsFleetchartConfig = {
       details: true,
-      grouped: true,
-      fleetchart: true,
-      fleetchartGrouped: true,
+      grouped: false,
+      fleetchart: false,
+      fleetchartGrouped: false,
       fleetchartScale: 50,
       groupedButton: true,
       fleetchartSlider: true,

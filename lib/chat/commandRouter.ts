@@ -33,7 +33,11 @@ export function routeWolfCommand(input: string): CommandResult {
 
     // In-site join page
     case cmd.includes("join") || cmd.includes("enlist"):
-      return { type: "navigate", path: "/join" };
+      return { 
+        type: "external",
+        label: "Join House Wolf",
+        url: "https://robertsspaceindustries.com/en/orgs/CUTTERWOLF",
+      };
 
     // -----------------
     // Lore Triggers
