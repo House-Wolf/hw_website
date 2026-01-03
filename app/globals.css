@@ -147,6 +147,8 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--hw-pure-black);
+  height: 100%;
 }
 
 body {
@@ -159,6 +161,7 @@ body {
   font-size: var(--font-base);
   line-height: var(--leading-normal);
   min-height: 100vh;
+  height: 100%;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
