@@ -24,7 +24,7 @@ export const DIVISIONS: Record<DivisionSlug, DivisionDefinition> = {
     navDescription: "Advanced Research & Cartography Operations",
     divsionQuote: "“We map the unknown so others may conquer it.”",
     description:
-      "ARCOPS is the forward edge of House Wolf—venturing into uncharted systems to explore, analyze, and understand what lies beyond known space.Through scientific study, data collection, and advanced crafting, ARCOPS transforms discovery into capability, providing the knowledge, technology, and equipment that empower every other command to succeed.",
+      "ARCOPS is the forward edge of House Wolf—venturing into uncharted systems to explore, analyze, and understand what lies beyond known space. Through scientific study, data collection, and advanced crafting, ARCOPS transforms discovery into capability, providing the knowledge, technology, and equipment that empower every other command to succeed.",
     patchImagePath: "/images/divisions/arcops/arcops.png",
     patchAlt: "ARCOPS Patch",
     ogImage: "/images/og/arcops-og.png",
