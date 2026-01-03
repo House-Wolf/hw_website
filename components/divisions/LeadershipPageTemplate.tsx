@@ -1,5 +1,5 @@
 import { SafeImage } from "@/components/utils/SafeImage";
-import { MemberCard } from "./MemeberCard";
+import { MemberCard } from "./MemberCard";
 
 interface LeadershipMember {
   id: string;

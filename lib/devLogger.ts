@@ -1,49 +1,29 @@
 /**
- * @module devLogger
- * @description Development-only logging utility
- * Prevents sensitive data from being logged in production
- * @author House Wolf Dev Team
+ * Development logger utility
+ * Only logs in development mode
  */
 
-const isDevelopment = process.env.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV === 'development';
 
 export const devLog = {
-  /**
-   * Log informational messages (development only)
-   */
   info: (...args: unknown[]) => {
-    if (isDevelopment) {
-      console.log(...args);
+    if (isDev) {
+      console.log('[INFO]', ...args);
     }
   },
-
-  /**
-   * Log warning messages (development only)
-   */
   warn: (...args: unknown[]) => {
-    if (isDevelopment) {
-      console.warn(...args);
+    if (isDev) {
+      console.warn('[WARN]', ...args);
     }
   },
-
-  /**
-   * Log error messages (always logged, but sanitized in production)
-   */
   error: (...args: unknown[]) => {
-    if (isDevelopment) {
-      console.error(...args);
-    } else {
-      // In production, log only error type without sensitive details
-      console.error("[Error occurred - check logs for details]");
+    if (isDev) {
+      console.error('[ERROR]', ...args);
     }
   },
-
-  /**
-   * Log debug messages with sensitive data (development only)
-   */
   debug: (...args: unknown[]) => {
-    if (isDevelopment) {
-      console.log("[DEBUG]", ...args);
+    if (isDev) {
+      console.debug('[DEBUG]', ...args);
     }
   },
 };

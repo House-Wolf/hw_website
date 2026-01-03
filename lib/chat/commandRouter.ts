@@ -1,76 +1,77 @@
-type CommandResult =
-  | { type: "navigate"; path: string }
-  | { type: "external"; url: string; label: string }
-  | { type: "lore"; topic: string }
-  | { type: "message"; text: string }
-  | { type: "ai" };
+import type { CommandResult } from "./types";
+
+const norm = (s: string) => s.toLowerCase().trim();
 
 export function routeWolfCommand(input: string): CommandResult {
-  const cmd = input.toLowerCase();
+  const cmd = norm(input);
 
-  // -----------------
-  // Navigation
-  // -----------------
-  if (cmd.includes("profile")) {
-    return { type: "navigate", path: "/dashboard/profile" };
+  switch (true) {
+    // -----------------
+    // Navigation
+    // -----------------
+    case cmd.includes("profile"):
+      return { type: "navigate", path: "/dashboard/profile" };
+
+    case cmd.includes("divisions"):
+      return { type: "navigate", path: "/divisions" };
+
+    case cmd.includes("history") || cmd.includes("about"):
+      return { type: "navigate", path: "/origins" };
+
+    case cmd === "lore":
+      return { type: "navigate", path: "/lore" };
+
+    // -----------------
+    // External Links
+    // -----------------
+    case cmd.includes("discord"):
+      return {
+        type: "external",
+        label: "House Wolf Discord",
+        url: "https://discord.gg/AGDTgRSG93",
+      };
+
+    // In-site join page
+    case cmd.includes("join") || cmd.includes("enlist"):
+      return { type: "navigate", path: "/join" };
+
+    // -----------------
+    // Lore Triggers
+    // -----------------
+    case cmd.includes("house wolf"):
+      return { type: "lore", topic: "house-wolf" };
+
+    case cmd.includes("kampos"):
+      return { type: "lore", topic: "kampos" };
+
+    case cmd.includes("dragoon"):
+    case cmd.includes("code"):
+      return { type: "lore", topic: "dragoon-code" };
+
+    // -----------------
+    // Help
+    // -----------------
+    case cmd === "help":
+    case cmd.includes("commands"):
+      return {
+        type: "message",
+        text:
+          "Available:\n" +
+          "• profile\n" +
+          "• divisions\n" +
+          "• lore / house wolf\n" +
+          "• kampos\n" +
+          "• dragoon code\n" +
+          "• discord\n" +
+          "• join\n" +
+          "• continue / more\n" +
+          "• expand lore",
+      };
+
+    // -----------------
+    // Fallback
+    // -----------------
+    default:
+      return { type: "ai", text: "I'm not sure how to help with that." };
   }
-
-  if (cmd.includes("divisions")) {
-    return { type: "navigate", path: "/divisions" };
-  }
-
-  if (cmd.includes("lore") || cmd.includes("house wolf")) {
-    return { type: "navigate", path: "/code" };
-  }
-
-  if (cmd.includes("history") || cmd.includes("about us")) {
-    return { type: "navigate", path: "/origins" };
-  }
-
-  // -----------------
-  // External Links
-  // -----------------
-  if (cmd.includes("discord")) {
-    return {
-      type: "external",
-      url: "https://discord.gg/AGDTgRSG93",
-      label: "House Wolf Discord",
-    };
-  }
-
-  if (cmd.includes("join") || cmd.includes("enlist")) {
-    return {
-      type: "external",
-      url: "/join",
-      label: "Join House Wolf",
-    };
-  }
-
-  // -----------------
-  // Lore Triggers
-  // -----------------
-  if (cmd.includes("kampos")) {
-    return { type: "lore", topic: "kampos" };
-  }
-
-  if (cmd.includes("dragoon") || cmd.includes("code")) {
-    return { type: "lore", topic: "dragoon-code" };
-  }
-
-  // -----------------
-  // Help
-  // -----------------
-  if (cmd.includes("help")) {
-    return {
-      type: "message",
-      text:
-        "I can guide you through House Wolf.\n" +
-        "Ask about our lore, find your path, or request navigation.",
-    };
-  }
-
-  // -----------------
-  // Fallback to AI
-  // -----------------
-  return { type: "ai" };
 }
