@@ -9,11 +9,8 @@ interface Listing {
   price: number;
   quantity?: number;
   category?: string;
-  seller?: {
-    discordId?: string | null;
-    discordUsername?: string | null;
-    name?: string | null;
-  };
+  discordId?: string | null; // Flat structure from API
+  sellerUsername?: string | null; // Flat structure from API
   images?: { imageUrl: string }[];
   imageUrl?: string;
 }
@@ -47,11 +44,9 @@ export default function ListingsGrid({
         const image =
           item.imageUrl || item.images?.[0]?.imageUrl || "/placeholder.png";
         const sellerDiscordId =
-          item.seller?.discordId || "";
+          item.discordId || "";
         const sellerName =
-          item.seller?.discordUsername ||
-          item.seller?.name ||
-          "Seller";
+          item.sellerUsername || "Seller";
 
         return (
           <ListingCard

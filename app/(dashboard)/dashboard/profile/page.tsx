@@ -4,8 +4,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import MercenaryBioForm from "./components/MercenaryBioForm";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+/* =========================
+   Division Definitions
+========================= */
 
 const DIVISION_DEFINITIONS = [
   {
@@ -46,6 +47,10 @@ const DIVISION_DEFINITIONS = [
   },
 ];
 
+/* =========================
+   Helpers
+========================= */
+
 function normalizeKey(value: string) {
   return value
     .toLowerCase()
@@ -77,6 +82,7 @@ async function ensureDivisionAndSubs(
   });
 
   let subdivision = null;
+
   if (subdivisionName) {
     const subdivisionSlug = normalizeKey(subdivisionName);
     subdivision = await prisma.subdivision.upsert({
@@ -101,6 +107,10 @@ async function ensureDivisionAndSubs(
   return { division, subdivision };
 }
 
+/* =========================
+   Server Action
+========================= */
+
 async function submitBio(formData: FormData) {
   "use server";
 
@@ -123,16 +133,19 @@ async function submitBio(formData: FormData) {
     WHERE ur.user_id = ${session.user.id}::uuid;
   `) as Array<{ name: string }>;
 
-  const characterName = (formData.get("characterName") as string)?.trim();
-  const divisionName = (formData.get("division") as string)?.trim();
-  const subdivisionName = (formData.get("subdivision") as string)?.trim();
-  const bio = (formData.get("bio") as string)?.trim();
-  const portraitUrl = (formData.get("portraitUrl") as string)?.trim();
+  const characterName = formData.get("characterName")?.toString().trim();
+  const divisionName = formData.get("division")?.toString().trim();
+  const subdivisionName = formData.get("subdivision")?.toString().trim() || null;
+  const bio = formData.get("bio")?.toString().trim();
+  const portraitUrl = formData.get("portraitUrl")?.toString().trim();
 
-  if (!characterName) throw new Error("Character name is required.");
-  if (!divisionName) throw new Error("Division is required.");
-  if (!bio) throw new Error("Bio is required.");
-  if (bio.length > 700) throw new Error("Bio exceeds 700 characters.");
+  if (!characterName || !divisionName || !bio) {
+    throw new Error("Missing required fields.");
+  }
+
+  if (bio.length > 700) {
+    throw new Error("Bio exceeds 700 characters.");
+  }
 
   const roleNames = new Set(rolesRows.map((r) => r.name));
 
@@ -141,58 +154,46 @@ async function submitBio(formData: FormData) {
       roleNames.has(sub)
     );
     return { ...division, allowedSubs };
-  }).filter((division) => division.allowedSubs.length > 0);
+  }).filter((d) => d.allowedSubs.length > 0);
 
   const selectedDivision = allowedDivisions.find(
-    (div) => div.name === divisionName
+    (d) => d.name === divisionName
   );
 
   if (!selectedDivision) {
-    throw new Error("You are not allowed to submit for that division.");
+    throw new Error("Unauthorized division.");
   }
 
-  if (subdivisionName) {
-    const allowed = selectedDivision.allowedSubs.includes(subdivisionName);
-    if (!allowed) {
-      throw new Error("You are not allowed to submit for that subdivision.");
-    }
+  if (subdivisionName && !selectedDivision.allowedSubs.includes(subdivisionName)) {
+    throw new Error("Unauthorized subdivision.");
   }
 
   const { division, subdivision } = await ensureDivisionAndSubs(
     divisionName,
-    subdivisionName || null
+    subdivisionName
   );
 
-  const userId = session.user.id;
-
-  const existingProfileRow = (await prisma.$queryRaw`
-    SELECT id
-    FROM mercenary_profiles
-    WHERE user_id = ${userId}::uuid
+  const existing = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM mercenary_profiles
+    WHERE user_id = ${session.user.id}::uuid
     LIMIT 1;
-  `) as Array<{ id: string }>;
+  `;
 
   const finalPortraitUrl = portraitUrl || userRow.image || null;
 
-  if (existingProfileRow.length) {
-    const profileId = existingProfileRow[0].id;
+  if (existing.length) {
     await prisma.$executeRaw`
       UPDATE mercenary_profiles
       SET
         character_name = ${characterName},
         bio = ${bio},
         division_id = ${division.id},
-        subdivision_id = ${subdivision ? subdivision.id : null},
+        subdivision_id = ${subdivision?.id ?? null},
+        portrait_url = ${finalPortraitUrl},
         status = 'PENDING',
-        last_submitted_at = NOW(),
         updated_at = NOW(),
-        approved_at = NULL,
-        approved_by = NULL,
-        rejected_at = NULL,
-        rejected_by = NULL,
-        rejection_reason = NULL,
-        portrait_url = ${finalPortraitUrl}
-      WHERE id = ${profileId}::uuid;
+        last_submitted_at = NOW()
+      WHERE id = ${existing[0].id}::uuid;
     `;
   } else {
     await prisma.$executeRaw`
@@ -203,24 +204,26 @@ async function submitBio(formData: FormData) {
         bio,
         division_id,
         subdivision_id,
+        portrait_url,
         status,
         is_public,
-        last_submitted_at,
+        created_at,
         updated_at,
-        portrait_url
+        last_submitted_at
       )
       VALUES (
         gen_random_uuid(),
-        ${userId}::uuid,
+        ${session.user.id}::uuid,
         ${characterName},
         ${bio},
         ${division.id},
-        ${subdivision ? subdivision.id : null},
+        ${subdivision?.id ?? null},
+        ${finalPortraitUrl},
         'PENDING',
         true,
         NOW(),
         NOW(),
-        ${finalPortraitUrl}
+        NOW()
       );
     `;
   }
@@ -228,31 +231,34 @@ async function submitBio(formData: FormData) {
   redirect("/dashboard/profile?submitted=1");
 }
 
+/* =========================
+   Page Component
+========================= */
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ submitted?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
 
-  const [userRow] = (await prisma.$queryRaw`
-    SELECT id, image
-    FROM users
-    WHERE id = ${session.user.id}::uuid
-    LIMIT 1;
-  `) as Array<{ id: string; image: string | null }>;
+  const params = await searchParams;
+  const submitted = params.submitted === "1";
 
-  if (!userRow) notFound();
-
-  const rolesRows = (await prisma.$queryRaw`
-    SELECT dr.name
-    FROM user_roles ur
-    JOIN discord_roles dr ON dr.id = ur.discord_role_id
-    WHERE ur.user_id = ${session.user.id}::uuid;
-  `) as Array<{ name: string }>;
-
-  const profileRows = (await prisma.$queryRaw`
+  const profileRows = await prisma.$queryRaw<
+    {
+      characterName: string;
+      bio: string;
+      portraitUrl: string | null;
+      divisionName: string | null;
+      subdivisionName: string | null;
+      status: string;
+    }[]
+  >`
     SELECT
       mp.character_name AS "characterName",
       mp.bio,
@@ -265,29 +271,9 @@ export default async function ProfilePage({
     LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
     WHERE mp.user_id = ${session.user.id}::uuid
     LIMIT 1;
-  `) as Array<{
-    characterName: string;
-    bio: string;
-    portraitUrl: string | null;
-    divisionName: string | null;
-    subdivisionName: string | null;
-    status: string;
-  }>;
+  `;
 
   const profile = profileRows[0] ?? null;
-  const roleNames = new Set(rolesRows.map((r) => r.name));
-
-  const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
-    const allowedSubs = division.subdivisions.filter((sub) =>
-      roleNames.has(sub)
-    );
-    return { ...division, allowedSubs };
-  }).filter((division) => division.allowedSubs.length > 0);
-
-  const hasAccess = allowedDivisions.length > 0;
-
-  const params = await searchParams;
-  const submitted = params?.submitted === "1";
   const status = profile?.status ?? null;
 
   const statusLabel =
@@ -310,88 +296,44 @@ export default async function ProfilePage({
 
   return (
     <div className="space-y-6 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Page header */}
+      {/* Header */}
       <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5">
-            <p className="text-xs uppercase tracking-[0.15em] text-[var(--foreground-muted)]">
-              Mercenary Bio
-            </p>
-            <h1 className="text-2xl md:text-3xl font-bold text-[var(--foreground)] leading-tight">
-              Mercenary Bio & Dossier
-            </h1>
-            <p className="text-sm text-[var(--foreground-muted)] max-w-2xl">
-              Create your official House Wolf dossier. This profile powers the
-              public Mercenaries page and helps leadership place you in the
-              correct division and operations.
-            </p>
-          </div>
-
-          <div className="flex flex-col items-start md:items-end gap-2">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {statusLabel}
-            </span>
-            <p className="text-[11px] text-[var(--foreground-muted)] max-w-[260px] text-right">
-              Edits will resubmit your dossier for review if it&apos;s already
-              approved or rejected.
-            </p>
-          </div>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl md:text-3xl font-bold">Mercenary Bio</h1>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold border ${statusClasses}`}>
+            {statusLabel}
+          </span>
         </div>
       </div>
 
       {submitted && (
         <div className="card border border-[var(--accent-soft)] bg-[var(--background-secondary)]/80">
-          <p className="text-sm text-[var(--foreground)] font-semibold">
-            Submission received. Your dossier is now pending review.
-          </p>
-          <p className="mt-1 text-xs text-[var(--foreground-muted)]">
-            You can still make edits; changes will replace your previous
-            submission.
-          </p>
+          Submission received. Your dossier is pending review.
         </div>
       )}
 
-      {!hasAccess ? (
-        <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/80">
-          <p className="text-sm text-[var(--foreground-muted)]">
-            You do not have an eligible division role to submit a Mercenary Bio.
-            If you think this is a mistake, contact an administrator.
-          </p>
-          <p className="text-xs text-[var(--foreground-muted)] mt-2">
-            Eligible division roles are based on your Discord roles (e.g.,
-            TACOPS / SPECOPS / LOCOPS / ARCOPS).
-          </p>
-        </div>
-      ) : (
-        <MercenaryBioForm
-          allowedDivisions={allowedDivisions}
-          onSubmit={submitBio}
-          existingProfile={
-            profile
-              ? {
-                  characterName: profile.characterName,
-                  bio: profile.bio,
-                  portraitUrl: profile.portraitUrl ?? undefined,
-                  divisionName: profile.divisionName ?? undefined,
-                  subdivisionName: profile.subdivisionName ?? undefined,
-                }
-              : null
-          }
-        />
-      )}
+      <MercenaryBioForm
+        allowedDivisions={DIVISION_DEFINITIONS.map((d) => ({
+          ...d,
+          allowedSubs: d.subdivisions,
+        }))}
+        onSubmit={submitBio}
+        existingProfile={
+          profile
+            ? {
+                ...profile,
+                divisionName: profile.divisionName ?? undefined,
+                subdivisionName: profile.subdivisionName ?? undefined,
+              }
+            : null
+        }
+      />
 
       <div className="text-xs text-[var(--foreground-muted)]">
-        Need to update your Discord roles? Visit the{" "}
-        <Link
-          href="https://discord.com"
-          className="text-[var(--accent-main)] hover:underline"
-        >
-          Discord server
-        </Link>{" "}
-        or contact leadership.
+        Need to update your Discord roles?{" "}
+        <Link href="https://discord.com" className="text-[var(--accent-main)] hover:underline">
+          Visit Discord
+        </Link>
       </div>
     </div>
   );

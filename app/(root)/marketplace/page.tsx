@@ -24,10 +24,10 @@ type Listing = {
   price: number;
   category: string;
   createdAt: string;
-  discordId?: string | null;
+  discordId?: string | null; // Seller's Discord ID (flat structure from API)
   imageUrl?: string;
   images?: { imageUrl: string }[];
-  sellerUsername?: string | null;
+  sellerUsername?: string | null; // Seller's username (flat structure from API)
 };
 
 type ContactedInfo = {
@@ -115,17 +115,30 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   // SECURE REDIRECT - OAuth2 Flow
   // -------------------------------------------------------------
-  const handleSecureRedirect = async (title?: string) => {
+  const handleSecureRedirect = async (transactionData: {
+    listingId: string;
+    sellerDiscordId: string;
+    itemTitle: string;
+    itemPrice: number;
+    itemImageUrl: string;
+    sellerUsername: string;
+  }) => {
     try {
-      const itemTitle = title ?? inviteModal.itemTitle;
+      // Build OAuth URL with ALL transaction data as query params
+      // This data will be encoded in the OAuth state parameter
+      const params = new URLSearchParams({
+        listingId: transactionData.listingId,
+        sellerDiscordId: transactionData.sellerDiscordId,
+        itemTitle: transactionData.itemTitle,
+        itemPrice: String(transactionData.itemPrice),
+        itemImageUrl: transactionData.itemImageUrl,
+        sellerUsername: transactionData.sellerUsername,
+      });
 
-      // Redirect to OAuth2 flow which will add user to server with Buyer role
-      // This bypasses Discord onboarding since the role is assigned immediately
-      const oauthUrl = `/api/marketplace/oauth?item=${encodeURIComponent(
-        itemTitle
-      )}`;
+      const oauthUrl = `/api/marketplace/oauth?${params.toString()}`;
 
-      console.log("🔐 Initiating OAuth2 flow for:", itemTitle);
+      console.log("🔐 Initiating OAuth2 flow for:", transactionData.itemTitle);
+      console.log("🔐 Transaction data:", transactionData);
       window.location.href = oauthUrl; // Use location.href instead of window.open for OAuth2
     } catch (e) {
       console.error("OAuth2 redirect failed:", e);
@@ -144,36 +157,29 @@ export default function MarketplacePage() {
     imageUrl: string,
     sellerUsername: string
   ) {
-    // For unauthenticated users: show modal first, store context
+    // Build transaction data object (used for both OAuth and regular flow)
+    const transactionData = {
+      listingId,
+      sellerDiscordId: discordId || "",
+      itemTitle: title,
+      itemPrice: price,
+      itemImageUrl: imageUrl,
+      sellerUsername,
+    };
+
+    // For unauthenticated users: use OAuth flow
     if (status === "unauthenticated" || !session?.user) {
-      // Store the listing context for post-auth processing
-      const transactionIntent = {
-        listingId,
-        sellerDiscordId: discordId,
-        itemTitle: title,
-        itemPrice: price,
-        itemImageUrl: imageUrl,
-        sellerUsername,
-        timestamp: Date.now(),
-      };
-
-      setWithExpiry(
-        "pendingMarketplaceTransaction",
-        transactionIntent,
-        CONTACT_TTL_MS
-      );
-
-      // Show modal immediately
-      setInviteModal({
-        isOpen: true,
-        itemTitle: title,
-        threadUrl: null,
-      });
+      // Redirect to OAuth flow to join server with Buyer role
+      // Transaction data is passed via URL params (not localStorage)
+      await handleSecureRedirect(transactionData);
       return;
     }
 
-    // For authenticated users: create thread first, then show modal
+    // For authenticated users: Check if they're in Discord server first
+    // We need to use OAuth flow for users NOT in Discord (even if logged into website)
     try {
+      // Call contact-seller to check membership and create thread
+      // The bot will detect if they need an invite
       const res = await fetch("/api/marketplace/contact-seller", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -191,7 +197,15 @@ export default function MarketplacePage() {
       // Check response status BEFORE opening modal
       if (!res.ok) throw new Error(data.error || "Failed to contact seller");
 
-      // Only open modal on success
+      // Check if user needs to join Discord server
+      if (data.method === "invite_required") {
+        // User is not in Discord server - use OAuth flow instead of traditional invite
+        // Redirect to OAuth flow to join server with Buyer role (bypasses onboarding)
+        await handleSecureRedirect(transactionData);
+        return;
+      }
+
+      // User is already in Discord server - show modal with thread link
       setInviteModal({
         isOpen: true,
         itemTitle: title,
@@ -200,7 +214,7 @@ export default function MarketplacePage() {
 
       const updated = {
         ...contactedListings,
-        [listingId]: { needsInvite: true, threadUrl: data.threadUrl },
+        [listingId]: { needsInvite: false, threadUrl: data.threadUrl },
       };
 
       setContactedListings(updated);
@@ -249,7 +263,11 @@ export default function MarketplacePage() {
         isOpen={inviteModal.isOpen}
         itemTitle={inviteModal.itemTitle}
         threadUrl={inviteModal.threadUrl ?? undefined}
-        onJoinDiscord={() => handleSecureRedirect(inviteModal.itemTitle)}
+        onJoinDiscord={() => {
+          // This shouldn't be called anymore since we handle OAuth flow automatically
+          // But keep as fallback
+          window.open(FALLBACK_DISCORD_INVITE, "_blank");
+        }}
         onClose={() =>
           setInviteModal({ isOpen: false, itemTitle: "", threadUrl: null })
         }

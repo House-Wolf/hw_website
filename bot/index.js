@@ -482,6 +482,23 @@ app.post("/create-transaction-thread", async (req, res) => {
     console.log(`   Buyer (${buyerName}): ${buyerMember ? '✅ IS member' : '❌ NOT member'}`);
     console.log(`   Seller (${sellerName}): ${sellerMember ? '✅ IS member' : '❌ NOT member'}`);
 
+    // CRITICAL: If buyer is not in guild, don't create thread or post yet
+    // OAuth callback will handle thread creation after they join
+    if (!buyerMember) {
+      console.log(`⚠️ Buyer ${buyerName} is not in guild - deferring to OAuth flow`);
+      console.log(`⚠️ No thread or message will be created yet (prevents duplicates)`);
+      console.log(`⚠️ OAuth callback will create everything after user joins`);
+
+      return res.json({
+        success: true,
+        method: "invite_required",
+        message: "Buyer needs to join Discord server first. They will be redirected to OAuth flow.",
+      });
+    }
+
+    // Both users are in the guild - proceed with normal flow
+    console.log(`✅ Both users in guild - creating inquiry post and thread...`);
+
     // Get the specific marketplace transactions channel
     const MARKETPLACE_CHANNEL_ID = process.env.MARKETPLACE_CHANNEL_ID || "1437596965746774148";
     const channel = await client.channels.fetch(MARKETPLACE_CHANNEL_ID);
@@ -521,7 +538,7 @@ app.post("/create-transaction-thread", async (req, res) => {
 
     console.log(`✅ Posted marketplace inquiry to channel for ${itemTitle}`);
 
-    // Create a public thread for the transaction (works for non-guild members!)
+    // Create thread from the inquiry message
     const threadName = `💰 ${itemTitle.substring(0, 90)}`; // Thread name limit is 100 chars
 
     try {
@@ -561,141 +578,7 @@ app.post("/create-transaction-thread", async (req, res) => {
 
       const threadUrl = `https://discord.com/channels/${channel.guildId}/${thread.id}`;
 
-      // Check if buyer is in the guild - if not, send them an invite
-      if (!buyerMember) {
-        console.log(`⚠️ Buyer ${buyerName} is not in guild, sending invite...`);
-        console.log(`🔍 Checking env variable DISCORD_INVITE_URL: ${process.env.DISCORD_INVITE_URL || 'NOT SET'}`);
-
-        let inviteUrl = null;
-
-        try {
-          // Create a temporary 3-day invite link
-          const invite = await channel.createInvite({
-            maxAge: 259200, // 3 days (in seconds: 3 * 24 * 60 * 60)
-            maxUses: 1, // Single use only
-            unique: true,
-            reason: `Marketplace inquiry for ${itemTitle} by ${buyerName}`
-          });
-          inviteUrl = invite.url;
-          console.log(`✅ Created temporary 3-day invite: ${inviteUrl}`);
-          console.log(`   - Expires in: 3 days`);
-          console.log(`   - Max uses: 1`);
-        } catch (inviteError) {
-          console.error("❌ Failed to create invite:", inviteError.message);
-          console.error("❌ Error details:", inviteError);
-
-          // Fallback to permanent invite link from env (emergency only)
-          if (process.env.DISCORD_INVITE_URL) {
-            inviteUrl = process.env.DISCORD_INVITE_URL;
-            console.log(`⚠️ FALLBACK: Using permanent invite link from env: ${inviteUrl}`);
-            console.log(`⚠️ This should not happen - check bot permissions!`);
-          } else {
-            console.error("❌ CRITICAL: No fallback invite available!");
-            console.error("❌ Bot cannot create invites AND no DISCORD_INVITE_URL set");
-            console.error("❌ Available env vars:", Object.keys(process.env).filter(k => k.includes('DISCORD')));
-          }
-        }
-
-        console.log(`🔍 Final inviteUrl value: ${inviteUrl || 'NULL - NO INVITE AVAILABLE'}`);
-
-        // Track this buyer so we can auto-assign the guest role when they join
-        pendingMarketplaceBuyers.add(buyerId);
-        console.log(`📝 Added buyer ${buyerId} to pending marketplace buyers list`);
-
-        if (inviteUrl) {
-          // Send DM to buyer with invite AND thread link
-          try {
-            const inviteExpiryTimestamp = Math.floor((Date.now() + (3 * 24 * 60 * 60 * 1000)) / 1000); // 3 days
-            const accessExpiryTimestamp = Math.floor((Date.now() + SEVEN_DAYS_MS) / 1000); // 7 days
-            const buyerInviteEmbed = new EmbedBuilder()
-              .setColor(0xfbbf24) // Amber
-              .setTitle("⚠️ Join Our Discord Server!")
-              .setDescription(`Your inquiry for **${itemTitle}** has been posted!\n\nTo view the discussion thread and communicate with the seller, you need to join our Discord server first.`)
-              .addFields(
-                { name: "📦 Item", value: itemTitle, inline: true },
-                { name: "💰 Price", value: `${itemPrice.toLocaleString()} aUEC`, inline: true },
-                { name: "\u200B", value: "\u200B" },
-                { name: "🔗 Step 1: Join Server", value: `[Click here to join](${inviteUrl})`, inline: false },
-                { name: "⏰ Invite Expires", value: `This invite link expires <t:${inviteExpiryTimestamp}:R>. Join soon!`, inline: false },
-                { name: "💬 Step 2: View Thread", value: `After joining, [click here to open the thread](${threadUrl})`, inline: false },
-                { name: "\u200B", value: "\u200B" },
-                { name: "⏰ IMPORTANT: 7-Day Access Limit", value: `You'll be granted **temporary guest access** for **7 days only**.\n\n**Access Expires:** <t:${accessExpiryTimestamp}:R>\n\nYou'll receive a warning 24 hours before removal. Complete your transaction within this timeframe!`, inline: false }
-              )
-              .setFooter({ text: "Invite expires in 3 days. Server access expires in 7 days." })
-              .setTimestamp();
-
-            if (itemImageUrl && itemImageUrl !== "/placeholder.png") {
-              buyerInviteEmbed.setThumbnail(itemImageUrl);
-            }
-
-            await buyerUser.send({ embeds: [buyerInviteEmbed] }).catch((dmError) => {
-              console.log("⚠️ Could not DM buyer (DMs may be disabled):", dmError.message);
-            });
-
-            console.log(`✅ Sent invite to non-member buyer via DM`);
-          } catch (dmError) {
-            console.error("❌ Failed to send DM to buyer:", dmError);
-          }
-
-          // Notify seller that buyer needs to join
-          if (sellerMember) {
-            try {
-              const sellerNotification = new EmbedBuilder()
-                .setColor(0x6366f1)
-                .setTitle("🛒 New Inquiry Thread (Buyer Invited)")
-                .setDescription(`A buyer is interested in **${itemTitle}**! They've been sent an invite to join the server.`)
-                .addFields(
-                  { name: "👤 Buyer", value: `${buyerName} (${buyerUser.tag})`, inline: false },
-                  { name: "📱 Status", value: `Thread created, but buyer needs to join server first to access it. They've been sent an invite link.`, inline: false },
-                  { name: "💬 Thread", value: `[Open Thread](${threadUrl})`, inline: false }
-                )
-                .setTimestamp();
-
-              if (itemImageUrl && itemImageUrl !== "/placeholder.png") {
-                sellerNotification.setThumbnail(itemImageUrl);
-              }
-
-              await sellerUser.send({ embeds: [sellerNotification] }).catch(() => {
-                console.log("⚠️ Could not DM seller");
-              });
-            } catch (sellerDmError) {
-              console.error("❌ Failed to send DM to seller:", sellerDmError);
-            }
-          }
-
-          // Return both thread URL and invite URL
-          console.log(`📤 ═══════════════════════════════════════════`);
-          console.log(`📤 RETURNING RESPONSE TO FRONTEND:`);
-          console.log(`📤   Method: invite_required`);
-          console.log(`📤   Invite URL: ${inviteUrl}`);
-          console.log(`📤   Thread URL: ${threadUrl}`);
-          console.log(`📤   Thread Name: ${thread.name}`);
-          console.log(`📤 ═══════════════════════════════════════════`);
-
-          return res.json({
-            success: true,
-            method: "invite_required",
-            threadId: thread.id,
-            threadName: thread.name,
-            threadUrl: threadUrl,
-            inviteUrl: inviteUrl,
-            message: "Thread created! You need to join our Discord server to access it. Check your DMs for an invite link!"
-          });
-        } else {
-          console.error("❌ ═══════════════════════════════════════════");
-          console.error("❌ CRITICAL: No invite URL available!");
-          console.error("❌ This should not happen - check DISCORD_INVITE_URL env var");
-          console.error("❌ ═══════════════════════════════════════════");
-          return res.status(500).json({
-            success: false,
-            error: "Unable to generate Discord invite. Please contact an administrator for a server invite link.",
-            threadUrl: threadUrl,
-            threadId: thread.id
-          });
-        }
-      }
-
-      // Buyer is in guild - send normal notifications
+      // Send DM notifications to both parties
       try {
         const buyerDM = new EmbedBuilder()
           .setColor(0x10b981)
