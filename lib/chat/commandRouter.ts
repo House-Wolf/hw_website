@@ -22,6 +22,22 @@ export function routeWolfCommand(input: string): CommandResult {
       return { type: "navigate", path: "/code" };
 
     // -----------------
+    // Lore Topics
+    // -----------------
+    case cmd.includes("kampos"):
+      return { type: "lore", topic: "kampos" };
+
+    case cmd.includes("dragoon"):
+    case cmd.includes("code"):
+      return { type: "lore", topic: "dragoon-code" };
+
+    case cmd.includes("house wolf"):
+    case cmd.includes("housewolf"):
+    case cmd.includes("who are you"):
+    case cmd.includes("who is house wolf"):
+      return { type: "lore", topic: "house-wolf" };
+
+    // -----------------
     // External Links
     // -----------------
     case cmd.includes("discord"):
