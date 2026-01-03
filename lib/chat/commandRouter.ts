@@ -1,76 +1,69 @@
-type CommandResult =
+export type CommandResult =
   | { type: "navigate"; path: string }
-  | { type: "external"; url: string; label: string }
-  | { type: "lore"; topic: string }
   | { type: "message"; text: string }
+  | {
+      type: "externalButtons";
+      text: string;
+      buttons: {
+        label: string;
+        url: string;
+      }[];
+    }
+  | { type: "lore"; topic: string }
   | { type: "ai" };
 
 export function routeWolfCommand(input: string): CommandResult {
-  const cmd = input.toLowerCase();
+  const cmd = input.toLowerCase().trim();
 
-  // -----------------
-  // Navigation
-  // -----------------
-  if (cmd.includes("profile")) {
-    return { type: "navigate", path: "/dashboard/profile" };
+  switch (true) {
+    case cmd.includes("profile"):
+      return { type: "navigate", path: "/dashboard/profile" };
+
+    case cmd.includes("divisions"):
+      return { type: "navigate", path: "/divisions" };
+
+    case cmd.includes("history") || cmd.includes("origins"):
+      return { type: "navigate", path: "/origins" };
+
+    case cmd.includes("lore"):
+      return { type: "lore", topic: "/code" };
+
+    case cmd.includes("join"):
+    case cmd.includes("enlist"):
+      return {
+        type: "externalButtons",
+        text: "House Wolf recruitment channels are open. Choose your entry point:",
+        buttons: [
+          {
+            label: "Join Discord",
+            url: "https://discord.gg/AGDTgRSG93",
+          },
+          {
+            label: "Join Today",
+            url: "https://robertsspaceindustries.com/en/orgs/CUTTERWOLF",
+          },
+        ],
+      };
+
+    case cmd.includes("kampos"):
+      return { type: "lore", topic: "kampos" };
+
+    case cmd.includes("code"):
+      return { type: "lore", topic: "dragoon-code" };
+
+    case cmd.includes("help"):
+      return {
+        type: "message",
+        text: `Available commands:
+• join
+• discord
+• profile
+• divisions
+• origins
+• lore`,
+      };
+
+    default:
+      return { type: "ai" };
   }
-
-  if (cmd.includes("divisions")) {
-    return { type: "navigate", path: "/divisions" };
-  }
-
-  if (cmd.includes("lore") || cmd.includes("house wolf")) {
-    return { type: "navigate", path: "/code" };
-  }
-
-  if (cmd.includes("history") || cmd.includes("about us")) {
-    return { type: "navigate", path: "/origins" };
-  }
-
-  // -----------------
-  // External Links
-  // -----------------
-  if (cmd.includes("discord")) {
-    return {
-      type: "external",
-      url: "https://discord.gg/AGDTgRSG93",
-      label: "House Wolf Discord",
-    };
-  }
-
-  if (cmd.includes("join") || cmd.includes("enlist")) {
-    return {
-      type: "external",
-      url: "/join",
-      label: "Join House Wolf",
-    };
-  }
-
-  // -----------------
-  // Lore Triggers
-  // -----------------
-  if (cmd.includes("kampos")) {
-    return { type: "lore", topic: "kampos" };
-  }
-
-  if (cmd.includes("dragoon") || cmd.includes("code")) {
-    return { type: "lore", topic: "dragoon-code" };
-  }
-
-  // -----------------
-  // Help
-  // -----------------
-  if (cmd.includes("help")) {
-    return {
-      type: "message",
-      text:
-        "I can guide you through House Wolf.\n" +
-        "Ask about our lore, find your path, or request navigation.",
-    };
-  }
-
-  // -----------------
-  // Fallback to AI
-  // -----------------
-  return { type: "ai" };
 }

@@ -20,7 +20,9 @@ type Msg = {
 export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const hasInitialized = useRef(false);
-
+  const [actionButtons, setActionButtons] = useState<
+    { label: string; url: string }[] | null
+  >(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
@@ -104,48 +106,46 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   /* ----------------------------------
      Main input handler
   ---------------------------------- */
- const handleUserInput = async (text: string) => {
-  if (!text.trim()) return;
+  const handleUserInput = async (text: string) => {
+    if (!text.trim()) return;
 
-  addMessage({ sender: "user", text });
-  setShowOptions(false);
+    addMessage({ sender: "user", text });
+    setShowOptions(false);
+    setActionButtons(null);
 
-  const result = routeWolfCommand(text);
+    const result = routeWolfCommand(text);
 
-  if (result.type === "navigate") {
-    addMessage({
-      sender: "bot",
-      text: "Understood. Redirecting now.",
-    });
-    setTimeout(() => router.push(result.path), 600);
-    return;
-  }
-
-  if (result.type === "external") {
-    addMessage({
-      sender: "bot",
-      text: `You can access ${result.label} here:\n${result.url}`,
-    });
-    return;
-  }
-
-  if (result.type === "lore") {
-    const lore = LORE_RESPONSES[result.topic];
-    if (lore) {
-      addMessage({ sender: "bot", text: lore });
+    if (result.type === "navigate") {
+      addMessage({
+        sender: "bot",
+        text: "Understood. Redirecting now.",
+      });
+      setTimeout(() => router.push(result.path), 600);
       return;
     }
-  }
 
-  if (result.type === "message") {
-    addMessage({ sender: "bot", text: result.text });
-    return;
-  }
+    if (result.type === "externalButtons") {
+      addMessage({ sender: "bot", text: result.text });
+      setActionButtons(result.buttons);
+      return;
+    }
 
-  // AI fallback
-  await sendToAI(text);
-};
+    if (result.type === "lore") {
+      const lore = LORE_RESPONSES[result.topic];
+      if (lore) {
+        addMessage({ sender: "bot", text: lore });
+        return;
+      }
+    }
 
+    if (result.type === "message") {
+      addMessage({ sender: "bot", text: result.text });
+      return;
+    }
+
+    // AI fallback
+    await sendToAI(text);
+  };
 
   /* ----------------------------------
      Render
@@ -187,6 +187,30 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
           options={INITIAL_OPTIONS}
           onPick={(opt) => handleUserInput(opt.message)}
         />
+      )}
+      {actionButtons && (
+        <div className="px-3 py-2 flex flex-col gap-2">
+          {actionButtons.map((btn) => (
+            <a
+              key={btn.label}
+              href={btn.url}
+              target={btn.url.startsWith("http") ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              className="
+          block text-center
+          px-3 py-2
+          rounded-md
+          text-sm font-semibold
+          bg-[var(--accent-strong)]
+          text-white
+          hover:bg-[var(--maroon-500)]
+          transition-colors
+        "
+            >
+              {btn.label}
+            </a>
+          ))}
+        </div>
       )}
 
       {/* Input */}
