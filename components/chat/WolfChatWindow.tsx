@@ -10,6 +10,7 @@ import WolfChatInput from "@/components/chat/WolfChatInput";
 
 import { INITIAL_GREETING, INITIAL_OPTIONS } from "@/lib/chat/scriptedFlows";
 import { LORE_RESPONSES } from "@/lib/chat/loreResponses";
+import type { LoreTopic } from "@/lib/chat/types";
 import { routeWolfCommand } from "@/lib/chat/commandRouter";
 
 type Msg = {
@@ -23,6 +24,8 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const [actionButtons, setActionButtons] = useState<
     { label: string; url: string }[] | null
   >(null);
+  const [activeLore, setActiveLore] = useState<LoreTopic | null>(null);
+  const [loreIndex, setLoreIndex] = useState(0);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
@@ -113,7 +116,12 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     setShowOptions(false);
     setActionButtons(null);
 
-    const result = routeWolfCommand(text);
+    const result = routeWolfCommand(text) as
+      | { type: "navigate"; path: string }
+      | { type: "externalButtons"; text: string; buttons: { label: string; url: string }[] }
+      | { type: "lore"; topic: LoreTopic }
+      | { type: "message"; text: string }
+      | { type: "unknown" };
 
     if (result.type === "navigate") {
       addMessage({
@@ -133,7 +141,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     if (result.type === "lore") {
       const lore = LORE_RESPONSES[result.topic];
       if (lore) {
-        addMessage({ sender: "bot", text: lore });
+        addMessage({ sender: "bot", text: lore.join(" ") });
         return;
       }
     }
