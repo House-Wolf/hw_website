@@ -12,7 +12,7 @@ import { SafeImage } from "../../../../components/utils/SafeImage";
 export default function MarketplaceHero(): JSX.Element {
   const [scrollY, setScrollY] = useState(0);
   const [showGlitch, setShowGlitch] = useState(false);
-  const [errorCode, setErrorCode] = useState('');
+  const [errorCode, setErrorCode] = useState("");
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   // Generate error code when glitch shows
@@ -20,7 +20,12 @@ export default function MarketplaceHero(): JSX.Element {
     if (showGlitch) {
       // Defer state update to avoid cascading render
       const timer = setTimeout(() => {
-        setErrorCode(Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0'));
+        setErrorCode(
+          Math.floor(Math.random() * 0xffffff)
+            .toString(16)
+            .toUpperCase()
+            .padStart(6, "0")
+        );
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -47,7 +52,7 @@ export default function MarketplaceHero(): JSX.Element {
     if (!showGlitch || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     canvas.width = Math.min(canvas.offsetWidth, 800); // Limit canvas size
@@ -71,10 +76,10 @@ export default function MarketplaceHero(): JSX.Element {
       // Draw every 4th pixel for better performance
       for (let i = 0; i < data.length; i += 16) {
         const color = Math.random() * 255;
-        data[i] = color;     // Red
+        data[i] = color; // Red
         data[i + 1] = color; // Green
         data[i + 2] = color; // Blue
-        data[i + 3] = 200;   // Alpha
+        data[i + 3] = 200; // Alpha
       }
 
       ctx.putImageData(imageData, 0, 0);
@@ -124,15 +129,18 @@ export default function MarketplaceHero(): JSX.Element {
         border border-[var(--hw-steel-teal)]/30"
       >
         {/* ANIMATED GRADIENT OVERLAYS */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--hw-dark-crimson)]/20 via-transparent to-[var(--hw-steel-teal)]/20
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-[var(--hw-dark-crimson)]/20 via-transparent to-[var(--hw-steel-teal)]/20
           animate-pulse pointer-events-none z-10 mix-blend-overlay"
           style={{ animationDuration: "6s" }}
         />
 
         {/* SCANNING LINE EFFECT */}
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--hw-steel-teal)] to-transparent
-            animate-scan opacity-60" />
+          <div
+            className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--hw-steel-teal)] to-transparent
+            animate-scan opacity-60"
+          />
         </div>
 
         {/* CORNER ACCENTS */}
@@ -143,10 +151,10 @@ export default function MarketplaceHero(): JSX.Element {
 
         {/* MAIN HERO IMAGE WITH PARALLAX */}
         <div
-          className="absolute inset-0"
+          className="absolute -inset-x-0 -top-[15%] h-[130%]"
           style={{
-            transform: `translateY(${scrollY * 0.3}px) scale(${1 + scrollY * 0.0002})`,
-            transition: "transform 0.1s ease-out"
+            transform: `translateY(${scrollY * 0.2}px)`,
+            willChange: "transform",
           }}
         >
           <SafeImage
@@ -155,7 +163,7 @@ export default function MarketplaceHero(): JSX.Element {
             width={2160}
             height={1440}
             className="w-full h-full object-cover opacity-85
-              group-hover:opacity-75 transition-all duration-500"
+      group-hover:opacity-75 transition-opacity duration-500"
             priority
           />
         </div>
@@ -164,11 +172,12 @@ export default function MarketplaceHero(): JSX.Element {
         <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/60 pointer-events-none z-10" />
 
         {/* GRID OVERLAY FOR TECH AESTHETIC */}
-        <div className="absolute inset-0 opacity-[0.03] z-10 pointer-events-none"
+        <div
+          className="absolute inset-0 opacity-[0.03] z-10 pointer-events-none"
           style={{
             backgroundImage: `linear-gradient(var(--hw-steel-teal) 1px, transparent 1px),
                             linear-gradient(90deg, var(--hw-steel-teal) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
+            backgroundSize: "50px 50px",
           }}
         />
 
@@ -185,14 +194,15 @@ export default function MarketplaceHero(): JSX.Element {
             <div className="absolute inset-0 bg-black/60" />
 
             {/* Scan lines overlay */}
-            <div className="absolute inset-0 opacity-30"
+            <div
+              className="absolute inset-0 opacity-30"
               style={{
                 background: `repeating-linear-gradient(
                   0deg,
                   transparent 0px,
                   rgba(255, 255, 255, 0.03) 1px,
                   transparent 2px
-                )`
+                )`,
               }}
             />
 
@@ -206,9 +216,9 @@ export default function MarketplaceHero(): JSX.Element {
                     className="absolute left-0 right-0 bg-red-600/30 animate-pulse"
                     style={{
                       top: `${seed}%`,
-                      height: '2px',
+                      height: "2px",
                       animationDelay: `${i * 0.2}s`,
-                      animationDuration: '0.3s'
+                      animationDuration: "0.3s",
                     }}
                   />
                 );
@@ -239,7 +249,7 @@ export default function MarketplaceHero(): JSX.Element {
                         style={{
                           height: `${8 + seed}px`,
                           animationDelay: `${i * 0.08}s`,
-                          animationDuration: '0.4s'
+                          animationDuration: "0.4s",
                         }}
                       />
                     );
@@ -266,8 +276,11 @@ export default function MarketplaceHero(): JSX.Element {
           group-hover:drop-shadow-[0_0_60px_rgba(17,78,98,1)]"
         >
           {/* GLOW RING BEHIND SEAL */}
-          <div className="absolute inset-0 bg-gradient-radial from-[var(--hw-steel-teal)]/30 via-[var(--hw-steel-teal)]/10 to-transparent
-            blur-2xl scale-110 animate-pulse" style={{ animationDuration: "3s" }} />
+          <div
+            className="absolute inset-0 bg-gradient-radial from-[var(--hw-steel-teal)]/30 via-[var(--hw-steel-teal)]/10 to-transparent
+            blur-2xl scale-110 animate-pulse"
+            style={{ animationDuration: "3s" }}
+          />
 
           <SafeImage
             src="/images/marketplace/HWMPHeader.png"
@@ -294,7 +307,7 @@ export default function MarketplaceHero(): JSX.Element {
                   left: `${seed1}%`,
                   top: `${seed2}%`,
                   animationDelay: `${i * 0.7}s`,
-                  animationDuration: `${3 + seed3}s`
+                  animationDuration: `${3 + seed3}s`,
                 }}
               />
             );
