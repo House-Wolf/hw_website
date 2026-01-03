@@ -231,7 +231,7 @@ export default function NavbarClient() {
                       <Link
                         href={item.href}
                         onClick={closeMobileMenu}
-                        className="block px-4 py-3 text-base text-foreground hover:bg-background-elevated hover:text-accent transition-colors font-medium"
+                        className="block px-4 py-3 text-base text-foreground hover:bg-background-elevated hover:text-accent transition-colors font-medium touch-manipulation active:bg-accent/20"
                       >
                         {item.label}
                       </Link>
@@ -240,7 +240,7 @@ export default function NavbarClient() {
                         {/* Parent button with submenu */}
                         <button
                           onClick={() => toggleDropdown(index)}
-                          className="w-full flex items-center justify-between px-4 py-3 text-base text-foreground hover:bg-background-elevated hover:text-accent transition-colors font-semibold"
+                          className="w-full flex items-center justify-between px-4 py-3 text-base text-foreground hover:bg-background-elevated hover:text-accent transition-colors font-semibold touch-manipulation active:bg-accent/20"
                         >
                           <span className="text-left">{item.label}</span>
                           <ChevronDown
@@ -253,7 +253,10 @@ export default function NavbarClient() {
 
                         {/* Mobile dropdown — left aligned, compact */}
                         {activeDropdown === index && item.submenu && (
-                          <div className="bg-background-elevated/60 py-2">
+                          <div
+                            className="bg-background-elevated/60 py-2"
+                            onClick={(e) => e.stopPropagation()} // Prevent parent toggle
+                          >
                             {item.submenu.map((section, sectionIndex) => (
                               <div
                                 key={sectionIndex}
@@ -267,8 +270,11 @@ export default function NavbarClient() {
                                     <Link
                                       key={subIndex}
                                       href={subItem.href}
-                                      onClick={closeMobileMenu}
-                                      className="block py-1.5 pl-3 text-sm text-foreground-muted hover:text-foreground hover:bg-background-soft rounded-md transition-colors text-left"
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent parent toggle
+                                        closeMobileMenu();
+                                      }}
+                                      className="block py-3 pl-3 text-sm text-foreground-muted hover:text-foreground hover:bg-background-soft rounded-md transition-colors text-left active:bg-accent/20 touch-manipulation"
                                     >
                                       {subItem.label}
                                     </Link>
