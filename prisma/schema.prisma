@@ -332,20 +332,23 @@ model MarketplaceListingAuditLog {
 }
 
 model MarketplaceGuest {
-  id            Int       @id @default(autoincrement())
-  discordUserId String    @map("discord_user_id")
-  discordTag    String?   @map("discord_tag")
-  guildId       String    @map("guild_id")
+  id            Int      @id @default(autoincrement())
 
-  joinedAt      DateTime  @map("joined_at") @db.Timestamptz(6)
-  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
-  warningAt     DateTime  @map("warning_at") @db.Timestamptz(6)
+  discordUserId String   @map("discord_user_id")
+  discordTag    String?  @map("discord_tag")
+  guildId       String   @map("guild_id")
 
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  joinedAt      DateTime @map("joined_at") @db.Timestamptz(6)
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
+  warningAt     DateTime @map("warning_at") @db.Timestamptz(6)
 
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([discordUserId, guildId])
   @@map("marketplace_guests")
 }
+
 
 
 model AuditLog {
