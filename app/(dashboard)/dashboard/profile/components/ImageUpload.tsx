@@ -13,43 +13,74 @@ export default function ImageUpload({
   onClear: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback(async (file: File) => {
-    setError(null);
+  const handleFile = useCallback(
+    async (file: File) => {
+      try {
+        setError(null);
+        setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+        const formData = new FormData();
+        formData.append("file", file);
 
-    const res = await fetch("/api/profiles/upload", {
-      method: "POST",
-      body: formData,
-    });
+        // ✅ CORRECT API ROUTE
+        const res = await fetch("/api/upload/image", {
+          method: "POST",
+          body: formData,
+        });
 
-    if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          throw new Error("Upload failed");
+        }
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (!data?.url || !data.url.startsWith("/uploads/profiles/")) {
-      throw new Error("Invalid upload response");
-    }
+        // ✅ Accept full Cloudflare R2 URLs
+        if (!data?.url || !data.url.startsWith("http")) {
+          throw new Error("Invalid upload response");
+        }
 
-    onChange(data.url);
-  }, [onChange]);
+        onChange(data.url);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Image upload failed"
+        );
+      } finally {
+        setUploading(false);
+      }
+    },
+    [onChange]
+  );
 
   return (
-    <div>
+    <div className="space-y-2">
       {value ? (
-        <div>
-          <Image src={value} alt="Preview" width={300} height={300} />
-          <button type="button" onClick={onClear}>Remove</button>
+        <div className="space-y-2">
+          <Image
+            src={value}
+            alt="Profile portrait"
+            width={300}
+            height={300}
+            className="rounded-md object-cover"
+          />
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-sm text-red-400 hover:text-red-300"
+          >
+            Remove image
+          </button>
         </div>
       ) : (
         <button
           type="button"
+          disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
+          className="px-3 py-2 rounded-md border border-white/10 hover:bg-white/5 text-sm"
         >
-          Upload
+          {uploading ? "Uploading…" : "Upload portrait"}
         </button>
       )}
 
@@ -58,10 +89,13 @@ export default function ImageUpload({
         type="file"
         accept="image/*"
         hidden
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+        }}
       />
 
-      {error && <p>{error}</p>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }
