@@ -7,17 +7,30 @@ export async function uploadToR2(
   contentType: string,
   folder = "uploads"
 ) {
-  const ext = contentType.split("/")[1] ?? "png";
-  const key = `${folder}/${crypto.randomUUID()}.${ext}`;
+  try {
+    const ext = contentType.split("/")[1] ?? "png";
+    const key = `${folder}/${crypto.randomUUID()}.${ext}`;
 
-  await r2.send(
-    new PutObjectCommand({
+    console.log(`[R2] Uploading file to bucket: ${process.env.R2_BUCKET}, key: ${key}`);
+
+    const command = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET!,
       Key: key,
       Body: file,
       ContentType: contentType,
-    })
-  );
+    });
 
-  return `${process.env.R2_PUBLIC_URL}/${key}`;
+    await r2.send(command);
+
+    const url = `${process.env.R2_PUBLIC_URL}/${key}`;
+    console.log(`[R2] Upload successful, URL: ${url}`);
+
+    return url;
+  } catch (error) {
+    console.error("[R2] Upload failed:", error);
+    if (error instanceof Error) {
+      throw new Error(`R2 upload failed: ${error.message}`);
+    }
+    throw new Error("R2 upload failed with unknown error");
+  }
 }
