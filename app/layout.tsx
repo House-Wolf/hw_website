@@ -13,8 +13,8 @@ import WolfChatLauncher from "@/components/chat/WolfChatLauncher";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   validateEnv();
   return (
-    <html lang="en" suppressHydrationWarning className="scrollbar-hide">
-      <body className="antialiased scrollbar-hide" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <Providers>
           <HeaderWrapper />
           <Navbar />

@@ -12,18 +12,18 @@ import PageHeader from "@/components/layout/PageHeader";
  */
 export default function OriginsPage(): JSX.Element {
   return (
-    <div className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
+    <div className="min-h-screen bg-gradient-to-b from-shadow via-obsidian to-black">
       <PageHeader
         title="Our Origins"
         subtitle="The legendary history of the Kamposian Dragoons"
         iconSrc="/images/global/HWiconnew.png"
       />
-      <section className="relative py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight overflow-visible">
+      <section className="relative py-20 px-4 bg-gradient-to-b from-obsidian to-night-midnight overflow-visible">
         {/* NEW: Fixed radial gradient syntax */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-steel/10 via-transparent to-transparent opacity-30" />
 
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="bg-linear-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)]">
+          <div className="bg-gradient-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)]">
             <p className="text-xl md:text-2xl text-foreground leading-relaxed mb-6">
               The{" "}
               <span className="text-steel-light font-bold">
@@ -40,7 +40,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-linear-to-b from-night-midnight to-obsidian">
+      <section className="py-20 px-4 bg-gradient-to-b from-night-midnight to-obsidian">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           {/* Image */}
           <div className="relative">
@@ -48,7 +48,7 @@ export default function OriginsPage(): JSX.Element {
               className="
                 rounded-xl overflow-hidden
                 border-2 border-steel/40
-                bg-linear-to-br from-steel-dark/30 to-obsidian
+                bg-gradient-to-br from-steel-dark/30 to-obsidian
                 shadow-[0_0_18px_rgba(0,180,255,0.25)]
                 hover:shadow-[0_0_28px_rgba(0,200,255,0.45)]
                 transition-shadow duration-300
@@ -113,7 +113,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="relative py-20 px-4 bg-linear-to-b from-obsidian to-night-deep overflow-visible">
+      <section className="relative py-20 px-4 bg-gradient-to-b from-obsidian to-black overflow-visible">
         {/* NEW: Glow now visible */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-crimson/10 rounded-full blur-[150px]" />
 
@@ -124,7 +124,7 @@ export default function OriginsPage(): JSX.Element {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Wars Card */}
-            <div className="group bg-linear-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
+            <div className="group bg-gradient-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
               <SafeImage
                 src="/images/origins/wars.png"
                 alt="Wars of Expansion"
@@ -143,7 +143,7 @@ export default function OriginsPage(): JSX.Element {
             </div>
 
             {/* Dragoon Space Card */}
-            <div className="group bg-linear-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
+            <div className="group bg-gradient-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
               <SafeImage
                 src="/images/origins/dragoonSpace.png"
                 alt="Dragoon Space"
@@ -165,7 +165,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="relative py-20 px-4 bg-linear-to-b from-shadow to-obsidian overflow-visible">
+      <section className="relative py-20 px-4 bg-gradient-to-b from-shadow to-black overflow-visible">
         <div className="absolute inset-0 flex items-center justify-center">
           {/* NEW: Fixed gradient syntax */}
           <div className="w-[600px] h-[600px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-steel/20 via-crimson/10 to-transparent rounded-full blur-[100px]" />

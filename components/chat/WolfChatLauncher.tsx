@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import WolfChatWindow from "@/components/chat/WolfChatWindow";
 
 export default function WolfChatLauncher() {
@@ -33,7 +34,8 @@ export default function WolfChatLauncher() {
           "
           aria-label="Open Wolf Chat"
         >
-          🐺
+          <Image src="/images/chat/wolf-chat-icon.png" alt="Wolf Chat Icon" width={56} height={56} priority />
+          
         </button>
       )}
 
