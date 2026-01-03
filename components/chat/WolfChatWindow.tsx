@@ -21,6 +21,7 @@ type Msg = {
 export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const hasInitialized = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [actionButtons, setActionButtons] = useState<
     { label: string; url: string }[] | null
   >(null);
@@ -29,6 +30,17 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
+
+  /* ----------------------------------
+     Auto-scroll to bottom
+  ---------------------------------- */
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typing]);
 
   /* ----------------------------------
      Helpers
@@ -116,12 +128,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     setShowOptions(false);
     setActionButtons(null);
 
-    const result = routeWolfCommand(text) as
-      | { type: "navigate"; path: string }
-      | { type: "externalButtons"; text: string; buttons: { label: string; url: string }[] }
-      | { type: "lore"; topic: LoreTopic }
-      | { type: "message"; text: string }
-      | { type: "unknown" };
+    const result = routeWolfCommand(text);
 
     if (result.type === "navigate") {
       addMessage({
@@ -132,9 +139,12 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    if (result.type === "externalButtons") {
-      addMessage({ sender: "bot", text: result.text });
-      setActionButtons(result.buttons);
+    if (result.type === "external") {
+      addMessage({
+        sender: "bot",
+        text: `Opening ${result.label}...`,
+      });
+      setActionButtons([{ label: result.label, url: result.url }]);
       return;
     }
 
@@ -151,8 +161,17 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    // AI fallback
-    await sendToAI(text);
+    if (result.type === "ai") {
+      // AI fallback
+      await sendToAI(text);
+      return;
+    }
+
+    // Unknown fallback
+    addMessage({
+      sender: "bot",
+      text: "Command unclear. Type 'help' for available actions.",
+    });
   };
 
   /* ----------------------------------
@@ -161,32 +180,44 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="
-        fixed bottom-5 right-5 z-50
-        w-[360px] max-w-[95vw]
+        fixed z-50
+        bottom-3 right-3
+        sm:bottom-5 sm:right-5
+        w-[calc(100vw-1.5rem)]
+        sm:w-[380px]
+        md:w-[420px]
+        lg:w-[460px]
+        max-w-[95vw]
+        max-h-[calc(100vh-6rem)]
+        sm:max-h-[calc(100vh-8rem)]
+        md:max-h-[calc(100vh-10rem)]
         border border-[var(--border-soft)]
         bg-[var(--background-elevated)]
         rounded-md
+        shadow-2xl
+        flex flex-col
       "
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-soft)]">
-        <span className="text-xs tracking-widest text-[var(--foreground-muted)]">
+        <span className="text-xs sm:text-sm tracking-widest text-[var(--foreground-muted)]">
           HOUSE WOLF COMMAND
         </span>
         <button
           onClick={onClose}
-          className="text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+          className="text-xs sm:text-sm text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
         >
           ✕
         </button>
       </div>
 
       {/* Messages */}
-      <div className="h-64 overflow-y-auto px-3 py-2 font-mono text-sm space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 font-mono text-xs sm:text-sm space-y-2">
         {messages.map((m, i) => (
           <WolfChatMessage key={i} sender={m.sender} text={m.text} />
         ))}
         {typing && <WolfChatTyping />}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Options */}
