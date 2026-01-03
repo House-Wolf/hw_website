@@ -10,13 +10,6 @@ export default function LoreSmithAssistant({
   subdivision,
   onApply,
 }: {
-  
-  
-  
-  
-  
-  
-  
   characterName: string;
   discordRole: string;
   division: string;
