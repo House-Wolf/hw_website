@@ -34,7 +34,7 @@ export default function WolfChatLauncher() {
           "
           aria-label="Open Wolf Chat"
         >
-          <Image src="/images/chat/wolf-chat-icon.png" alt="Wolf Chat Icon" width={56} height={56} priority />
+          <Image src="/images/global/HWiconnew.png" alt="Wolf Chat Icon" width={56} height={56} priority />
           
         </button>
       )}
