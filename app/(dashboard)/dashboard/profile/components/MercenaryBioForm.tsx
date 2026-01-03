@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
-import LoreSmithAssistant from "./LoreSmithAssistant";
+// import LoreSmithAssistant from "./LoreSmithAssistant";
 
 type DivisionOption = {
   name: string;
