@@ -1,37 +1,41 @@
 import { NextResponse } from "next/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { randomUUID } from "crypto";
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT!,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+import { uploadToR2 } from "@/lib/storage/uploadToR2";
 
 export async function POST(req: Request) {
-  const formData = await req.formData();
-  const file = formData.get("file") as File;
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
 
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "File must be an image" },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: "File size must be less than 5MB" },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const url = await uploadToR2(buffer, file.type, "portraits");
+
+    return NextResponse.json({ url });
+  } catch (error) {
+    console.error("Image upload error:", error);
+    return NextResponse.json(
+      { error: "Upload failed" },
+      { status: 500 }
+    );
   }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const key = `portraits/${randomUUID()}-${file.name}`;
-
-  await r2.send(
-    new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type,
-    })
-  );
-
-  const url = `${process.env.R2_PUBLIC_URL}/${key}`;
-
-  return NextResponse.json({ url });
 }
