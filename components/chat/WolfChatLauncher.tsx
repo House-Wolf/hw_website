@@ -25,17 +25,31 @@ export default function WolfChatLauncher() {
         <button
           onClick={() => setOpen(true)}
           className="
-            fixed bottom-5 right-5 z-50
-            w-14 h-14 rounded-full
+            fixed z-50
+            bottom-3 right-3
+            sm:bottom-5 sm:right-5
+            w-12 h-12
+            sm:w-14 sm:h-14
+            rounded-full
             bg-[var(--accent-strong)]
             text-white font-bold
             border border-black/30
             animate-pulse
+            shadow-lg
+            hover:scale-110
+            transition-transform
           "
           aria-label="Open Wolf Chat"
         >
-          <Image src="/images/global/HWiconnew.png" alt="Wolf Chat Icon" width={56} height={56} priority />
-          
+          <Image
+            src="/images/global/HWiconnew.png"
+            alt="Wolf Chat Icon"
+            width={56}
+            height={56}
+            priority
+            className="w-full h-full rounded-full"
+          />
+
         </button>
       )}
 
