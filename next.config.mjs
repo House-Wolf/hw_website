@@ -26,36 +26,12 @@ const nextConfig = {
 
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.discordapp.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i1.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i2.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i3.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i4.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "media.starcitizen.tools",
-      },
-    ],
+      remotePatterns: [
+        {
+          protocol: "https",
+          hostname: "**",
+        },
+      ],
   },
 };
 
