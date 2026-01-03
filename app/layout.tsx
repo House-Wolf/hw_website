@@ -3,6 +3,7 @@ import { Providers } from "./providers";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import Navbar from "@/components/layout/Navbar";
 import { validateEnv } from "@/lib/env";
+import WolfChatLauncher from "@/components/chat/WolfChatLauncher";
 
 /**
  * Root Layout Component
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <HeaderWrapper />
           <Navbar />
           {children}
+          <WolfChatLauncher />
         </Providers>
       </body>
     </html>
