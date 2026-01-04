@@ -19,4 +19,5 @@ export type CommandResult =
   | { type: "external"; label: string; url: string }
   | { type: "lore"; topic: LoreTopic }
   | { type: "message"; text: string }
-  | { type: "ai"; text: string  };
+  | { type: "ai"; text: string }
+  |  { type: "custom"; components: React.ReactNode };

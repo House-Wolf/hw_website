@@ -1,4 +1,5 @@
 import type { CommandResult } from "./types";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 
 const norm = (s: string) => s.toLowerCase().trim();
 
@@ -42,20 +43,33 @@ export function routeWolfCommand(input: string): CommandResult {
     // -----------------
     // External Links
     // -----------------
-    case cmd.includes("discord"):
+    case cmd.includes("discord"): {
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel("House Wolf Discord")
+          .setStyle(ButtonStyle.Link)
+          .setURL("https://discord.gg/AGDTgRSG93")
+      );
+
       return {
-        type: "external",
-        label: "<<< Click here >>> ->House Wolf Discord",
-        url: "https://discord.gg/AGDTgRSG93",
+        content: "Join our Discord community!",
+        components: [row]
       };
+    }
 
     // In-site join page
-    case cmd.includes("join") || cmd.includes("enlist"):
-      return { 
-        type: "external",
-        label: "<<< Click here >>> -> Join House Wolf",
-        url: "https://robertsspaceindustries.com/en/orgs/CUTTERWOLF",
+    case cmd.includes("join") || cmd.includes("enlist"): {
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel("Join House Wolf")
+          .setStyle(ButtonStyle.Link)
+          .setURL("https://robertsspaceindustries.com/en/orgs/CUTTERWOLF")
+      );
+      return {
+        content: "Ready to join the pack?",
+        components: [row]
       };
+    }
 
     // -----------------
     // Help
@@ -73,7 +87,7 @@ export function routeWolfCommand(input: string): CommandResult {
           "• dragoon code\n" +
           "• discord\n" +
           "• fleet\n" +
-          "• join\n" 
+          "• join\n",
       };
 
     // -----------------
