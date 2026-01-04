@@ -30,6 +30,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
+  const [currentOptions, setCurrentOptions] = useState(INITIAL_OPTIONS);
 
   /* ----------------------------------
      Auto-scroll to bottom
@@ -156,6 +157,13 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       }
     }
 
+    if (result.type === "options") {
+      addMessage({ sender: "bot", text: result.text });
+      setCurrentOptions(result.options);
+      setShowOptions(true);
+      return;
+    }
+
     if (result.type === "message") {
       addMessage({ sender: "bot", text: result.text });
       return;
@@ -223,7 +231,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       {/* Options */}
       {showOptions && (
         <WolfChatOptions
-          options={INITIAL_OPTIONS}
+          options={currentOptions}
           onPick={(opt) => handleUserInput(opt.message)}
         />
       )}
