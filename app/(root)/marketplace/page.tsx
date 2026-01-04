@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import ListingsGrid from "@/app/(root)/marketplace/components/ListingsGrid";
 import MarketplaceHero from "@/app/(root)/marketplace/components/MarketPlaceHero";
@@ -50,6 +50,7 @@ export default function MarketplacePage() {
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const hasShownLoader = useRef(false); // Track if we've already shown the loader
   const [showAdminControls, setShowAdminControls] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -85,9 +86,10 @@ export default function MarketplacePage() {
     clearExpired();
 
     async function run() {
-      // Only show loader overlay on initial load, not on category/filter changes
-      if (isInitialLoad) {
+      // Only show loader overlay on FIRST initial load, never again
+      if (!hasShownLoader.current) {
         setIsLoading(true);
+        hasShownLoader.current = true; // Immediately mark as shown
       }
 
       try {
