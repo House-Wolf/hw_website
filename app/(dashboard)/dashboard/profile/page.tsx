@@ -186,53 +186,105 @@ async function submitBio(formData: FormData) {
   const rankId = await deriveRankFromRoles(Array.from(roleNames));
 
   if (existing.length) {
-    await prisma.$executeRaw`
-      UPDATE mercenary_profiles
-      SET
-        character_name = ${characterName},
-        bio = ${bio},
-        division_id = ${division.id},
-        subdivision_id = ${subdivision?.id ?? null},
-        portrait_url = ${finalPortraitUrl},
-        rank_id = ${rankId},
-        status = 'PENDING',
-        updated_at = NOW(),
-        last_submitted_at = NOW()
-      WHERE id = ${existing[0].id}::uuid;
-    `;
+    if (rankId !== null) {
+      await prisma.$executeRaw`
+        UPDATE mercenary_profiles
+        SET
+          character_name = ${characterName},
+          bio = ${bio},
+          division_id = ${division.id},
+          subdivision_id = ${subdivision?.id ?? null},
+          portrait_url = ${finalPortraitUrl},
+          rank_id = ${rankId},
+          status = 'PENDING',
+          updated_at = NOW(),
+          last_submitted_at = NOW()
+        WHERE id = ${existing[0].id}::uuid;
+      `;
+    } else {
+      await prisma.$executeRaw`
+        UPDATE mercenary_profiles
+        SET
+          character_name = ${characterName},
+          bio = ${bio},
+          division_id = ${division.id},
+          subdivision_id = ${subdivision?.id ?? null},
+          portrait_url = ${finalPortraitUrl},
+          rank_id = NULL,
+          status = 'PENDING',
+          updated_at = NOW(),
+          last_submitted_at = NOW()
+        WHERE id = ${existing[0].id}::uuid;
+      `;
+    }
   } else {
-    await prisma.$executeRaw`
-      INSERT INTO mercenary_profiles (
-        id,
-        user_id,
-        character_name,
-        bio,
-        division_id,
-        subdivision_id,
-        portrait_url,
-        rank_id,
-        status,
-        is_public,
-        created_at,
-        updated_at,
-        last_submitted_at
-      )
-      VALUES (
-        gen_random_uuid(),
-        ${session.user.id}::uuid,
-        ${characterName},
-        ${bio},
-        ${division.id},
-        ${subdivision?.id ?? null},
-        ${finalPortraitUrl},
-        ${rankId},
-        'PENDING',
-        true,
-        NOW(),
-        NOW(),
-        NOW()
-      );
-    `;
+    if (rankId !== null) {
+      await prisma.$executeRaw`
+        INSERT INTO mercenary_profiles (
+          id,
+          user_id,
+          character_name,
+          bio,
+          division_id,
+          subdivision_id,
+          portrait_url,
+          rank_id,
+          status,
+          is_public,
+          created_at,
+          updated_at,
+          last_submitted_at
+        )
+        VALUES (
+          gen_random_uuid(),
+          ${session.user.id}::uuid,
+          ${characterName},
+          ${bio},
+          ${division.id},
+          ${subdivision?.id ?? null},
+          ${finalPortraitUrl},
+          ${rankId},
+          'PENDING',
+          true,
+          NOW(),
+          NOW(),
+          NOW()
+        );
+      `;
+    } else {
+      await prisma.$executeRaw`
+        INSERT INTO mercenary_profiles (
+          id,
+          user_id,
+          character_name,
+          bio,
+          division_id,
+          subdivision_id,
+          portrait_url,
+          rank_id,
+          status,
+          is_public,
+          created_at,
+          updated_at,
+          last_submitted_at
+        )
+        VALUES (
+          gen_random_uuid(),
+          ${session.user.id}::uuid,
+          ${characterName},
+          ${bio},
+          ${division.id},
+          ${subdivision?.id ?? null},
+          ${finalPortraitUrl},
+          NULL,
+          'PENDING',
+          true,
+          NOW(),
+          NOW(),
+          NOW()
+        );
+      `;
+    }
   }
 
   redirect("/dashboard/profile?submitted=1");
