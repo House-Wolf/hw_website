@@ -1,3 +1,9 @@
+import type {
+  ActionRowBuilder,
+  ButtonBuilder,
+  EmbedBuilder,
+} from "discord.js";
+
 export type Sender = "bot" | "user";
 
 export type Msg = {
@@ -20,4 +26,9 @@ export type CommandResult =
   | { type: "lore"; topic: LoreTopic }
   | { type: "message"; text: string }
   | { type: "ai"; text: string }
-  |  { type: "custom"; components: React.ReactNode };
+  | {
+      type: "discord";
+      embeds?: EmbedBuilder[];
+      components?: ActionRowBuilder<ButtonBuilder>[];
+    }
+  | { type: "custom"; components: React.ReactNode };

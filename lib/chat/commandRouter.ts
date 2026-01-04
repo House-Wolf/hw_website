@@ -1,5 +1,5 @@
 import type { CommandResult } from "./types";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
 
 const norm = (s: string) => s.toLowerCase().trim();
 
@@ -44,32 +44,46 @@ export function routeWolfCommand(input: string): CommandResult {
     // External Links
     // -----------------
     case cmd.includes("discord"): {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel("House Wolf Discord")
-          .setStyle(ButtonStyle.Link)
-          .setURL("https://discord.gg/AGDTgRSG93")
-      );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("House Wolf Discord")
+      .setStyle(ButtonStyle.Link)
+      .setURL("https://discord.gg/AGDTgRSG93")
+  );
 
-      return {
-        content: "Join our Discord community!",
-        components: [row]
-      };
-    }
+  const embed = new EmbedBuilder()
+    .setTitle("House Wolf")
+    .setDescription("Join our Discord community!")
+    .setColor(0x8b0000);
+
+  return {
+    type: "discord",
+    embeds: [embed],
+    components: [row],
+  };
+}
 
     // In-site join page
-    case cmd.includes("join") || cmd.includes("enlist"): {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel("Join House Wolf")
-          .setStyle(ButtonStyle.Link)
-          .setURL("https://robertsspaceindustries.com/en/orgs/CUTTERWOLF")
-      );
-      return {
-        content: "Ready to join the pack?",
-        components: [row]
-      };
-    }
+   case cmd.includes("join") || cmd.includes("enlist"): {
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Join House Wolf")
+      .setStyle(ButtonStyle.Link)
+      .setURL("https://robertsspaceindustries.com/en/orgs/CUTTERWOLF")
+  );
+
+  const embed = new EmbedBuilder()
+    .setTitle("Enlistment")
+    .setDescription("Ready to join the pack?")
+    .setColor(0x8b0000);
+
+  return {
+    type: "discord",
+    embeds: [embed],
+    components: [row],
+  };
+}
+
 
     // -----------------
     // Help
