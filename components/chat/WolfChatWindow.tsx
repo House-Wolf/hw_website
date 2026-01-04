@@ -42,7 +42,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     hasInitialized.current = true;
 
     // Determine greeting based on user status
-    const userName = session?.user?.name || session?.user?.discordUsername;
+    const userName = session?.user?.discordDisplayName || session?.user?.name || session?.user?.discordUsername;
     const greeting = userName
       ? [
           ">> LINK ESTABLISHED",
@@ -58,7 +58,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       }
       i++;
       if (i < greeting.length) {
-        setTimeout(typeNext, 700);
+        setTimeout(typeNext, 600);
       } else {
         setTyping(false);
         setShowOptions(true);
@@ -155,7 +155,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
      Render
   ---------------------------------- */
   return (
-    <div className="fixed bottom-4 right-4 w-full max-w-[380px] sm:max-w-[400px] h-[500px] sm:h-[550px] md:h-[600px] max-h-[calc(100vh-120px)] bg-[var(--background-elevated)] border border-[var(--border-soft)] rounded-md shadow-2xl flex flex-col z-40">
+    <div className="fixed bottom-4 right-4 w-[90vw] max-w-[320px] sm:max-w-[340px] h-[400px] sm:h-[450px] max-h-[calc(100vh-100px)] bg-[var(--background-elevated)] border border-[var(--border-soft)] rounded-md shadow-2xl flex flex-col z-40">
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-soft)]">
         <span className="text-xs tracking-widest text-[var(--text-primary)]">HOUSE WOLF COMMAND</span>
         <button
