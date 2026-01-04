@@ -15,11 +15,11 @@ const DIVISION_DEFINITIONS = [
     subdivisions: ["Leadership Core", "Officers", "Non-Commissioned Officers"],
   },
   {
-    name: "Tactical Air Control Operations Division",
+    name: "TACOPS",
     subdivisions: ["TACOPS - Command", "TACOPS - Dire Wolfs", "TACOPS - Howlers"],
   },
   {
-    name: "Special Operations Division",
+    name: "SPECOPS",
     subdivisions: [
       "SPECOPS - Command",
       "SPECOPS - Wolfen",
@@ -28,7 +28,7 @@ const DIVISION_DEFINITIONS = [
     ],
   },
   {
-    name: "Logistics and Command Operations Division",
+    name: "LOCOPS",
     subdivisions: [
       "LOCOPS - Command",
       "LOCOPS - Heavy Lift",
@@ -38,7 +38,7 @@ const DIVISION_DEFINITIONS = [
     ],
   },
   {
-    name: "Advanced Research and Cartography Operations",
+    name: "ARCOPS",
     subdivisions: [
       "ARCOPS - Command",
       "ARCOPS - Chimeras",
