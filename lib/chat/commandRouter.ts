@@ -71,6 +71,19 @@ export function routeWolfCommand(input: string): CommandResult {
         ],
       };
 
+    case cmd === "help":
+    case cmd.includes("commands"):
+      return {
+        type: "options",
+        text: "What would you like to explore?",
+        options: [
+          { label: "Join House Wolf", message: "join", kind: "primary" },
+          { label: "Discord Server", message: "discord", kind: "primary" },
+          { label: "House Wolf Lore", message: "house wolf", kind: "secondary" },
+          { label: "Dragoon Code", message: "dragoon code", kind: "secondary" },
+        ],
+      };
+
     // -----------------------------
     // EVERYTHING ELSE → GROQ
     // -----------------------------
