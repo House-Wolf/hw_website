@@ -1,3 +1,11 @@
+import type {
+  ActionRowBuilder,
+  ButtonBuilder,
+  EmbedBuilder,
+} from "discord.js";
+import React from "react";
+
+
 export type Sender = "bot" | "user";
 
 export type Msg = {
@@ -20,4 +28,8 @@ export type CommandResult =
   | { type: "lore"; topic: LoreTopic }
   | { type: "message"; text: string }
   | { type: "ai"; text: string }
-  |  { type: "custom"; components: React.ReactNode };
+  | {
+      type: "options";
+      text: string;
+      options: ChatOption[];
+    };

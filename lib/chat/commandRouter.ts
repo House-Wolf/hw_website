@@ -1,5 +1,4 @@
 import type { CommandResult } from "./types";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 
 const norm = (s: string) => s.toLowerCase().trim();
 
@@ -21,6 +20,7 @@ export function routeWolfCommand(input: string): CommandResult {
 
     case cmd === "lore":
       return { type: "navigate", path: "/code" };
+
     case cmd.includes("fleet"):
       return { type: "navigate", path: "/fleet" };
 
@@ -41,35 +41,38 @@ export function routeWolfCommand(input: string): CommandResult {
       return { type: "lore", topic: "house-wolf" };
 
     // -----------------
-    // External Links
+    // External / Discord Links (INTENT ONLY)
     // -----------------
-    case cmd.includes("discord"): {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel("House Wolf Discord")
-          .setStyle(ButtonStyle.Link)
-          .setURL("https://discord.gg/AGDTgRSG93")
-      );
+    case cmd.includes("discord"):
+  return {
+    type: "options",
+    text: "Want to join us on Discord?",
+    options: [
+      {
+        label: "Open Discord",
+        message: "open-discord",
+        kind: "primary",
+      },
+    ],
+  };
 
-      return {
-        content: "Join our Discord community!",
-        components: [row]
-      };
-    }
-
-    // In-site join page
-    case cmd.includes("join") || cmd.includes("enlist"): {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel("Join House Wolf")
-          .setStyle(ButtonStyle.Link)
-          .setURL("https://robertsspaceindustries.com/en/orgs/CUTTERWOLF")
-      );
-      return {
-        content: "Ready to join the pack?",
-        components: [row]
-      };
-    }
+    case cmd.includes("join") || cmd.includes("enlist"):
+  return {
+    type: "options",
+    text: "Ready to join House Wolf?",
+    options: [
+      {
+        label: "How do I join?",
+        message: "join",
+        kind: "primary",
+      },
+      {
+        label: "Open Discord",
+        message: "open-discord",
+        kind: "secondary",
+      },
+    ],
+  };
 
     // -----------------
     // Help
