@@ -8,6 +8,14 @@ import { r2 } from "@/lib/storage/r2Client";
 
 export async function POST(req: Request) {
   try {
+    const contentType = (req.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.startsWith("multipart/form-data")) {
+      return NextResponse.json(
+        { error: "Use multipart/form-data with a file field named 'file'." },
+        { status: 415 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
