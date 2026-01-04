@@ -49,6 +49,7 @@ export default function MarketplacePage() {
     Record<string, ContactedInfo>
   >({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [showAdminControls, setShowAdminControls] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -84,7 +85,11 @@ export default function MarketplacePage() {
     clearExpired();
 
     async function run() {
-      setIsLoading(true);
+      // Only show loader overlay on initial load, not on category/filter changes
+      if (isInitialLoad) {
+        setIsLoading(true);
+      }
+
       try {
         const params = new URLSearchParams();
         if (selectedCategory !== "All")
@@ -105,12 +110,18 @@ export default function MarketplacePage() {
         console.error("Failed to load listings:", err);
         setListings([]);
       } finally {
-        setIsLoading(false);
+        if (isInitialLoad) {
+          // Add minimum delay to ensure loader animation and audio complete
+          setTimeout(() => {
+            setIsLoading(false);
+            setIsInitialLoad(false);
+          }, 2500); // 2.5 seconds minimum display time
+        }
       }
     }
 
     run();
-  }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage]);
+  }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage, isInitialLoad]);
 
   // -------------------------------------------------------------
   // SECURE REDIRECT - OAuth2 Flow
@@ -257,7 +268,7 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   return (
     <div className="relative min-h-screen">
-      {isLoading && <MarketplaceLoader />}
+      {isLoading && isInitialLoad && <MarketplaceLoader />}
 
       <DiscordInviteModal
         isOpen={inviteModal.isOpen}

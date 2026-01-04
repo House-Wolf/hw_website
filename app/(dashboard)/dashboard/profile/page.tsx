@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import MercenaryBioForm from "./components/MercenaryBioForm";
+import { deriveRankFromRoles } from "@/lib/ranks/deriveRankFromRoles";
 
 /* =========================
    Division Definitions
@@ -181,6 +182,9 @@ async function submitBio(formData: FormData) {
 
   const finalPortraitUrl = portraitUrl || userRow.image || null;
 
+  // 🔑 Automatically derive rank from Discord roles
+  const rankId = await deriveRankFromRoles(Array.from(roleNames));
+
   if (existing.length) {
     await prisma.$executeRaw`
       UPDATE mercenary_profiles
@@ -190,6 +194,7 @@ async function submitBio(formData: FormData) {
         division_id = ${division.id},
         subdivision_id = ${subdivision?.id ?? null},
         portrait_url = ${finalPortraitUrl},
+        rank_id = ${rankId},
         status = 'PENDING',
         updated_at = NOW(),
         last_submitted_at = NOW()
@@ -205,6 +210,7 @@ async function submitBio(formData: FormData) {
         division_id,
         subdivision_id,
         portrait_url,
+        rank_id,
         status,
         is_public,
         created_at,
@@ -219,6 +225,7 @@ async function submitBio(formData: FormData) {
         ${division.id},
         ${subdivision?.id ?? null},
         ${finalPortraitUrl},
+        ${rankId},
         'PENDING',
         true,
         NOW(),
