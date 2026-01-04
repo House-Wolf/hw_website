@@ -45,15 +45,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = await req.formData();
+    const data = await req.json();
     const validation = validateCreateListingInput({
-      title: data.get("title")?.toString() ?? "",
-      description: data.get("description")?.toString() ?? "",
-      categoryId: data.get("categoryId")?.toString() ?? "",
-      price: data.get("price")?.toString() ?? "",
-      quantity: data.get("quantity")?.toString(),
-      location: data.get("location")?.toString() ?? "",
-      imageUrl: data.get("imageUrl")?.toString() ?? "",
+      title: data.title ?? "",
+      description: data.description ?? "",
+      categoryId: data.categoryId?.toString() ?? "",
+      price: data.price?.toString() ?? "",
+      quantity: data.quantity?.toString(),
+      location: data.location ?? "",
+      imageUrl: data.imageUrl ?? "",
     });
 
     if (!validation.ok) {
