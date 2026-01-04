@@ -152,10 +152,6 @@ export default function MarketplaceHero(): JSX.Element {
         {/* MAIN HERO IMAGE WITH PARALLAX */}
         <div
           className="absolute -inset-x-0 -top-[15%] h-[130%]"
-          style={{
-            transform: `translateY(${scrollY * 0.2}px)`,
-            willChange: "transform",
-          }}
         >
           <SafeImage
             src="/images/marketplace/HWmarketplace.png"

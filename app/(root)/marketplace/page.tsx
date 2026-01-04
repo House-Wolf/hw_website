@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import ListingsGrid from "@/app/(root)/marketplace/components/ListingsGrid";
 import MarketplaceHero from "@/app/(root)/marketplace/components/MarketPlaceHero";
@@ -49,6 +49,8 @@ export default function MarketplacePage() {
     Record<string, ContactedInfo>
   >({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const hasShownLoader = useRef(false); // Track if we've already shown the loader
   const [showAdminControls, setShowAdminControls] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -84,7 +86,12 @@ export default function MarketplacePage() {
     clearExpired();
 
     async function run() {
-      setIsLoading(true);
+      // Only show loader overlay on FIRST initial load, never again
+      if (!hasShownLoader.current) {
+        setIsLoading(true);
+        hasShownLoader.current = true; // Immediately mark as shown
+      }
+
       try {
         const params = new URLSearchParams();
         if (selectedCategory !== "All")
@@ -105,12 +112,18 @@ export default function MarketplacePage() {
         console.error("Failed to load listings:", err);
         setListings([]);
       } finally {
-        setIsLoading(false);
+        if (isInitialLoad) {
+          // Add minimum delay to ensure loader animation and audio complete
+          setTimeout(() => {
+            setIsLoading(false);
+            setIsInitialLoad(false);
+          }, 2500); // 2.5 seconds minimum display time
+        }
       }
     }
 
     run();
-  }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage]);
+  }, [selectedCategory, searchQuery, sortOption, currentPage, itemsPerPage, isInitialLoad]);
 
   // -------------------------------------------------------------
   // SECURE REDIRECT - OAuth2 Flow
@@ -257,7 +270,7 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   return (
     <div className="relative min-h-screen">
-      {isLoading && <MarketplaceLoader />}
+      {isLoading && isInitialLoad && <MarketplaceLoader />}
 
       <DiscordInviteModal
         isOpen={inviteModal.isOpen}
