@@ -29,8 +29,7 @@ export type CommandResult =
   | { type: "message"; text: string }
   | { type: "ai"; text: string }
   | {
-      type: "discord";
-      embeds?: EmbedBuilder[];
-      components?: ActionRowBuilder<ButtonBuilder>[];
-    }
-  | { type: "custom"; components: React.ReactNode };
+      type: "options";
+      text: string;
+      options: ChatOption[];
+    };

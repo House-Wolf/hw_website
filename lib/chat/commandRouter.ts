@@ -1,5 +1,4 @@
 import type { CommandResult } from "./types";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
 
 const norm = (s: string) => s.toLowerCase().trim();
 
@@ -21,6 +20,7 @@ export function routeWolfCommand(input: string): CommandResult {
 
     case cmd === "lore":
       return { type: "navigate", path: "/code" };
+
     case cmd.includes("fleet"):
       return { type: "navigate", path: "/fleet" };
 
@@ -41,49 +41,38 @@ export function routeWolfCommand(input: string): CommandResult {
       return { type: "lore", topic: "house-wolf" };
 
     // -----------------
-    // External Links
+    // External / Discord Links (INTENT ONLY)
     // -----------------
-    case cmd.includes("discord"): {
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setLabel("House Wolf Discord")
-      .setStyle(ButtonStyle.Link)
-      .setURL("https://discord.gg/AGDTgRSG93")
-  );
-
-  const embed = new EmbedBuilder()
-    .setTitle("House Wolf")
-    .setDescription("Join our Discord community!")
-    .setColor(0x8b0000);
-
+    case cmd.includes("discord"):
   return {
-    type: "discord",
-    embeds: [embed],
-    components: [row],
+    type: "options",
+    text: "Want to join us on Discord?",
+    options: [
+      {
+        label: "Open Discord",
+        message: "open-discord",
+        kind: "primary",
+      },
+    ],
   };
-}
 
-    // In-site join page
-   case cmd.includes("join") || cmd.includes("enlist"): {
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setLabel("Join House Wolf")
-      .setStyle(ButtonStyle.Link)
-      .setURL("https://robertsspaceindustries.com/en/orgs/CUTTERWOLF")
-  );
-
-  const embed = new EmbedBuilder()
-    .setTitle("Enlistment")
-    .setDescription("Ready to join the pack?")
-    .setColor(0x8b0000);
-
+    case cmd.includes("join") || cmd.includes("enlist"):
   return {
-    type: "discord",
-    embeds: [embed],
-    components: [row],
+    type: "options",
+    text: "Ready to join House Wolf?",
+    options: [
+      {
+        label: "How do I join?",
+        message: "join",
+        kind: "primary",
+      },
+      {
+        label: "Open Discord",
+        message: "open-discord",
+        kind: "secondary",
+      },
+    ],
   };
-}
-
 
     // -----------------
     // Help
