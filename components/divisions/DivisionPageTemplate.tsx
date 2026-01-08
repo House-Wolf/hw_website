@@ -2,18 +2,10 @@
 
 import { SafeImage } from "@/components/utils/SafeImage";
 import { DIVISION_GLOW } from "@/lib/divisions/divisionConfig";
+import type { DivisionMember } from "@/lib/divisions/getDivisionsRoster";
+import { RosterSection } from "./RosterSection";
 
 /* ================= TYPES ================= */
-
-export interface DivisionMember {
-  id: string;
-  characterName: string;
-  rank: string;
-  rankSortOrder: number;
-  bio: string;
-  portraitUrl?: string | null;
-  subdivisionName?: string | null;
-}
 
 interface DivisionPageTemplateProps {
   divisionSlug: "arcops" | "locops" | "specops" | "tacops";
@@ -89,58 +81,10 @@ export function DivisionPageTemplate({
       </div>
 
       {/* CONTENT */}
-      <DivisionSection title="Officers" list={officers} />
-      <DivisionSection title="Members" list={members} />
+      <div className="max-w-7xl mx-auto px-4 py-16 space-y-12">
+        {officers.length > 0 && <RosterSection title="Division Officers" members={officers} />}
+        {members.length > 0 && <RosterSection title="Division Staff" members={members} />}
+      </div>
     </div>
-  );
-}
-
-/* ================= SECTION ================= */
-
-function DivisionSection({
-  title,
-  list,
-}: {
-  title: string;
-  list: DivisionMember[];
-}) {
-  if (!list.length) return null;
-
-  return (
-    <section className="py-16 border-b border-border-subtle">
-      <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-center text-3xl font-bold uppercase tracking-widest text-foreground mb-12">
-          {title}
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {list.map((member) => (
-            <DivisionCard key={member.id} member={member} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================= CARD ================= */
-
-function DivisionCard({ member }: { member: DivisionMember }) {
-  return (
-    <article className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-1">
-      <div className="rounded-xl bg-[#0b0e17] overflow-hidden h-full">
-        <div className="p-4">
-          <p className="text-xs uppercase tracking-widest text-white/60">
-            {member.subdivisionName || member.rank}
-          </p>
-          <h3 className="text-xl font-semibold text-white">
-            {member.characterName}
-          </h3>
-          <p className="mt-2 text-sm text-white/80 whitespace-pre-line">
-            {member.bio}
-          </p>
-        </div>
-      </div>
-    </article>
   );
 }

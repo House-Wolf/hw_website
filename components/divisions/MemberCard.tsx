@@ -7,24 +7,23 @@ export function MemberCard({ member }: { member: DivisionMember }) {
   const profileImage = member.portraitUrl || "/images/global/HWiconnew.png";
 
   return (
-    <div className="relative group">
+    <div className="relative group h-full">
       {/* ===== OUTER GLOW (ENTIRE CARD) ===== */}
       <div
         className="
-          absolute -inset-1 rounded-3xl opacity-0 blur-3xl
+          absolute -inset-1 rounded-3xl opacity-0 blur-2xl
           transition-all duration-700
-          group-hover:opacity-100
-          group-hover:blur-[90px]
+          group-hover:opacity-40
+          group-hover:blur-[60px]
         "
         style={{ backgroundColor: glowColor }}
       />
 
       {/* ===== CARD ===== */}
-      <article className="relative z-10 rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-1">
+      <article className="relative z-10 rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-1 h-full">
         <div className="rounded-xl bg-[#0b0e17] overflow-hidden flex flex-col h-full">
-
           {/* IMAGE */}
-          <div className="relative h-72 w-full">
+          <div className="relative h-72 w-full flex-shrink-0">
             <SafeImage
               src={profileImage}
               alt={member.characterName}
@@ -45,7 +44,7 @@ export function MemberCard({ member }: { member: DivisionMember }) {
           </div>
 
           {/* BIO */}
-          <div className="p-5 text-white/80 text-sm leading-relaxed whitespace-pre-line">
+          <div className="p-5 text-white/80 text-sm leading-relaxed whitespace-pre-line overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             {member.bio}
           </div>
         </div>

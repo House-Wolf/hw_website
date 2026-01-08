@@ -31,14 +31,8 @@ export default async function DivisionPage({ params }: PageProps) {
       divisionDescription={division.description}
       patchImagePath={division.patchImagePath}
       patchAlt={division.patchAlt}
-      officers={[...roster.commandRoster, ...roster.officers].map(officer => ({
-        ...officer,
-        discordUsername: officer.discordUsername ?? undefined,
-      }))}
-      members={roster.members.map(member => ({
-        ...member,
-        discordUsername: member.discordUsername ?? undefined,
-      }))}
+      officers={[...roster.commandRoster, ...roster.officers]}
+      members={roster.members}
     />
   );
 }

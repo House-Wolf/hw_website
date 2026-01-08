@@ -1,19 +1,6 @@
 import { SafeImage } from "@/components/utils/SafeImage";
 import { MemberCard } from "./MemberCard";
-
-interface LeadershipMember {
-  id: string;
-  characterName: string;
-  rank: string;
-  rankSortOrder: number;
-  bio: string;
-  portraitUrl?: string | null;
-  subdivisionName?: string | null;
-  callSign: string;
-  isLeadershipCore: boolean;
-  isOfficerCore: boolean;
-  discordUsername: string;
-}
+import type { LeadershipMember } from "@/lib/divisions/getLeadershipRoster";
 
 interface LeadershipPageTemplateProps {
   divisionSlug: "division";
@@ -21,8 +8,8 @@ interface LeadershipPageTemplateProps {
   divisionDescription: string;
   patchImagePath: string;
   patchAlt: string;
-  officers?: LeadershipMember[];
-  members?: LeadershipMember[];
+  leadershipCore: LeadershipMember[];
+  officers: LeadershipMember[];
 }
 
 export default function LeadershipPageTemplate({
@@ -30,7 +17,8 @@ export default function LeadershipPageTemplate({
   divisionDescription,
   patchImagePath,
   patchAlt,
-  members,
+  leadershipCore,
+  officers,
 }: LeadershipPageTemplateProps) {
   return (
     <main className="min-h-screen bg-background-base">
@@ -80,26 +68,69 @@ export default function LeadershipPageTemplate({
         </div>
       </section>
 
-      {/* DIVIDER */}
-      <div className="relative w-full h-4 flex items-center justify-center mb-12">
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-40" />
-      </div>
+      <div className="max-w-7xl mx-auto px-4 py-16 space-y-16">
+        {/* LEADERSHIP CORE SECTION */}
+        {leadershipCore.length > 0 && (
+          <section>
+            {/* DIVIDER */}
+            <div className="relative w-full h-4 flex items-center justify-center mb-8">
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent opacity-40" />
+            </div>
 
-      {members && members.length > 0 && (
-        <section className="py-16 border-b border-border-subtle">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-center text-3xl md:text-4xl font-bold uppercase tracking-widest text-foreground mb-12">
+            {/* TITLE */}
+            <h2 className="text-center text-3xl font-bold uppercase tracking-widest text-foreground mb-12">
               Leadership Core
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {members.map((member) => (
-                <MemberCard key={member.id} member={{ ...member, portraitUrl: member.portraitUrl ?? null, subdivisionName: member.subdivisionName ?? null }} />
+            {/* GRID */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+              {leadershipCore.map((member) => (
+                <MemberCard
+                  key={member.id}
+                  member={{
+                    ...member,
+                    callSign: member.callSign ?? null,
+                    portraitUrl: member.portraitUrl ?? null,
+                    subdivisionName: member.subdivisionName ?? null,
+                    discordUsername: member.discordUsername ?? null,
+                  }}
+                />
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+
+        {/* OFFICERS SECTION */}
+        {officers.length > 0 && (
+          <section>
+            {/* DIVIDER */}
+            <div className="relative w-full h-4 flex items-center justify-center mb-8">
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent opacity-40" />
+            </div>
+
+            {/* TITLE */}
+            <h2 className="text-center text-3xl font-bold uppercase tracking-widest text-foreground mb-12">
+              Officers
+            </h2>
+
+            {/* GRID */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+              {officers.map((member) => (
+                <MemberCard
+                  key={member.id}
+                  member={{
+                    ...member,
+                    callSign: member.callSign ?? null,
+                    portraitUrl: member.portraitUrl ?? null,
+                    subdivisionName: member.subdivisionName ?? null,
+                    discordUsername: member.discordUsername ?? null,
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

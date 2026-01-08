@@ -16,6 +16,7 @@ export type DivisionMember = {
   portraitUrl: string | null;
   subdivisionName: string | null;
   discordUsername: string | null;
+  divisionSlug?: string;
 };
 
 export type DivisionRosterResponse = {
@@ -76,27 +77,27 @@ export async function getDivisionRoster(
     portraitUrl: profile.portraitUrl || profile.user.avatarUrl || null,
     subdivisionName: profile.subdivision?.name || null,
     discordUsername: profile.user.discordUsername ?? null,
+    divisionSlug: normalizedSlug,
   }));
 
+  // Division Officers: Leadership Core + Officers + Command Ranks
   const commandRoster = profiles
-    .filter((p) => p.isLeadershipCore || (COMMAND_RANKS as readonly string[]).includes(p.rank))
-    .sort((a, b) => a.rankSortOrder - b.rankSortOrder);
-
-  const officers = profiles
-    .filter(
-      (p) =>
-        !p.isLeadershipCore &&
-        !(COMMAND_RANKS as readonly string[]).includes(p.rank) &&
-        p.isOfficerCore
+    .filter((p) =>
+      p.isLeadershipCore ||
+      p.isOfficerCore ||
+      (COMMAND_RANKS as readonly string[]).includes(p.rank)
     )
     .sort((a, b) => a.rankSortOrder - b.rankSortOrder);
+
+  // Division Staff: Everyone else
+  const officers: DivisionMember[] = [];
 
   const members = profiles
     .filter(
       (p) =>
         !p.isLeadershipCore &&
-        !(COMMAND_RANKS as readonly string[]).includes(p.rank) &&
-        !p.isOfficerCore
+        !p.isOfficerCore &&
+        !(COMMAND_RANKS as readonly string[]).includes(p.rank)
     )
     .sort((a, b) => a.rankSortOrder - b.rankSortOrder);
 
