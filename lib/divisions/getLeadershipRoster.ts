@@ -12,6 +12,7 @@ export type LeadershipMember = {
   subdivisionName: string | undefined;
   discordUsername: string | null;
   callSign?: string;
+  divisionSlug?: string;
 };
 
 export type LeadershipRosterResponse = {
@@ -35,6 +36,7 @@ export async function getLeadershipRoster(): Promise<LeadershipRosterResponse> {
       rank: true,
       subdivision: true,
       user: true,
+      division: true,
     },
     orderBy: {
       rank: { sortOrder: "asc" },
@@ -53,6 +55,7 @@ export async function getLeadershipRoster(): Promise<LeadershipRosterResponse> {
     subdivisionName: profile.subdivision?.name,
     discordUsername: profile.user.discordUsername ?? null,
     callSign: profile.call_sign ?? undefined,
+    divisionSlug: profile.division?.slug,
   }));
 
   return {

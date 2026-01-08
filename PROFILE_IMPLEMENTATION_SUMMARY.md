@@ -105,12 +105,16 @@ const profiles = await prisma.mercenaryProfile.findMany({
 ```
 
 **Categorization:**
-- **Leadership Core**: Clan Warlord, Hand of the Clan, High Councilor
-- **Officers**: Armor, Fleet Commander, Captain, Lieutenant
+- **Leadership Core**: Clan Warlord, Hand of the Clan, High Councilor, Armor
+- **Officers**: Fleet Commander, Captain, Lieutenant
 
 **Glow Colors:**
-- Leadership Core: Crimson (`#470000`)
-- Officers: Bronze/Amber (`#6b4423`)
+- Members retain their **division-specific glow colors**:
+  - House Wolf Command: Crimson (`#470000`)
+  - TACOPS: Orange (`#9a4a1f`)
+  - ARCOPS: Teal (`#1f4e5f`)
+  - LOCOPS: Gold (`#8a7a2a`)
+  - SPECOPS: Green (`#2f4b3a`)
 
 ---
 
@@ -121,8 +125,8 @@ const profiles = await prisma.mercenaryProfile.findMany({
 
 ### **Ranks:**
 - ✅ 13 ranks total
-- **Leadership Core** (3): Clan Warlord, Hand of the Clan, High Councilor
-- **Officer Core** (4): Armor, Fleet Commander, Captain, Lieutenant
+- **Leadership Core** (4): Clan Warlord, Hand of the Clan, High Councilor, Armor
+- **Officer Core** (3): Fleet Commander, Captain, Lieutenant
 - **Command Ranks**: Captain, Lieutenant, Field Marshal, Platoon Sergeant
 - **Other Ranks**: Rally Master, Wolf Dragoon, Foundling, Member
 
@@ -132,25 +136,27 @@ const profiles = await prisma.mercenaryProfile.findMany({
 - **House Wolf Command**: 4 profiles
   - CutterWolf (Clan Warlord) - Leadership Core
   - Sentinel_Wolf (Hand of the Clan) - Leadership Core
+  - Runic_Wolf (Armor) - Leadership Core ✅ FIXED
   - Killer_Wolf (Fleet Commander) - Officer
-  - Runic_Wolf (Armor) - Officer ✅ FIXED
 - **TACOPS**: 1 profile (MeddlerWolf - Captain)
 - **ARCOPS**: 1 profile (Deacon - Lieutenant)
 - **SPECOPS**: 2 profiles
 - **LOCOPS**: 3 profiles
 
 ### **Leadership Page Display:**
-- **Leadership Core**: 2 (CutterWolf, Sentinel_Wolf)
-- **Officers**: 5 (Killer_Wolf, Runic_Wolf, MeddlerWolf, Deacon, zombiereconnaissance)
+- **Leadership Core**: 3 (CutterWolf, Sentinel_Wolf, Runic_Wolf)
+- **Officers**: 4 (Killer_Wolf, MeddlerWolf, Deacon, zombiereconnaissance)
 
 ---
 
 ## 🚨 Issues Fixed
 
-### ✅ **Runic_Wolf Profile**
-- **Issue**: Profile had no rank assigned (rankId was null)
-- **Fix**: Assigned "Armor" rank (isOfficerCore = true)
-- **Result**: Now displays correctly in Leadership page Officers section
+### ✅ **Runic_Wolf Profile & Armor Rank**
+- **Issue**: Profile had no rank assigned, and Armor was classified as Officer Core
+- **Fix**:
+  - Assigned "Armor" rank to Runic_Wolf
+  - Updated Armor rank to be Leadership Core (isLeadershipCore = true, sortOrder = 4)
+- **Result**: Runic_Wolf now displays correctly in Leadership Core section
 
 ### ✅ **Deacon Profile**
 - **Issue**: Was "Major Deacon" with wrong division (House Wolf Command)
@@ -161,6 +167,11 @@ const profiles = await prisma.mercenaryProfile.findMany({
 - **Issue**: Was assigned to "House Wolf Command" instead of TACOPS
 - **Fix**: Reassigned to TACOPS division with rank "Captain"
 - **Result**: Now displays correctly in TACOPS Division Officers section
+
+### ✅ **Division Glow Colors on Leadership Page**
+- **Issue**: Leadership page members were using generic crimson/bronze colors instead of division colors
+- **Fix**: Updated `getMemberGlow()` to prioritize division-specific colors
+- **Result**: All members on leadership page now display their division glow colors (House Wolf Command = crimson, TACOPS = orange, ARCOPS = teal, LOCOPS = gold)
 
 ---
 
