@@ -14,8 +14,8 @@ async function seedDivisions() {
       sortOrder: 1,
     },
     {
-      name: "ARCCOPS",
-      slug: "arccops",
+      name: "ARCOPS",
+      slug: "arcops",
       description: "Advanced Research & Cartography Operations Division",
       isActive: true,
       sortOrder: 2,

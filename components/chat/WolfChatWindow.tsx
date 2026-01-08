@@ -11,7 +11,7 @@ import WolfChatInput from "@/components/chat/WolfChatInput";
 
 import { INITIAL_GREETING, INITIAL_OPTIONS } from "@/lib/chat/scriptedFlows";
 import { LORE_RESPONSES } from "@/lib/chat/loreResponses";
-import type { LoreTopic, Msg } from "@/lib/chat/types";
+import type { Msg } from "@/lib/chat/types";
 import { routeWolfCommand } from "@/lib/chat/commandRouter";
 
 export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
@@ -33,6 +33,8 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   }, [messages, typing]);
 
   const addMessage = (msg: Msg) => setMessages((prev) => [...prev, msg]);
+  const addTextMessage = (sender: "bot" | "user", text: string) =>
+    addMessage({ kind: "text", sender, text });
 
   /* ----------------------------------
      Initial greeting - Personalized for org members
@@ -54,7 +56,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     let i = 0;
     const typeNext = () => {
       if (greeting[i]) {
-        addMessage({ sender: "bot", text: greeting[i] });
+        addTextMessage("bot", greeting[i]);
       }
       i++;
       if (i < greeting.length) {
@@ -81,14 +83,12 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
       });
       const data = await res.json();
       addMessage({
+        kind: "text",
         sender: "bot",
         text: data?.text ?? "Command unclear. Type `help`.",
       });
     } catch {
-      addMessage({
-        sender: "bot",
-        text: "Wolf Command is offline. Try again shortly.",
-      });
+      addTextMessage("bot", "Wolf Command is offline. Try again shortly.");
     } finally {
       setTyping(false);
     }
@@ -100,7 +100,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
   const handleUserInput = async (text: string) => {
     if (!text.trim()) return;
 
-    addMessage({ sender: "user", text });
+    addTextMessage("user", text);
     setShowOptions(false);
 
     const result = routeWolfCommand(text);
@@ -111,26 +111,26 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
     }
 
     if (result.type === "external") {
-      addMessage({ sender: "bot", text: `Opening ${result.label}…` });
+      addTextMessage("bot", `Opening ${result.label}…`);
       window.open(result.url, "_blank", "noopener,noreferrer");
       return;
     }
 
     if (result.type === "lore") {
       const lore = LORE_RESPONSES[result.topic];
-      if (lore) addMessage({ sender: "bot", text: lore.join(" ") });
+      if (lore) addTextMessage("bot", lore.join(" "));
       return;
     }
 
     if (result.type === "options") {
-      addMessage({ sender: "bot", text: result.text });
+      addTextMessage("bot", result.text);
       setCurrentOptions(result.options);
       setShowOptions(true);
       return;
     }
 
     if (result.type === "message") {
-      addMessage({ sender: "bot", text: result.text });
+      addTextMessage("bot", result.text);
       return;
     }
 
@@ -145,7 +145,7 @@ export default function WolfChatWindow({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ prompt: result.prompt }),
       });
       const data = await res.json();
-      addMessage({ sender: "bot", text: data.text });
+      addTextMessage("bot", data.text);
       setTyping(false);
       return;
     }

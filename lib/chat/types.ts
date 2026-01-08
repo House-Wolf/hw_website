@@ -1,9 +1,12 @@
 export type Sender = "bot" | "user";
 
-export type Msg = {
+export type TextMessage = {
+  kind: "text";
   sender: Sender;
   text: string;
 };
+
+export type Msg = TextMessage;
 
 export type ChatOption = {
   label: string;
