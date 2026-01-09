@@ -137,7 +137,20 @@ async function ensureDivisionAndSubs(
    Server Action
 ========================= */
 
-async function submitBio(formData: FormData) {
+type ProfileFormState = {
+  error: string | null;
+  errorType?: "role" | "validation" | "unknown" | null;
+};
+
+const initialProfileFormState: ProfileFormState = {
+  error: null,
+  errorType: null,
+};
+
+async function submitBio(
+  _prevState: ProfileFormState,
+  formData: FormData
+): Promise<ProfileFormState> {
   "use server";
 
   try {
@@ -153,200 +166,218 @@ async function submitBio(formData: FormData) {
 
     if (!userRow) redirect("/auth/signin");
 
-  const rolesRows = (await prisma.$queryRaw`
-    SELECT dr.name
-    FROM user_roles ur
-    JOIN discord_roles dr ON dr.id = ur.discord_role_id
-    WHERE ur.user_id = ${session.user.id}::uuid;
-  `) as Array<{ name: string }>;
+    const rolesRows = (await prisma.$queryRaw`
+      SELECT dr.name
+      FROM user_roles ur
+      JOIN discord_roles dr ON dr.id = ur.discord_role_id
+      WHERE ur.user_id = ${session.user.id}::uuid;
+    `) as Array<{ name: string }>;
 
-  const characterName = formData.get("characterName")?.toString()?.trim();
-  const divisionName = formData.get("division")?.toString()?.trim();
-  const subdivisionName = formData.get("subdivision")?.toString()?.trim() || null;
-  const bio = formData.get("bio")?.toString()?.trim();
-  const portraitUrl = formData.get("portraitUrl")?.toString()?.trim();
+    const characterName = formData.get("characterName")?.toString()?.trim();
+    const divisionName = formData.get("division")?.toString()?.trim();
+    const subdivisionName =
+      formData.get("subdivision")?.toString()?.trim() || null;
+    const bio = formData.get("bio")?.toString()?.trim();
+    const portraitUrl = formData.get("portraitUrl")?.toString()?.trim();
 
-  if (!characterName || !divisionName || !bio) {
-    throw new Error("Missing required fields.");
-  }
+    if (!characterName || !divisionName || !bio) {
+      return {
+        error: "Missing required fields.",
+        errorType: "validation",
+      };
+    }
 
-  if (bio.length > 700) {
-    throw new Error("Bio exceeds 700 characters.");
-  }
+    if (bio.length > 700) {
+      return {
+        error: "Bio exceeds 700 characters.",
+        errorType: "validation",
+      };
+    }
 
-  const roleNames = new Set(rolesRows.map((r) => r.name));
+    const roleNames = new Set(rolesRows.map((r) => r.name));
 
-  console.log("[submitBio] User roles", {
-    userId: session.user.id,
-    roleCount: roleNames.size,
-    roles: Array.from(roleNames),
-  });
+    console.log("[submitBio] User roles", {
+      userId: session.user.id,
+      roleCount: roleNames.size,
+      roles: Array.from(roleNames),
+    });
 
-  const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
-    const allowedSubs = division.subdivisions.filter((sub) =>
-      roleNames.has(sub)
-    );
-    return { ...division, allowedSubs };
-  }).filter((d) => d.allowedSubs.length > 0);
+    const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
+      const allowedSubs = division.subdivisions.filter((sub) =>
+        roleNames.has(sub)
+      );
+      return { ...division, allowedSubs };
+    }).filter((d) => d.allowedSubs.length > 0);
 
-  console.log("[submitBio] Allowed divisions", {
-    userId: session.user.id,
-    attemptedDivision: divisionName,
-    attemptedSubdivision: subdivisionName,
-    allowedDivisionCount: allowedDivisions.length,
-    allowedDivisions: allowedDivisions.map(d => ({ name: d.name, subs: d.allowedSubs })),
-  });
-
-  const selectedDivision = allowedDivisions.find(
-    (d) => d.name === divisionName
-  );
-
-  if (!selectedDivision) {
-    console.error("[submitBio] Unauthorized division attempt", {
+    console.log("[submitBio] Allowed divisions", {
       userId: session.user.id,
       attemptedDivision: divisionName,
-      userRoles: Array.from(roleNames),
-      availableDivisions: allowedDivisions.map(d => d.name),
-    });
-
-    throw new Error(
-      `You don't have the required Discord role to join ${divisionName}. ` +
-      `Please ensure you have one of the subdivision roles assigned in Discord, then sign out and sign back in to refresh your permissions.`
-    );
-  }
-
-  if (subdivisionName && !selectedDivision.allowedSubs.includes(subdivisionName)) {
-    console.error("[submitBio] Unauthorized subdivision attempt", {
-      userId: session.user.id,
       attemptedSubdivision: subdivisionName,
-      allowedSubdivisions: selectedDivision.allowedSubs,
+      allowedDivisionCount: allowedDivisions.length,
+      allowedDivisions: allowedDivisions.map((d) => ({
+        name: d.name,
+        subs: d.allowedSubs,
+      })),
     });
 
-    throw new Error(
-      `You don't have the required Discord role for ${subdivisionName}. ` +
-      `Available subdivisions: ${selectedDivision.allowedSubs.join(", ")}`
+    const selectedDivision = allowedDivisions.find(
+      (d) => d.name === divisionName
     );
-  }
 
-  const { division, subdivision } = await ensureDivisionAndSubs(
-    divisionName,
-    subdivisionName
-  );
+    if (!selectedDivision) {
+      console.error("[submitBio] Unauthorized division attempt", {
+        userId: session.user.id,
+        attemptedDivision: divisionName,
+        userRoles: Array.from(roleNames),
+        availableDivisions: allowedDivisions.map((d) => d.name),
+      });
 
-  const existing = await prisma.$queryRaw<{ id: string }[]>`
-    SELECT id FROM mercenary_profiles
-    WHERE user_id = ${session.user.id}::uuid
-    LIMIT 1;
-  `;
-
-  const finalPortraitUrl = portraitUrl || userRow.image || null;
-
-  // 🔑 Automatically derive rank from Discord roles
-  const rankId = await deriveRankFromRoles(Array.from(roleNames));
-
-  if (existing.length) {
-    if (rankId !== null) {
-      await prisma.$executeRaw`
-        UPDATE mercenary_profiles
-        SET
-          character_name = ${characterName},
-          bio = ${bio},
-          division_id = ${division.id},
-          subdivision_id = ${subdivision?.id ?? null},
-          portrait_url = ${finalPortraitUrl},
-          rank_id = ${rankId},
-          status = 'PENDING',
-          updated_at = NOW(),
-          last_submitted_at = NOW()
-        WHERE id = ${existing[0].id}::uuid;
-      `;
-    } else {
-      await prisma.$executeRaw`
-        UPDATE mercenary_profiles
-        SET
-          character_name = ${characterName},
-          bio = ${bio},
-          division_id = ${division.id},
-          subdivision_id = ${subdivision?.id ?? null},
-          portrait_url = ${finalPortraitUrl},
-          rank_id = NULL,
-          status = 'PENDING',
-          updated_at = NOW(),
-          last_submitted_at = NOW()
-        WHERE id = ${existing[0].id}::uuid;
-      `;
+      return {
+        error:
+          `You do not have the required Discord role for ${divisionName}. ` +
+          "Please request the role from a Discord Admin, then sign out and sign back in to refresh your permissions.",
+        errorType: "role",
+      };
     }
-  } else {
-    if (rankId !== null) {
-      await prisma.$executeRaw`
-        INSERT INTO mercenary_profiles (
-          id,
-          user_id,
-          character_name,
-          bio,
-          division_id,
-          subdivision_id,
-          portrait_url,
-          rank_id,
-          status,
-          is_public,
-          created_at,
-          updated_at,
-          last_submitted_at
-        )
-        VALUES (
-          gen_random_uuid(),
-          ${session.user.id}::uuid,
-          ${characterName},
-          ${bio},
-          ${division.id},
-          ${subdivision?.id ?? null},
-          ${finalPortraitUrl},
-          ${rankId},
-          'PENDING',
-          true,
-          NOW(),
-          NOW(),
-          NOW()
-        );
-      `;
-    } else {
-      await prisma.$executeRaw`
-        INSERT INTO mercenary_profiles (
-          id,
-          user_id,
-          character_name,
-          bio,
-          division_id,
-          subdivision_id,
-          portrait_url,
-          rank_id,
-          status,
-          is_public,
-          created_at,
-          updated_at,
-          last_submitted_at
-        )
-        VALUES (
-          gen_random_uuid(),
-          ${session.user.id}::uuid,
-          ${characterName},
-          ${bio},
-          ${division.id},
-          ${subdivision?.id ?? null},
-          ${finalPortraitUrl},
-          NULL,
-          'PENDING',
-          true,
-          NOW(),
-          NOW(),
-          NOW()
-        );
-      `;
+
+    if (
+      subdivisionName &&
+      !selectedDivision.allowedSubs.includes(subdivisionName)
+    ) {
+      console.error("[submitBio] Unauthorized subdivision attempt", {
+        userId: session.user.id,
+        attemptedSubdivision: subdivisionName,
+        allowedSubdivisions: selectedDivision.allowedSubs,
+      });
+
+      return {
+        error:
+          `You do not have the required Discord role for ${subdivisionName}. ` +
+          "Please request the role from a Discord Admin, then sign out and sign back in to refresh your permissions.",
+        errorType: "role",
+      };
     }
-  }
+
+    const { division, subdivision } = await ensureDivisionAndSubs(
+      divisionName,
+      subdivisionName
+    );
+
+    const existing = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM mercenary_profiles
+      WHERE user_id = ${session.user.id}::uuid
+      LIMIT 1;
+    `;
+
+    const finalPortraitUrl = portraitUrl || userRow.image || null;
+
+    // dY"` Automatically derive rank from Discord roles
+    const rankId = await deriveRankFromRoles(Array.from(roleNames));
+
+    if (existing.length) {
+      if (rankId !== null) {
+        await prisma.$executeRaw`
+          UPDATE mercenary_profiles
+          SET
+            character_name = ${characterName},
+            bio = ${bio},
+            division_id = ${division.id},
+            subdivision_id = ${subdivision?.id ?? null},
+            portrait_url = ${finalPortraitUrl},
+            rank_id = ${rankId},
+            status = 'PENDING',
+            updated_at = NOW(),
+            last_submitted_at = NOW()
+          WHERE id = ${existing[0].id}::uuid;
+        `;
+      } else {
+        await prisma.$executeRaw`
+          UPDATE mercenary_profiles
+          SET
+            character_name = ${characterName},
+            bio = ${bio},
+            division_id = ${division.id},
+            subdivision_id = ${subdivision?.id ?? null},
+            portrait_url = ${finalPortraitUrl},
+            rank_id = NULL,
+            status = 'PENDING',
+            updated_at = NOW(),
+            last_submitted_at = NOW()
+          WHERE id = ${existing[0].id}::uuid;
+        `;
+      }
+    } else {
+      if (rankId !== null) {
+        await prisma.$executeRaw`
+          INSERT INTO mercenary_profiles (
+            id,
+            user_id,
+            character_name,
+            bio,
+            division_id,
+            subdivision_id,
+            portrait_url,
+            rank_id,
+            status,
+            is_public,
+            created_at,
+            updated_at,
+            last_submitted_at
+          )
+          VALUES (
+            gen_random_uuid(),
+            ${session.user.id}::uuid,
+            ${characterName},
+            ${bio},
+            ${division.id},
+            ${subdivision?.id ?? null},
+            ${finalPortraitUrl},
+            ${rankId},
+            'PENDING',
+            true,
+            NOW(),
+            NOW(),
+            NOW()
+          );
+        `;
+      } else {
+        await prisma.$executeRaw`
+          INSERT INTO mercenary_profiles (
+            id,
+            user_id,
+            character_name,
+            bio,
+            division_id,
+            subdivision_id,
+            portrait_url,
+            rank_id,
+            status,
+            is_public,
+            created_at,
+            updated_at,
+            last_submitted_at
+          )
+          VALUES (
+            gen_random_uuid(),
+            ${session.user.id}::uuid,
+            ${characterName},
+            ${bio},
+            ${division.id},
+            ${subdivision?.id ?? null},
+            ${finalPortraitUrl},
+            NULL,
+            'PENDING',
+            true,
+            NOW(),
+            NOW(),
+            NOW()
+          );
+        `;
+      }
+    }
 
     redirect("/dashboard/profile?submitted=1");
+    return initialProfileFormState;
   } catch (error) {
     console.error("[submitBio] Profile submission failed", {
       userId: (await auth())?.user?.id,
@@ -358,9 +389,13 @@ async function submitBio(formData: FormData) {
       throw error;
     }
 
-    throw new Error(
-      error instanceof Error ? error.message : "Failed to submit profile. Please try again."
-    );
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to submit profile. Please try again.",
+      errorType: "unknown",
+    };
   }
 }
 

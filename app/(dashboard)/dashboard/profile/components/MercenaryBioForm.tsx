@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFormState } from "react-dom";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
@@ -31,15 +32,33 @@ interface SocialLink {
   rejectionReason?: string;
 }
 
+type ProfileFormState = {
+  error: string | null;
+  errorType?: "role" | "validation" | "unknown" | null;
+};
+
+const initialProfileFormState: ProfileFormState = {
+  error: null,
+  errorType: null,
+};
+
 export default function MercenaryBioForm({
   allowedDivisions,
   onSubmit,
   existingProfile,
 }: {
   allowedDivisions: DivisionOption[];
-  onSubmit: (formData: FormData) => void;
+  onSubmit: (
+    prevState: ProfileFormState,
+    formData: FormData
+  ) => Promise<ProfileFormState>;
   existingProfile: ExistingProfile | null;
 }) {
+  const [formState, formAction] = useFormState(
+    onSubmit,
+    initialProfileFormState
+  );
+  const [showSubmitError, setShowSubmitError] = useState(false);
   const [division, setDivision] = useState<string>(
     existingProfile?.divisionName || allowedDivisions[0]?.name || ""
   );
@@ -66,6 +85,12 @@ export default function MercenaryBioForm({
   });
   const [isSubmittingLink, setIsSubmittingLink] = useState(false);
   const [linkError, setLinkError] = useState("");
+
+  useEffect(() => {
+    if (formState?.error) {
+      setShowSubmitError(true);
+    }
+  }, [formState]);
 
   const subdivisionOptions = useMemo(() => {
     const selected = allowedDivisions.find((d) => d.name === division);
@@ -175,7 +200,7 @@ export default function MercenaryBioForm({
     <>
       {/* MAIN FORM */}
       <form
-        action={onSubmit}
+        action={formAction}
         className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/85 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7"
       >
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1.2fr)] gap-6 lg:gap-8">
@@ -395,6 +420,52 @@ export default function MercenaryBioForm({
           </div>
         </div>
       </form>
+
+      {showSubmitError && formState?.error && (
+        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowSubmitError(false)}
+          />
+          <div className="relative w-full max-w-lg bg-[var(--background-card)] border border-[var(--border-default)] rounded-xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[var(--foreground)]">
+                {formState.errorType === "role"
+                  ? "Discord Role Required"
+                  : "Profile Submission Failed"}
+              </h2>
+              <button
+                onClick={() => setShowSubmitError(false)}
+                className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-[var(--foreground-muted)] mb-6">
+              {formState.error}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSubmitError(false)}
+              className="w-full px-4 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--background-soft)] transition-colors text-[var(--foreground)]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SOCIAL LINKS MODAL */}
       {showSocialModal && (

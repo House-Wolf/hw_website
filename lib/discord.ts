@@ -43,6 +43,7 @@ interface Announcement {
   title: string;
   content: string;
   timestamp: string;
+  imageUrl?: string | null;
 }
 
 interface FeaturedPhoto {
@@ -161,14 +162,35 @@ export async function getAnnouncements(): Promise<Announcement[]> {
       msg.content ||
       "";
 
+    const attachment = msg.attachments?.find((item) =>
+      item.content_type?.startsWith("image/")
+    );
+
+    const embedImageUrl =
+      msg.embeds?.find((embed) => embed.image?.url)?.image?.url ??
+      msg.embeds?.find((embed) => embed.thumbnail?.url)?.thumbnail?.url;
+
+    const inlineImageUrl =
+      rawText.match(/https?:\/\/\S+\.(?:gif|png|jpe?g|webp)/i)?.[0] ?? null;
+
     // Optional: Normalize mentions
     const cleanedText = normalizeDiscordMentions(rawText.trim());
+    const contentSansImageLink =
+      attachment || embedImageUrl || inlineImageUrl
+        ? cleanedText
+            .replace(inlineImageUrl ?? "", "")
+            .replace(/https?:\/\/tenor\.com\/\S+/gi, "")
+            .replace(/https?:\/\/media\.tenor\.com\/\S+/gi, "")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
+        : cleanedText;
 
     return {
       id: msg.id,
       title: cleanedText.split("\n")[0], // First line as "title"
-      content: cleanedText, // Full announcement
+      content: contentSansImageLink, // Full announcement
       timestamp: timeAgo,
+      imageUrl: attachment?.url || embedImageUrl || inlineImageUrl,
     };
   });
 }

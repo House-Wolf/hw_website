@@ -25,6 +25,7 @@ interface Announcement {
   title: string;
   content: string;
   timestamp: string;
+  imageUrl?: string | null;
 }
 
 interface FeaturedPhoto {
@@ -232,6 +233,16 @@ export default function Hero({
                       content={a.content}
                       className="text-md text-foreground-muted leading-relaxed"
                     />
+                    {a.imageUrl && (
+                      <div className="mt-3 overflow-hidden rounded-md border border-border-subtle">
+                        <img
+                          src={a.imageUrl}
+                          alt={a.title || "Announcement media"}
+                          loading="lazy"
+                          className="w-full max-h-48 object-contain bg-black/40"
+                        />
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
