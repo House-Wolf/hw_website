@@ -63,49 +63,74 @@ async function ensureDivisionAndSubs(
   divisionName: string,
   subdivisionName: string | null
 ) {
-  const divisionSlug = normalizeKey(divisionName);
+  try {
+    const divisionSlug = normalizeKey(divisionName);
 
-  const division = await prisma.division.upsert({
-    where: { slug: divisionSlug },
-    create: {
-      name: divisionName,
-      slug: divisionSlug,
-      description: divisionName,
-      isActive: true,
-      sortOrder: 0,
-    },
-    update: {
-      name: divisionName,
-      description: divisionName,
-      isActive: true,
-    },
-    include: { subdivisions: true },
-  });
+    if (!divisionSlug) {
+      throw new Error(`Invalid division name: ${divisionName}`);
+    }
 
-  let subdivision = null;
-
-  if (subdivisionName) {
-    const subdivisionSlug = normalizeKey(subdivisionName);
-    subdivision = await prisma.subdivision.upsert({
-      where: { slug: subdivisionSlug },
+    const division = await prisma.division.upsert({
+      where: { slug: divisionSlug },
       create: {
-        name: subdivisionName,
-        slug: subdivisionSlug,
-        description: subdivisionName,
-        divisionId: division.id,
+        name: divisionName,
+        slug: divisionSlug,
+        description: divisionName,
         isActive: true,
         sortOrder: 0,
       },
       update: {
-        name: subdivisionName,
-        description: subdivisionName,
+        name: divisionName,
+        description: divisionName,
         isActive: true,
-        divisionId: division.id,
       },
+      include: { subdivisions: true },
     });
-  }
 
-  return { division, subdivision };
+    let subdivision = null;
+
+    if (subdivisionName) {
+      const subdivisionSlug = normalizeKey(subdivisionName);
+
+      if (!subdivisionSlug) {
+        throw new Error(`Invalid subdivision name: ${subdivisionName}`);
+      }
+
+      subdivision = await prisma.subdivision.upsert({
+        where: { slug: subdivisionSlug },
+        create: {
+          name: subdivisionName,
+          slug: subdivisionSlug,
+          description: subdivisionName,
+          divisionId: division.id,
+          isActive: true,
+          sortOrder: 0,
+        },
+        update: {
+          name: subdivisionName,
+          description: subdivisionName,
+          isActive: true,
+          divisionId: division.id,
+        },
+      });
+    }
+
+    console.log("[ensureDivisionAndSubs] Success", {
+      divisionName,
+      divisionId: division.id,
+      subdivisionName,
+      subdivisionId: subdivision?.id,
+    });
+
+    return { division, subdivision };
+  } catch (error) {
+    console.error("[ensureDivisionAndSubs] Failed", {
+      divisionName,
+      subdivisionName,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 /* =========================
@@ -115,17 +140,18 @@ async function ensureDivisionAndSubs(
 async function submitBio(formData: FormData) {
   "use server";
 
-  const session = await auth();
-  if (!session?.user) redirect("/auth/signin");
+  try {
+    const session = await auth();
+    if (!session?.user) redirect("/auth/signin");
 
-  const [userRow] = (await prisma.$queryRaw`
-    SELECT id, image
-    FROM users
-    WHERE id = ${session.user.id}::uuid
-    LIMIT 1;
-  `) as Array<{ id: string; image: string | null }>;
+    const [userRow] = (await prisma.$queryRaw`
+      SELECT id, image
+      FROM users
+      WHERE id = ${session.user.id}::uuid
+      LIMIT 1;
+    `) as Array<{ id: string; image: string | null }>;
 
-  if (!userRow) redirect("/auth/signin");
+    if (!userRow) redirect("/auth/signin");
 
   const rolesRows = (await prisma.$queryRaw`
     SELECT dr.name
@@ -134,11 +160,11 @@ async function submitBio(formData: FormData) {
     WHERE ur.user_id = ${session.user.id}::uuid;
   `) as Array<{ name: string }>;
 
-  const characterName = formData.get("characterName")?.toString().trim();
-  const divisionName = formData.get("division")?.toString().trim();
-  const subdivisionName = formData.get("subdivision")?.toString().trim() || null;
-  const bio = formData.get("bio")?.toString().trim();
-  const portraitUrl = formData.get("portraitUrl")?.toString().trim();
+  const characterName = formData.get("characterName")?.toString()?.trim();
+  const divisionName = formData.get("division")?.toString()?.trim();
+  const subdivisionName = formData.get("subdivision")?.toString()?.trim() || null;
+  const bio = formData.get("bio")?.toString()?.trim();
+  const portraitUrl = formData.get("portraitUrl")?.toString()?.trim();
 
   if (!characterName || !divisionName || !bio) {
     throw new Error("Missing required fields.");
@@ -287,7 +313,22 @@ async function submitBio(formData: FormData) {
     }
   }
 
-  redirect("/dashboard/profile?submitted=1");
+    redirect("/dashboard/profile?submitted=1");
+  } catch (error) {
+    console.error("[submitBio] Profile submission failed", {
+      userId: (await auth())?.user?.id,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) {
+      throw error;
+    }
+
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to submit profile. Please try again."
+    );
+  }
 }
 
 /* =========================
@@ -308,29 +349,38 @@ export default async function ProfilePage({
   const params = await searchParams;
   const submitted = params.submitted === "1";
 
-  const profileRows = await prisma.$queryRaw<
-    {
-      characterName: string;
-      bio: string;
-      portraitUrl: string | null;
-      divisionName: string | null;
-      subdivisionName: string | null;
-      status: string;
-    }[]
-  >`
-    SELECT
-      mp.character_name AS "characterName",
-      mp.bio,
-      mp.portrait_url AS "portraitUrl",
-      d.name AS "divisionName",
-      s.name AS "subdivisionName",
-      mp.status::text AS status
-    FROM mercenary_profiles mp
-    LEFT JOIN divisions d ON d.id = mp.division_id
-    LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
-    WHERE mp.user_id = ${session.user.id}::uuid
-    LIMIT 1;
-  `;
+  let profileRows;
+  try {
+    profileRows = await prisma.$queryRaw<
+      {
+        characterName: string;
+        bio: string;
+        portraitUrl: string | null;
+        divisionName: string | null;
+        subdivisionName: string | null;
+        status: string;
+      }[]
+    >`
+      SELECT
+        mp.character_name AS "characterName",
+        mp.bio,
+        mp.portrait_url AS "portraitUrl",
+        d.name AS "divisionName",
+        s.name AS "subdivisionName",
+        mp.status::text AS status
+      FROM mercenary_profiles mp
+      LEFT JOIN divisions d ON d.id = mp.division_id
+      LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
+      WHERE mp.user_id = ${session.user.id}::uuid
+      LIMIT 1;
+    `;
+  } catch (error) {
+    console.error("[ProfilePage] Failed to fetch profile", {
+      userId: session.user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error("Failed to load profile. Please try again later.");
+  }
 
   const profile = profileRows[0] ?? null;
   const status = profile?.status ?? null;

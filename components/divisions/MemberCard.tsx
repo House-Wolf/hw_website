@@ -1,10 +1,21 @@
 import { SafeImage } from "@/components/utils/SafeImage";
 import { getMemberGlow } from "@/lib/members/getMemberGlow";
+import { getSubdivisionPatch } from "@/lib/subdivisions/subdivisionConfig";
 import type { DivisionMember } from "@/lib/divisions/getDivisionsRoster";
+import Image from "next/image";
 
 export function MemberCard({ member }: { member: DivisionMember }) {
   const glowColor = getMemberGlow(member);
   const profileImage = member.portraitUrl || "/images/global/HWiconnew.png";
+  const subdivisionPatch =
+    member.subdivisionPatchPath ||
+    getSubdivisionPatch(member.subdivisionSlug);
+
+  // Keep Command and Leadership patches smaller, make other subdivision patches larger
+  const isCommandOrLeadership = member.subdivisionName?.includes("Command") ||
+                                 member.subdivisionName?.includes("Leadership") ||
+                                 member.subdivisionName?.includes("Officers");
+  const patchSize = isCommandOrLeadership ? "w-16 h-16" : "w-24 h-24";
 
   return (
     <div className="relative group h-full">
@@ -32,6 +43,20 @@ export function MemberCard({ member }: { member: DivisionMember }) {
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e17] via-transparent to-transparent" />
+
+            {/* SUBDIVISION PATCH */}
+            {subdivisionPatch && (
+              <div className="absolute bottom-4 right-4 z-10">
+                <div className={`relative ${patchSize}`}>
+                  <Image
+                    src={subdivisionPatch}
+                    alt={member.subdivisionName || "Subdivision"}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="absolute bottom-4 left-4 right-4">
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/60">

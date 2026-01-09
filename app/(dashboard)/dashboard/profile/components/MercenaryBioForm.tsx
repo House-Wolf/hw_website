@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
+import { getSubdivisionPatch } from "@/lib/subdivisions/subdivisionConfig";
 
 type DivisionOption = {
   name: string;
@@ -70,6 +71,20 @@ export default function MercenaryBioForm({
     const selected = allowedDivisions.find((d) => d.name === division);
     return selected?.allowedSubs ?? [];
   }, [allowedDivisions, division]);
+
+  const subdivisionPatch = useMemo(() => {
+    if (!subdivision) return null;
+    const slug = subdivision
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return getSubdivisionPatch(slug);
+  }, [subdivision]);
+
+  const isCommandOrLeadership = subdivision?.includes("Command") ||
+                                 subdivision?.includes("Leadership") ||
+                                 subdivision?.includes("Officers");
+  const patchSize = isCommandOrLeadership ? "w-12 h-12" : "w-20 h-20";
 
   const fetchMyLinks = async () => {
     setIsLoadingLinks(true);
@@ -307,6 +322,20 @@ export default function MercenaryBioForm({
                         />
 
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e17] via-transparent to-transparent opacity-60 pointer-events-none" />
+
+                        {/* SUBDIVISION PATCH */}
+                        {subdivisionPatch && (
+                          <div className="absolute bottom-3 right-3 z-10">
+                            <div className={`relative ${patchSize}`}>
+                              <Image
+                                src={subdivisionPatch}
+                                alt={subdivision || "Subdivision"}
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         <div className="absolute bottom-3 left-3 right-3 z-10">
                           <p className="text-[10px] tracking-[0.3em] uppercase text-white/70 drop-shadow-lg line-clamp-1">

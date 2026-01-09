@@ -15,6 +15,8 @@ export type DivisionMember = {
   bio: string;
   portraitUrl: string | null;
   subdivisionName: string | null;
+  subdivisionSlug: string | null;
+  subdivisionPatchPath: string | null;
   discordUsername: string | null;
   divisionSlug?: string;
 };
@@ -54,7 +56,13 @@ export async function getDivisionRoster(
               isOfficerCore: true,
             },
           },
-          subdivision: { select: { name: true } },
+          subdivision: {
+            select: {
+              name: true,
+              slug: true,
+              patchImagePath: true,
+            },
+          },
           user: { select: { discordUsername: true, avatarUrl: true } },
         },
       },
@@ -76,6 +84,8 @@ export async function getDivisionRoster(
     bio: profile.bio,
     portraitUrl: profile.portraitUrl || profile.user.avatarUrl || null,
     subdivisionName: profile.subdivision?.name || null,
+    subdivisionSlug: profile.subdivision?.slug || null,
+    subdivisionPatchPath: profile.subdivision?.patchImagePath || null,
     discordUsername: profile.user.discordUsername ?? null,
     divisionSlug: normalizedSlug,
   }));

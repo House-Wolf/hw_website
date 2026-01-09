@@ -12,31 +12,52 @@ import { RANK_PRIORITY } from "@/lib/role-constants";
 export async function deriveRankFromRoles(
   roleNames: string[]
 ): Promise<number | null> {
-  // Find Discord roles that match rank names
-  const matchingRanks = roleNames.filter((roleName) =>
-    RANK_PRIORITY.includes(roleName)
-  );
+  try {
+    // Find Discord roles that match rank names
+    const matchingRanks = roleNames.filter((roleName) =>
+      RANK_PRIORITY.includes(roleName)
+    );
 
-  if (matchingRanks.length === 0) {
-    return null;
-  }
+    if (matchingRanks.length === 0) {
+      console.log("[deriveRankFromRoles] No matching ranks found", { roleNames });
+      return null;
+    }
 
-  // Find the highest-priority rank (lowest index in RANK_PRIORITY)
-  const highestRank = matchingRanks.reduce((highest, current) => {
-    const currentPriority = RANK_PRIORITY.indexOf(current);
-    const highestPriority = RANK_PRIORITY.indexOf(highest);
-    return currentPriority < highestPriority ? current : highest;
-  });
+    // Find the highest-priority rank (lowest index in RANK_PRIORITY)
+    const highestRank = matchingRanks.reduce((highest, current) => {
+      const currentPriority = RANK_PRIORITY.indexOf(current);
+      const highestPriority = RANK_PRIORITY.indexOf(highest);
+      return currentPriority < highestPriority ? current : highest;
+    });
 
-  // Look up the rank ID in the database
-  const rankRecord = await prisma.rank.findFirst({
-    where: {
-      name: {
-        equals: highestRank,
-        mode: "insensitive",
+    console.log("[deriveRankFromRoles] Derived rank", {
+      roleNames,
+      matchingRanks,
+      highestRank
+    });
+
+    // Look up the rank ID in the database
+    const rankRecord = await prisma.rank.findFirst({
+      where: {
+        name: {
+          equals: highestRank,
+          mode: "insensitive",
+        },
       },
-    },
-  });
+    });
 
-  return rankRecord?.id ?? null;
+    if (!rankRecord) {
+      console.warn("[deriveRankFromRoles] Rank not found in database", {
+        highestRank
+      });
+    }
+
+    return rankRecord?.id ?? null;
+  } catch (error) {
+    console.error("[deriveRankFromRoles] Error deriving rank", {
+      roleNames,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }

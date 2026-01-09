@@ -92,6 +92,8 @@ export default function LeadershipPageTemplate({
                     callSign: member.callSign ?? null,
                     portraitUrl: member.portraitUrl ?? null,
                     subdivisionName: member.subdivisionName ?? null,
+                    subdivisionSlug: member.subdivisionSlug ?? null,
+                    subdivisionPatchPath: member.subdivisionPatchPath ?? null,
                     discordUsername: member.discordUsername ?? null,
                   }}
                 />
@@ -123,6 +125,8 @@ export default function LeadershipPageTemplate({
                     callSign: member.callSign ?? null,
                     portraitUrl: member.portraitUrl ?? null,
                     subdivisionName: member.subdivisionName ?? null,
+                    subdivisionSlug: member.subdivisionSlug ?? null,
+                    subdivisionPatchPath: member.subdivisionPatchPath ?? null,
                     discordUsername: member.discordUsername ?? null,
                   }}
                 />

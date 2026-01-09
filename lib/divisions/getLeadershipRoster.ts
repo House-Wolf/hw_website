@@ -10,6 +10,8 @@ export type LeadershipMember = {
   bio: string;
   portraitUrl: string | null;
   subdivisionName: string | undefined;
+  subdivisionSlug: string | null;
+  subdivisionPatchPath: string | null;
   discordUsername: string | null;
   callSign?: string;
   divisionSlug?: string;
@@ -53,6 +55,8 @@ export async function getLeadershipRoster(): Promise<LeadershipRosterResponse> {
     bio: profile.bio,
     portraitUrl: profile.portraitUrl || profile.user.avatarUrl || null,
     subdivisionName: profile.subdivision?.name,
+    subdivisionSlug: profile.subdivision?.slug ?? null,
+    subdivisionPatchPath: profile.subdivision?.patchImagePath ?? null,
     discordUsername: profile.user.discordUsername ?? null,
     callSign: profile.call_sign ?? undefined,
     divisionSlug: profile.division?.slug,
