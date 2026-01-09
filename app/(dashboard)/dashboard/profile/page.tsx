@@ -176,6 +176,12 @@ async function submitBio(formData: FormData) {
 
   const roleNames = new Set(rolesRows.map((r) => r.name));
 
+  console.log("[submitBio] User roles", {
+    userId: session.user.id,
+    roleCount: roleNames.size,
+    roles: Array.from(roleNames),
+  });
+
   const allowedDivisions = DIVISION_DEFINITIONS.map((division) => {
     const allowedSubs = division.subdivisions.filter((sub) =>
       roleNames.has(sub)
@@ -183,16 +189,43 @@ async function submitBio(formData: FormData) {
     return { ...division, allowedSubs };
   }).filter((d) => d.allowedSubs.length > 0);
 
+  console.log("[submitBio] Allowed divisions", {
+    userId: session.user.id,
+    attemptedDivision: divisionName,
+    attemptedSubdivision: subdivisionName,
+    allowedDivisionCount: allowedDivisions.length,
+    allowedDivisions: allowedDivisions.map(d => ({ name: d.name, subs: d.allowedSubs })),
+  });
+
   const selectedDivision = allowedDivisions.find(
     (d) => d.name === divisionName
   );
 
   if (!selectedDivision) {
-    throw new Error("Unauthorized division.");
+    console.error("[submitBio] Unauthorized division attempt", {
+      userId: session.user.id,
+      attemptedDivision: divisionName,
+      userRoles: Array.from(roleNames),
+      availableDivisions: allowedDivisions.map(d => d.name),
+    });
+
+    throw new Error(
+      `You don't have the required Discord role to join ${divisionName}. ` +
+      `Please ensure you have one of the subdivision roles assigned in Discord, then sign out and sign back in to refresh your permissions.`
+    );
   }
 
   if (subdivisionName && !selectedDivision.allowedSubs.includes(subdivisionName)) {
-    throw new Error("Unauthorized subdivision.");
+    console.error("[submitBio] Unauthorized subdivision attempt", {
+      userId: session.user.id,
+      attemptedSubdivision: subdivisionName,
+      allowedSubdivisions: selectedDivision.allowedSubs,
+    });
+
+    throw new Error(
+      `You don't have the required Discord role for ${subdivisionName}. ` +
+      `Available subdivisions: ${selectedDivision.allowedSubs.join(", ")}`
+    );
   }
 
   const { division, subdivision } = await ensureDivisionAndSubs(
@@ -343,67 +376,73 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ submitted?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/auth/signin");
-
-  const params = await searchParams;
-  const submitted = params.submitted === "1";
-
-  let profileRows;
   try {
-    profileRows = await prisma.$queryRaw<
-      {
-        characterName: string;
-        bio: string;
-        portraitUrl: string | null;
-        divisionName: string | null;
-        subdivisionName: string | null;
-        status: string;
-      }[]
-    >`
-      SELECT
-        mp.character_name AS "characterName",
-        mp.bio,
-        mp.portrait_url AS "portraitUrl",
-        d.name AS "divisionName",
-        s.name AS "subdivisionName",
-        mp.status::text AS status
-      FROM mercenary_profiles mp
-      LEFT JOIN divisions d ON d.id = mp.division_id
-      LEFT JOIN subdivisions s ON s.id = mp.subdivision_id
-      WHERE mp.user_id = ${session.user.id}::uuid
-      LIMIT 1;
-    `;
-  } catch (error) {
-    console.error("[ProfilePage] Failed to fetch profile", {
-      userId: session.user.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    throw new Error("Failed to load profile. Please try again later.");
-  }
+    const session = await auth();
+    if (!session?.user?.id) {
+      console.error("[ProfilePage] No session or user ID");
+      redirect("/auth/signin");
+    }
 
-  const profile = profileRows[0] ?? null;
-  const status = profile?.status ?? null;
+    const params = await searchParams;
+    const submitted = params.submitted === "1";
 
-  const statusLabel =
-    status === "APPROVED"
-      ? "Approved"
-      : status === "REJECTED"
-      ? "Rejected"
-      : status === "PENDING"
-      ? "Pending review"
-      : "Not submitted";
+    // Use Prisma's type-safe query instead of raw SQL
+    let profile = null;
+    try {
+      const profileData = await prisma.mercenaryProfile.findFirst({
+        where: {
+          userId: session.user.id,
+        },
+        include: {
+          division: {
+            select: { name: true },
+          },
+          subdivision: {
+            select: { name: true },
+          },
+        },
+      });
 
-  const statusClasses =
-    status === "APPROVED"
-      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
-      : status === "REJECTED"
-      ? "bg-rose-500/15 text-rose-300 border-rose-500/40"
-      : status === "PENDING"
-      ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/40"
-      : "bg-[var(--background-secondary)]/80 text-[var(--foreground-muted)] border-[var(--border-soft)]";
+      if (profileData) {
+        profile = {
+          characterName: profileData.characterName,
+          bio: profileData.bio,
+          portraitUrl: profileData.portraitUrl,
+          divisionName: profileData.division?.name ?? null,
+          subdivisionName: profileData.subdivision?.name ?? null,
+          status: profileData.status,
+        };
+      }
+    } catch (error) {
+      console.error("[ProfilePage] Failed to fetch profile", {
+        userId: session.user.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error("Failed to load profile. Please try again later.");
+    }
 
-  return (
+    const status = profile?.status ?? null;
+
+    const statusLabel =
+      status === "APPROVED"
+        ? "Approved"
+        : status === "REJECTED"
+        ? "Rejected"
+        : status === "PENDING"
+        ? "Pending review"
+        : "Not submitted";
+
+    const statusClasses =
+      status === "APPROVED"
+        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+        : status === "REJECTED"
+        ? "bg-rose-500/15 text-rose-300 border-rose-500/40"
+        : status === "PENDING"
+        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/40"
+        : "bg-[var(--background-secondary)]/80 text-[var(--foreground-muted)] border-[var(--border-soft)]";
+
+    return (
     <div className="space-y-6 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/80 p-6 md:p-8">
@@ -445,5 +484,23 @@ export default async function ProfilePage({
         </Link>
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error("[ProfilePage] Unexpected error", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    // Re-throw redirects
+    if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) {
+      throw error;
+    }
+
+    // Show user-friendly error
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while loading the profile page."
+    );
+  }
 }
