@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useMemo, useState, useActionState } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import ImageUpload from "./ImageUpload";
@@ -54,7 +53,7 @@ export default function MercenaryBioForm({
   ) => Promise<ProfileFormState>;
   existingProfile: ExistingProfile | null;
 }) {
-  const [formState, formAction] = useFormState(
+  const [formState, formAction] = useActionState(
     onSubmit,
     initialProfileFormState
   );
