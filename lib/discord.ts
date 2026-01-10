@@ -260,11 +260,36 @@ export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
 
 /**
  * @component - GetFeaturedVideo
- * @description - Fetch featured video details from environment variables
+ * @description - Fetch featured video details from database, fallback to environment variables
  * @returns - A promise that resolves to the featured video details
  * @author House Wolf Dev Team
  */
 export async function getFeaturedVideo(): Promise<FeaturedVideo> {
+  try {
+    // First, try to fetch from database
+    const { prisma } = await import("./prisma");
+
+    const featuredVideo = await prisma.featured_videos.findFirst({
+      where: {
+        is_active: true,
+      },
+      orderBy: {
+        updated_at: "desc",
+      },
+    });
+
+    if (featuredVideo) {
+      return {
+        youtubeId: featuredVideo.youtube_id,
+        title: featuredVideo.title,
+        thumbnail: featuredVideo.thumbnail?.replace("http://", "https://") || "/images/video-thumb.jpg",
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching featured video from database:", error);
+  }
+
+  // Fallback to environment variables if database fetch fails or no active video
   const youtubeId = process.env.YOUTUBE_FEATURED_VIDEO_ID;
   const thumbnail = process.env.YOUTUBE_FEATURED_VIDEO_THUMBNAIL;
   const title = process.env.YOUTUBE_FEATURED_VIDEO_TITLE;
@@ -277,6 +302,7 @@ export async function getFeaturedVideo(): Promise<FeaturedVideo> {
     };
   }
 
+  // Final fallback
   return {
     youtubeId: "dQw4w9WgXcQ",
     thumbnail: "/images/video-thumb.jpg",

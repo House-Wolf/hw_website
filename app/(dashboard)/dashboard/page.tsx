@@ -1,13 +1,9 @@
-import Image from "next/image";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { BadgeCheck, Clock3, KeyRound, Shield, UserCircle2 } from "lucide-react";
-import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
-import { RANK_PRIORITY } from "@/lib/role-constants";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { BadgeCheck, Clock3, KeyRound, Shield, UserCircle2 } from "lucide-react";
+import { RANK_PRIORITY } from "@/lib/role-constants";
 
 function discordColorToHex(color?: number | null) {
   if (color === null || color === undefined) {
@@ -29,34 +25,69 @@ function formatDate(date: Date | null) {
 
 // Rank priority moved to lib/role-constants.ts
 
-export default async function DashboardHomePage() {
-  const session = await auth();
+type UserRole = {
+  discordRole: {
+    id: string;
+    name: string;
+    color: number | null;
+    position: number | null;
+    permissions: Array<{
+      permission: {
+        key: string;
+        description: string | null;
+      };
+    }>;
+  };
+};
 
-  if (!session?.user) {
-    redirect("/auth/signin");
+type Permission = {
+  key: string;
+  description: string | null;
+};
+
+type UserData = {
+  id: string;
+  name: string | null;
+  discordUsername: string;
+  discordDisplayName: string | null;
+  avatarUrl: string | null;
+  image: string | null;
+  createdAt: string | null;
+  lastLoginAt: string | null;
+  roles: UserRole[];
+  permissions: Permission[];
+};
+
+export default function DashboardHomePage() {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--accent-primary)]"></div>
+      </div>
+    );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      roles: {
-        include: {
-          discordRole: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
   if (!user) {
-    redirect("/auth/signin");
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-[var(--text-secondary)]">Failed to load user data.</p>
+      </div>
+    );
   }
 
   const roles = [...user.roles].sort(
@@ -67,41 +98,15 @@ export default async function DashboardHomePage() {
     }
   );
 
-  // Build permissions map with descriptions
-  const permissionsMap = new Map<string, string | null>();
-
-  // Add database-defined permissions with their descriptions
-  user.roles.forEach(({ discordRole }) => {
-    discordRole.permissions.forEach(({ permission }) => {
-      permissionsMap.set(permission.key, permission.description);
-    });
-  });
-
-  // Add special permissions (these don't have database descriptions)
-  const userPermissions = deriveUserPermissions(user.roles);
-  userPermissions.forEach((key) => {
-    if (!permissionsMap.has(key)) {
-      // Add default descriptions for special permissions
-      const descriptions: Record<string, string> = {
-        SITE_ADMIN: "Site administrator",
-        MARKETPLACE_ADMIN: "Marketplace administrator",
-        DOSSIER_ADMIN: "Dossier administrator",
-      };
-      permissionsMap.set(key, descriptions[key] || null);
-    }
-  });
-
-  const permissions = Array.from(permissionsMap.entries()).map(
-    ([key, description]) => ({ key, description })
-  );
+  const permissions = user.permissions;
 
   const displayName = user.discordDisplayName || user.name || user.discordUsername;
   const avatarUrl =
     user.avatarUrl ||
     user.image ||
     "https://cdn.discordapp.com/embed/avatars/0.png";
-  const lastLogin = formatDate(user.lastLoginAt);
-  const accountCreated = formatDate(user.createdAt ?? user.lastLoginAt);
+  const lastLogin = formatDate(user.lastLoginAt ? new Date(user.lastLoginAt) : null);
+  const accountCreated = formatDate(user.createdAt ? new Date(user.createdAt) : (user.lastLoginAt ? new Date(user.lastLoginAt) : null));
   const roleNamesForRank = new Set(roles.map((r) => r.discordRole.name));
   const rank = RANK_PRIORITY.find((rankName) => roleNamesForRank.has(rankName));
 
@@ -166,45 +171,102 @@ export default async function DashboardHomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/15 border border-[var(--border-default)] flex items-center justify-center">
-                <Shield className="text-[var(--accent-primary)]" size={18} />
+            <div className="group rounded-lg border p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                borderColor: 'var(--border-crimson)',
+                backgroundColor: 'var(--background-elevated)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-crimson)';
+                e.currentTarget.style.borderColor = 'var(--accent-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--border-crimson)';
+              }}
+            >
+              <div className="w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all duration-300"
+                style={{
+                  borderColor: 'var(--accent-primary)',
+                  backgroundColor: 'rgba(var(--accent-primary-rgb), 0.15)',
+                  boxShadow: '0 0 12px rgba(var(--accent-primary-rgb), 0.3)'
+                }}
+              >
+                <Shield className="text-[var(--accent-primary)]" size={20} />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Roles
                 </p>
-                <p className="text-lg font-semibold text-[var(--text-primary)]">
+                <p className="text-xl font-bold text-[var(--accent-primary)]">
                   {roles.length}
                 </p>
                 <p className="text-xs text-[var(--text-secondary)]">In role order</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/15 border border-[var(--border-default)] flex items-center justify-center">
-                <KeyRound className="text-[var(--accent-primary)]" size={18} />
+            <div className="group rounded-lg border p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                borderColor: 'var(--border-crimson)',
+                backgroundColor: 'var(--background-elevated)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-crimson)';
+                e.currentTarget.style.borderColor = 'var(--accent-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--border-crimson)';
+              }}
+            >
+              <div className="w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all duration-300"
+                style={{
+                  borderColor: 'var(--accent-primary)',
+                  backgroundColor: 'rgba(var(--accent-primary-rgb), 0.15)',
+                  boxShadow: '0 0 12px rgba(var(--accent-primary-rgb), 0.3)'
+                }}
+              >
+                <KeyRound className="text-[var(--accent-primary)]" size={20} />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Site Permissions
                 </p>
-                <p className="text-lg font-semibold text-[var(--text-primary)]">
+                <p className="text-xl font-bold text-[var(--accent-primary)]">
                   {permissions.length}
                 </p>
                 <p className="text-xs text-[var(--text-secondary)]">Derived from roles</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--accent-secondary)]/15 border border-[var(--border-default)] flex items-center justify-center">
-                <Clock3 className="text-[var(--accent-secondary)]" size={18} />
+            <div className="group rounded-lg border p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                borderColor: 'var(--border-teal)',
+                backgroundColor: 'var(--background-elevated)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-teal)';
+                e.currentTarget.style.borderColor = 'var(--accent-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--border-teal)';
+              }}
+            >
+              <div className="w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all duration-300"
+                style={{
+                  borderColor: 'var(--accent-secondary)',
+                  backgroundColor: 'rgba(var(--accent-secondary-rgb), 0.15)',
+                  boxShadow: '0 0 12px rgba(var(--accent-secondary-rgb), 0.3)'
+                }}
+              >
+                <Clock3 className="text-[var(--accent-secondary)]" size={20} />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                   Last Login
                 </p>
-                <p className="text-lg font-semibold text-[var(--text-primary)]">
+                <p className="text-xl font-bold text-[var(--accent-secondary)]">
                   {lastLogin}
                 </p>
                 <p className="text-xs text-[var(--text-secondary)]">UTC timestamp</p>
@@ -236,38 +298,72 @@ export default async function DashboardHomePage() {
             ) : (
               roles.map((userRole, index) => {
                 const colorHex = discordColorToHex(userRole.discordRole.color);
+                const roleColor = colorHex || 'var(--accent-primary)';
                 return (
                   <div
                     key={userRole.discordRole.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 px-3 py-3"
+                    className="group relative flex items-center justify-between rounded-lg border px-4 py-4 transition-all duration-300 hover:scale-[1.02]"
+                    style={{
+                      borderColor: colorHex ? `${colorHex}40` : 'var(--border-default)',
+                      backgroundColor: colorHex ? `${colorHex}08` : 'var(--background-elevated)',
+                      boxShadow: `0 0 0 0 ${roleColor}00`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = `0 0 20px ${colorHex}40, 0 4px 12px rgba(0,0,0,0.3)`;
+                      e.currentTarget.style.borderColor = colorHex || 'var(--border-strong)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = `0 0 0 0 ${roleColor}00`;
+                      e.currentTarget.style.borderColor = colorHex ? `${colorHex}40` : 'var(--border-default)';
+                    }}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs text-[var(--text-secondary)] w-8 text-center">
-                        #{index + 1}
-                      </span>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className="inline-block h-3 w-3 rounded-full border border-[var(--border-default)]"
-                          style={
-                            colorHex
-                              ? { backgroundColor: colorHex, borderColor: colorHex }
-                              : { backgroundColor: "var(--accent-primary)" }
-                          }
-                        />
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-all duration-300"
+                        style={{
+                          borderColor: roleColor,
+                          backgroundColor: `${roleColor}15`,
+                          boxShadow: `0 0 12px ${roleColor}30`
+                        }}
+                      >
+                        <span className="text-xs font-bold" style={{ color: colorHex || 'var(--accent-primary)' }}>
+                          #{index + 1}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="relative flex items-center justify-center h-6 w-6 rounded-full border-2 transition-all duration-300"
+                          style={{
+                            backgroundColor: roleColor,
+                            borderColor: colorHex ? '#ffffff' : 'var(--border-strong)',
+                            boxShadow: `0 0 16px ${roleColor}80, inset 0 0 8px ${roleColor}40`
+                          }}
+                        >
+                          <div className="absolute inset-0 rounded-full animate-pulse"
+                            style={{ backgroundColor: `${roleColor}30` }}
+                          />
+                        </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-[var(--text-primary)] truncate">
+                          <p className="font-bold text-base truncate transition-colors duration-300"
+                            style={{ color: colorHex || 'var(--text-primary)' }}
+                          >
                             {userRole.discordRole.name}
                           </p>
-                          <p className="text-xs text-[var(--text-secondary)]">
-                            Position {userRole.discordRole.position ?? "N/A"}
+                          <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1">
+                              <Shield size={12} className="opacity-70" />
+                              Position {userRole.discordRole.position ?? "N/A"}
+                            </span>
                           </p>
                         </div>
                       </div>
                     </div>
-                    <BadgeCheck
-                      className="text-[var(--accent-primary)] shrink-0"
-                      size={18}
-                    />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <BadgeCheck
+                        className="transition-all duration-300 group-hover:scale-110"
+                        style={{ color: colorHex || 'var(--accent-primary)' }}
+                        size={24}
+                      />
+                    </div>
                   </div>
                 );
               })
@@ -297,14 +393,41 @@ export default async function DashboardHomePage() {
               {permissions.map((permission) => (
                 <div
                   key={permission.key}
-                  className="rounded-lg border border-[var(--border-subtle)] bg-[var(--background-elevated)]/80 p-3 shadow-sm"
+                  className="group relative rounded-lg border p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                  style={{
+                    borderColor: 'var(--border-crimson)',
+                    backgroundColor: 'var(--background-elevated)',
+                    boxShadow: '0 0 0 0 transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = 'var(--shadow-crimson), 0 4px 12px rgba(0,0,0,0.3)';
+                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 0 0 0 transparent';
+                    e.currentTarget.style.borderColor = 'var(--border-crimson)';
+                  }}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent-primary)]">
-                    {permission.key}
-                  </p>
-                  <p className="text-sm text-[var(--text-primary)] mt-1">
-                    {permission.description || "No description provided."}
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-all duration-300"
+                      style={{
+                        borderColor: 'var(--accent-primary)',
+                        backgroundColor: 'rgba(var(--accent-primary-rgb), 0.1)',
+                      }}
+                    >
+                      <KeyRound size={18} className="text-[var(--accent-primary)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.1em] mb-1.5 transition-colors duration-300"
+                        style={{ color: 'var(--accent-primary)' }}
+                      >
+                        {permission.key}
+                      </p>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                        {permission.description || "No description provided."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
