@@ -4,9 +4,10 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2 } from "lucide-react";
+import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2, Video } from "lucide-react";
 import ApprovedDossiersSection from "./components/ApprovedDossiersSection";
 import SocialLinksSection from "./components/SocialLinksSection";
+import FeaturedVideoSection from "./components/FeaturedVideoSection";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -213,11 +214,13 @@ export default async function AdminPanelPage({
   const params = await searchParams;
   const requestedTab =
     typeof params?.tab === "string" ? (params.tab as string) : "users";
-  let activeTab: "users" | "dossiers" | "social" = "users";
+  let activeTab: "users" | "dossiers" | "social" | "video" = "users";
   if (requestedTab === "dossiers" && hasDossierAdmin) {
     activeTab = "dossiers";
   } else if (requestedTab === "social" && hasDossierAdmin) {
     activeTab = "social";
+  } else if (requestedTab === "video" && hasUserAdmin) {
+    activeTab = "video";
   } else if (!hasUserAdmin && hasDossierAdmin) {
     activeTab = "dossiers";
   }
@@ -321,29 +324,13 @@ export default async function AdminPanelPage({
   return (
     <div className="space-y-6">
       <div className="card border border-[var(--border-soft)] bg-[var(--background-secondary)]/70">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 rounded-full bg-[var(--accent-strong)]/15 border border-[var(--border)] flex items-center justify-center">
-            <Shield className="text-[var(--accent-strong)]" size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--foreground)] leading-tight">
-              Admin Panel
-            </h1>
-            <p className="text-sm text-[var(--foreground-muted)]">
-              Manage dossiers, divisions, users, suspensions, and audit logs.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <section className="card space-y-4">
-        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] pb-3">
+        <div className="flex items-center">
           <Link
             href="/dashboard/admin?tab=users"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
+            className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "users"
-                ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
-                : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
+                ? "border-[#a92222] text-[#a92222]"
+                : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasUserAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "users" ? "page" : undefined}
             aria-disabled={!hasUserAdmin}
@@ -352,10 +339,10 @@ export default async function AdminPanelPage({
           </Link>
           <Link
             href="/dashboard/admin?tab=dossiers"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
+            className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "dossiers"
-                ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
-                : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
+                ? "border-[#a92222] text-[#a92222]"
+                : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "dossiers" ? "page" : undefined}
             aria-disabled={!hasDossierAdmin}
@@ -364,17 +351,32 @@ export default async function AdminPanelPage({
           </Link>
           <Link
             href="/dashboard/admin?tab=social"
-            className={`px-3 py-2 rounded-md text-sm font-semibold border cursor-pointer ${
+            className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "social"
-                ? "bg-[var(--accent-strong)]/15 border-[var(--accent-strong)] text-[var(--foreground)]"
-                : "border-[var(--border-soft)] text-[var(--foreground-muted)] bg-[var(--background-secondary)]/60"
+                ? "border-[#a92222] text-[#a92222]"
+                : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "social" ? "page" : undefined}
             aria-disabled={!hasDossierAdmin}
           >
             Social Links
           </Link>
+          <Link
+            href="/dashboard/admin?tab=video"
+            className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
+              activeTab === "video"
+                ? "border-[#a92222] text-[#a92222]"
+                : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+            } ${!hasUserAdmin ? "pointer-events-none opacity-50" : ""}`}
+            aria-current={activeTab === "video" ? "page" : undefined}
+            aria-disabled={!hasUserAdmin}
+          >
+            Featured Video
+          </Link>
         </div>
+      </div>
+
+      <section className="card space-y-4">
 
         {activeTab === "users" && (
           <>
@@ -463,9 +465,15 @@ export default async function AdminPanelPage({
                             </span>
                           </td>
                           <td className="py-3 pr-4">
-                            <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-[var(--border-soft)] bg-[var(--background-secondary)]/60">
+                            <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md border ${
+                              user.isActive
+                                ? "border-green-500/30 bg-green-500/10"
+                                : "border-orange-500/30 bg-orange-500/10"
+                            }`}>
                               {statusIcon}
-                              <span className="text-sm text-[var(--foreground)] font-semibold">
+                              <span className={`text-sm font-semibold ${
+                                user.isActive ? "text-green-400" : "text-orange-400"
+                              }`}>
                                 {status}
                               </span>
                             </div>
@@ -476,7 +484,7 @@ export default async function AdminPanelPage({
                                 <input type="hidden" name="userId" value={user.id} />
                                 <button
                                   type="submit"
-                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-[var(--accent-strong)]/15 hover:border-[var(--accent-strong)] transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                  className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--background-elevated)] hover:bg-red-500/20 hover:border-red-500 hover:text-red-400 transition-colors text-[var(--foreground)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   aria-label="Suspend user"
                                   title="Suspend user from dashboard access"
                                 >
@@ -633,6 +641,10 @@ export default async function AdminPanelPage({
 
             <SocialLinksSection />
           </>
+        )}
+
+        {activeTab === "video" && (
+          <FeaturedVideoSection />
         )}
       </section>
     </div>

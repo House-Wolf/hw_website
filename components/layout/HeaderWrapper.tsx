@@ -1,13 +1,10 @@
-import { auth } from "@/lib/auth";
-import Header from "./Header";
+import HeaderConditional from "./HeaderConditional";
 
 /**
- * @component HeaderWrapper - Server component wrapper for Header
- * @description Fetches auth session and passes login state to Header
+ * @component HeaderWrapper - Wrapper for conditional header rendering
+ * @description Renders the conditional header component
  * @author House Wolf Dev Team
  */
-export default async function HeaderWrapper() {
-  const session = await auth();
-
-  return <Header isLoggedIn={!!session?.user} />;
+export default function HeaderWrapper() {
+  return <HeaderConditional />;
 }

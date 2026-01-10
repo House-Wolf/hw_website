@@ -37,6 +37,7 @@ model User {
   rejectedSocialLinks       SocialLink[]                      @relation("RejectedSocialLinks")
   socialLinks               SocialLink[]
   roles                     UserRole[]
+  themePreference           String?                           @default("night") @map("theme_preference")
 
   @@map("users")
 }
