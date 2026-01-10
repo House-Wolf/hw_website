@@ -567,7 +567,7 @@ export default async function AdminPanelPage({
                               {dossier.subdivisionName ? ` • ${dossier.subdivisionName}` : ""}
                             </span>
                           </div>
-                          <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-hidden">
+                          <p className="text-sm text-[var(--foreground)] mt-2 max-h-24 overflow-y-auto">
                             {dossier.bio}
                           </p>
                           <form action={approveDossierAction} className="mt-3">
