@@ -23,13 +23,10 @@ export default function EpicCTA() {
 
   return (
     <section className="relative w-full min-h-[700px] overflow-hidden border-t border-white/40">
-      {/* Background Image with Parallax */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{ transform: `translateY(${scrollY * 0.5}px)` }}
-      >
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
         <SafeImage
-          src="/images/global/Websitebgnew.png"
+          src="/images/video-thumb.jpg"
           alt="House Wolf Background"
           fill
           className="object-cover brightness-150"

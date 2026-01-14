@@ -99,16 +99,29 @@ async function fetchDiscord(endpoint: string) {
  */
 export async function getUpcomingEvents(): Promise<Event[]> {
   const guildId = process.env.DISCORD_GUILD_ID;
-  if (!guildId) return [];
+  if (!guildId) {
+    console.warn("DISCORD_GUILD_ID is not set");
+    return [];
+  }
 
   const events: DiscordEvent[] | null = await fetchDiscord(
     `/guilds/${guildId}/scheduled-events`
   );
 
-  if (!events) return [];
+  if (!events) {
+    console.warn("No events returned from Discord API");
+    return [];
+  }
 
-  return events
-    .filter((event) => new Date(event.scheduled_start_time) > new Date())
+  console.log(`Fetched ${events.length} total events from Discord`);
+
+  const upcomingEvents = events.filter(
+    (event) => new Date(event.scheduled_start_time) > new Date()
+  );
+
+  console.log(`${upcomingEvents.length} upcoming events after filtering`);
+
+  return upcomingEvents
     .slice(0, 3)
     .map((event) => {
       const date = new Date(event.scheduled_start_time);
