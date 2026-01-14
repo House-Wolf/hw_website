@@ -92,6 +92,16 @@ export default function Hero({
     [announcements]
   );
 
+  const formattedEvents = useMemo(
+    () =>
+      events.map((e) => ({
+        ...e,
+        title: normalizeDiscordMentions(e.title),
+        description: normalizeDiscordMentions(e.description),
+      })),
+    [events]
+  );
+
   return (
     <section className="w-full bg-background-base mt-0">
       {/* Mobile: ONLY show featured image */}
@@ -202,10 +212,10 @@ export default function Hero({
           </div>
         </a>
 
-        {/* RIGHT — ANNOUNCEMENTS + EVENTS */}
+        {/* RIGHT — ANNOUNCEMENTS ONLY */}
         <div className="flex flex-col w-full h-full bg-background-soft overflow-hidden">
           {/* Announcements */}
-          <div className="flex-1 min-h-0 border-b border-border-subtle p-3 overflow-y-auto scrollbar-hide">
+          <div className="w-full h-full p-4 overflow-y-auto scrollbar-hide">
             <header className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold uppercase tracking-widest text-crimson-light">
                 Announcements
@@ -215,7 +225,7 @@ export default function Hero({
 
             <div className="space-y-3">
               {formattedAnnouncements.length ? (
-                formattedAnnouncements.slice(0, 2).map((a) => (
+                formattedAnnouncements.slice(0, 3).map((a) => (
                   <div
                     key={a.id}
                     className="p-3 rounded-md bg-background-elevated/50 border border-border-subtle hover:border-crimson transition-colors"
@@ -252,47 +262,64 @@ export default function Hero({
               )}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Events */}
-          <div className="flex-1 min-h-0 p-4 overflow-y-auto scrollbar-hide">
-            <header className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-steel-light">
-                Upcoming Events
-              </h2>
-              <CalendarDays size={18} className="text-steel-light" />
-            </header>
+      {/* FULL-WIDTH EVENTS SECTION (below hero) */}
+      <div
+        className="w-full border-t border-border-subtle py-8 px-4 md:px-8 lg:px-12 relative"
+        style={{
+          backgroundImage: "url('/images/Events Background.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/70" />
 
-            <div className="space-y-3">
-              {events.length ? (
-                events.slice(0, 3).map((e) => (
-                  <div
-                    key={e.id}
-                    className="p-3 rounded-md bg-background-elevated/50 border border-border-subtle hover:border-teal transition-colors"
-                  >
-                    <p className="font-semibold text-md text-foreground mb-1">
-                      {e.title}
-                    </p>
+        {/* Content container */}
+        <div className="relative z-10">
+          <header className="flex items-center justify-between mb-6 max-w-7xl mx-auto">
+            <h2 className="text-lg md:text-xl font-bold uppercase tracking-widest text-steel-light">
+              Upcoming Events
+            </h2>
+            <CalendarDays size={24} className="text-steel-light" />
+          </header>
 
-                    <p className="text-md text-steel-light font-mono mb-1">
-                      {new Date(e.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      • {e.time}
-                    </p>
-
-                    <p className="text-md text-foreground-muted leading-relaxed">
-                      {e.description}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-md text-foreground-muted italic">
-                  No upcoming events posted.
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {formattedEvents.length ? (
+            formattedEvents.map((e) => (
+              <div
+                key={e.id}
+                className="p-4 rounded-lg bg-background-card border border-border-subtle hover:border-steel transition-colors shadow-sm hover:shadow-md"
+              >
+                <p className="font-bold text-lg text-foreground mb-2">
+                  {e.title}
                 </p>
-              )}
-            </div>
-          </div>
+
+                <p className="text-sm text-steel-light font-mono mb-3">
+                  {new Date(e.date).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}{" "}
+                  • {e.time}
+                </p>
+
+                <MarkdownContent
+                  content={e.description}
+                  className="text-sm text-foreground-muted leading-relaxed"
+                />
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-foreground-muted italic col-span-full">
+              No upcoming events posted.
+            </p>
+          )}
+        </div>
         </div>
       </div>
     </section>
