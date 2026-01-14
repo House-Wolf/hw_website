@@ -826,22 +826,20 @@ body.scrollbar-hide::-webkit-scrollbar {
 }
 
 /* Auto-hiding scrollbar for main page */
-::-webkit-scrollbar {
+html::-webkit-scrollbar {
   width: 10px;
-  transition: width 0.3s ease;
 }
 
-::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track {
   background: var(--hw-shadow);
 }
 
-::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb {
   background: var(--hw-steel-teal);
   border-radius: 5px;
-  transition: background 0.2s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+html::-webkit-scrollbar-thumb:hover {
   background: var(--accent-secondary-hover);
 }
 
@@ -851,21 +849,14 @@ html {
   scrollbar-color: var(--hw-steel-teal) var(--hw-shadow);
 }
 
-/* Auto-hide scrollbar on inactivity */
-html.scrollbar-inactive::-webkit-scrollbar {
-  width: 0px !important;
-  transition: width 0.6s ease 1s !important;
-}
-
-html.scrollbar-active::-webkit-scrollbar {
-  width: 10px !important;
-  transition: width 0.2s ease !important;
-}
-
+/* Hide scrollbar when inactive */
 html.scrollbar-inactive {
   scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-html.scrollbar-active {
-  scrollbar-width: thin !important;
+html.scrollbar-inactive::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
