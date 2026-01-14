@@ -837,6 +837,7 @@ body.scrollbar-hide::-webkit-scrollbar {
 ::-webkit-scrollbar-thumb {
   background: var(--hw-steel-teal);
   border-radius: 5px;
+  opacity: 1;
   transition: opacity 0.3s ease, background 0.2s ease;
 }
 
@@ -852,12 +853,11 @@ html {
 
 /* Auto-hide scrollbar on inactivity */
 html.scrollbar-inactive::-webkit-scrollbar-thumb {
-  opacity: 0;
-  transition: opacity 0.6s ease 1s;
+  opacity: 0 !important;
+  transition: opacity 0.6s ease 1s !important;
 }
 
-html.scrollbar-active::-webkit-scrollbar-thumb,
-html:hover::-webkit-scrollbar-thumb {
-  opacity: 1;
-  transition: opacity 0.2s ease;
+html.scrollbar-active::-webkit-scrollbar-thumb {
+  opacity: 1 !important;
+  transition: opacity 0.2s ease !important;
 }

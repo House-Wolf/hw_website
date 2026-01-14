@@ -16,6 +16,7 @@ export default function ScrollbarAutoHide() {
       // Remove inactive class and add active class when scrolling
       htmlElement.classList.remove("scrollbar-inactive");
       htmlElement.classList.add("scrollbar-active");
+      console.log("Scrollbar active");
 
       // Clear previous timeout
       clearTimeout(scrollTimeout);
@@ -24,6 +25,7 @@ export default function ScrollbarAutoHide() {
       scrollTimeout = setTimeout(() => {
         htmlElement.classList.remove("scrollbar-active");
         htmlElement.classList.add("scrollbar-inactive");
+        console.log("Scrollbar inactive");
       }, 2000);
     };
 
