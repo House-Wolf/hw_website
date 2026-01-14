@@ -269,7 +269,7 @@ export default function Hero({
       <div
         className="w-full border-t border-border-subtle py-8 px-4 md:px-8 lg:px-12 relative"
         style={{
-          backgroundImage: "url('/images/Events Background.jpg')",
+          backgroundImage: "url('/images/global/SentinelWolfBoomTube.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat"

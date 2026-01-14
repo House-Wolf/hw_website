@@ -26,7 +26,7 @@ export default function EpicCTA() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <SafeImage
-          src="/images/video-thumb.jpg"
+          src="/images/global/Events Background.jpg"
           alt="House Wolf Background"
           fill
           className="object-cover brightness-150"
