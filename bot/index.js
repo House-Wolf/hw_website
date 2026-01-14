@@ -22,6 +22,7 @@ console.log(`   - MARKETPLACE_CHANNEL_ID: ${process.env.MARKETPLACE_CHANNEL_ID ?
 console.log(`   - DISCORD_INVITE_URL: ${process.env.DISCORD_INVITE_URL ? '✅ SET (' + process.env.DISCORD_INVITE_URL + ')' : '❌ MISSING'}`);
 console.log(`   - MARKETPLACE_GUEST_ROLE: ${process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest (default)'}`);
 console.log(`   - BUYER_ROLE_ID: ${process.env.BUYER_ROLE_ID ? '✅ SET' : '❌ MISSING'}`);
+console.log(`   - DISCORD_BOT_CHANNEL_ID: ${process.env.DISCORD_BOT_CHANNEL_ID ? '✅ SET' : '❌ MISSING'}`);
 
 const MARKETPLACE_GUEST_ROLE_NAME = process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest';
 const BUYER_ROLE_ID = process.env.BUYER_ROLE_ID;
@@ -810,6 +811,206 @@ app.post("/track-marketplace-guest", async (req, res) => {
     res.json({ success: true, message: "Guest tracked for auto-removal" });
   } catch (err) {
     console.error("❌ Failed to track marketplace guest:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ POST /github-webhook — Receive GitHub webhook events and post to Discord
+app.post("/github-webhook", async (req, res) => {
+  try {
+    const event = req.headers['x-github-event'];
+    const payload = req.body;
+
+    console.log(`🔔 Received GitHub webhook: ${event}`);
+
+    // Get the Discord channel
+    const GITHUB_UPDATES_CHANNEL_ID = process.env.DISCORD_BOT_CHANNEL_ID;
+    if (!GITHUB_UPDATES_CHANNEL_ID) {
+      console.error('❌ DISCORD_BOT_CHANNEL_ID not set in environment variables');
+      return res.status(500).json({ error: 'Discord channel not configured' });
+    }
+
+    const channel = await client.channels.fetch(GITHUB_UPDATES_CHANNEL_ID);
+    if (!channel || !channel.isTextBased()) {
+      console.error('❌ Could not fetch Discord channel or channel is not text-based');
+      return res.status(404).json({ error: 'Discord channel not found' });
+    }
+
+    let embed = null;
+
+    // Handle different GitHub events
+    switch (event) {
+      case 'pull_request': {
+        const { action, pull_request, repository } = payload;
+
+        // Only handle opened, closed, and reopened PRs
+        if (!['opened', 'closed', 'reopened'].includes(action)) {
+          return res.json({ success: true, message: 'Event ignored' });
+        }
+
+        const isMerged = pull_request.merged;
+        const color = action === 'opened' ? 0x10b981 : // Green for opened
+                     isMerged ? 0x8b5cf6 : // Purple for merged
+                     action === 'closed' ? 0x6b7280 : // Gray for closed
+                     0x3b82f6; // Blue for reopened
+
+        const icon = action === 'opened' ? '🔀' :
+                    isMerged ? '✅' :
+                    action === 'closed' ? '❌' :
+                    '🔄';
+
+        const actionText = isMerged ? 'merged' : action;
+
+        embed = new EmbedBuilder()
+          .setColor(color)
+          .setTitle(`${icon} Pull Request ${actionText}: ${pull_request.title}`)
+          .setDescription(pull_request.body?.substring(0, 300) || 'No description provided')
+          .addFields(
+            { name: '👤 Author', value: pull_request.user.login, inline: true },
+            { name: '🔢 PR Number', value: `#${pull_request.number}`, inline: true },
+            { name: '🌿 Branch', value: `\`${pull_request.head.ref}\` → \`${pull_request.base.ref}\``, inline: false },
+            { name: '📝 Changes', value: `+${pull_request.additions} / -${pull_request.deletions} lines`, inline: true },
+            { name: '📂 Files', value: `${pull_request.changed_files} file(s)`, inline: true }
+          )
+          .setURL(pull_request.html_url)
+          .setFooter({ text: repository.full_name })
+          .setTimestamp();
+        break;
+      }
+
+      case 'push': {
+        const { ref, commits, repository, pusher, compare } = payload;
+
+        // Ignore non-branch pushes
+        if (!ref.startsWith('refs/heads/')) {
+          return res.json({ success: true, message: 'Event ignored' });
+        }
+
+        const branch = ref.replace('refs/heads/', '');
+        const commitCount = commits.length;
+
+        if (commitCount === 0) {
+          return res.json({ success: true, message: 'No commits to report' });
+        }
+
+        // Build commit list (max 5)
+        const commitList = commits.slice(0, 5).map(commit =>
+          `• [\`${commit.id.substring(0, 7)}\`](${commit.url}) ${commit.message.split('\n')[0]}`
+        ).join('\n');
+
+        const moreCommits = commitCount > 5 ? `\n*...and ${commitCount - 5} more commit(s)*` : '';
+
+        embed = new EmbedBuilder()
+          .setColor(0x3b82f6) // Blue
+          .setTitle(`📌 ${commitCount} new commit${commitCount > 1 ? 's' : ''} pushed to \`${branch}\``)
+          .setDescription(`${commitList}${moreCommits}`)
+          .addFields(
+            { name: '👤 Pushed by', value: pusher.name, inline: true },
+            { name: '🌿 Branch', value: `\`${branch}\``, inline: true }
+          )
+          .setURL(compare)
+          .setFooter({ text: repository.full_name })
+          .setTimestamp();
+        break;
+      }
+
+      case 'issues': {
+        const { action, issue, repository } = payload;
+
+        // Only handle opened and closed issues
+        if (!['opened', 'closed', 'reopened'].includes(action)) {
+          return res.json({ success: true, message: 'Event ignored' });
+        }
+
+        const color = action === 'opened' ? 0x22c55e : // Green
+                     action === 'closed' ? 0xef4444 : // Red
+                     0x3b82f6; // Blue
+
+        const icon = action === 'opened' ? '🐛' :
+                    action === 'closed' ? '✅' :
+                    '🔄';
+
+        embed = new EmbedBuilder()
+          .setColor(color)
+          .setTitle(`${icon} Issue ${action}: ${issue.title}`)
+          .setDescription(issue.body?.substring(0, 300) || 'No description provided')
+          .addFields(
+            { name: '👤 Author', value: issue.user.login, inline: true },
+            { name: '🔢 Issue Number', value: `#${issue.number}`, inline: true }
+          )
+          .setURL(issue.html_url)
+          .setFooter({ text: repository.full_name })
+          .setTimestamp();
+        break;
+      }
+
+      case 'release': {
+        const { action, release, repository } = payload;
+
+        if (action !== 'published') {
+          return res.json({ success: true, message: 'Event ignored' });
+        }
+
+        embed = new EmbedBuilder()
+          .setColor(0xfbbf24) // Amber
+          .setTitle(`🚀 New Release: ${release.name || release.tag_name}`)
+          .setDescription(release.body?.substring(0, 500) || 'No release notes provided')
+          .addFields(
+            { name: '🏷️ Tag', value: release.tag_name, inline: true },
+            { name: '👤 Published by', value: release.author.login, inline: true }
+          )
+          .setURL(release.html_url)
+          .setFooter({ text: repository.full_name })
+          .setTimestamp();
+        break;
+      }
+
+      case 'pull_request_review': {
+        const { action, review, pull_request, repository } = payload;
+
+        if (action !== 'submitted') {
+          return res.json({ success: true, message: 'Event ignored' });
+        }
+
+        const state = review.state.toLowerCase();
+        const color = state === 'approved' ? 0x10b981 : // Green
+                     state === 'changes_requested' ? 0xef4444 : // Red
+                     0x6b7280; // Gray
+
+        const icon = state === 'approved' ? '✅' :
+                    state === 'changes_requested' ? '🔄' :
+                    '💬';
+
+        const stateText = state.replace('_', ' ');
+
+        embed = new EmbedBuilder()
+          .setColor(color)
+          .setTitle(`${icon} PR Review: ${stateText}`)
+          .setDescription(`**PR:** ${pull_request.title}\n\n${review.body || 'No comment provided'}`)
+          .addFields(
+            { name: '👤 Reviewer', value: review.user.login, inline: true },
+            { name: '🔢 PR', value: `#${pull_request.number}`, inline: true }
+          )
+          .setURL(review.html_url)
+          .setFooter({ text: repository.full_name })
+          .setTimestamp();
+        break;
+      }
+
+      default:
+        console.log(`ℹ️ Unhandled GitHub event: ${event}`);
+        return res.json({ success: true, message: 'Event type not configured for Discord notifications' });
+    }
+
+    // Send the embed to Discord
+    if (embed) {
+      await channel.send({ embeds: [embed] });
+      console.log(`✅ Posted GitHub ${event} update to Discord`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Failed to process GitHub webhook:', err);
     res.status(500).json({ error: err.message });
   }
 });
