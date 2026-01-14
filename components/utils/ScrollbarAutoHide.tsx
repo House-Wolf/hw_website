@@ -10,19 +10,20 @@ import { useEffect } from "react";
 export default function ScrollbarAutoHide() {
   useEffect(() => {
     let scrollTimeout: NodeJS.Timeout;
+    const htmlElement = document.documentElement;
 
     const handleScroll = () => {
       // Remove inactive class and add active class when scrolling
-      document.body.classList.remove("scrollbar-inactive");
-      document.body.classList.add("scrollbar-active");
+      htmlElement.classList.remove("scrollbar-inactive");
+      htmlElement.classList.add("scrollbar-active");
 
       // Clear previous timeout
       clearTimeout(scrollTimeout);
 
       // Set timeout to hide scrollbar after 2 seconds of inactivity
       scrollTimeout = setTimeout(() => {
-        document.body.classList.remove("scrollbar-active");
-        document.body.classList.add("scrollbar-inactive");
+        htmlElement.classList.remove("scrollbar-active");
+        htmlElement.classList.add("scrollbar-inactive");
       }, 2000);
     };
 
@@ -31,7 +32,7 @@ export default function ScrollbarAutoHide() {
 
     // Initialize as inactive after 2 seconds
     scrollTimeout = setTimeout(() => {
-      document.body.classList.add("scrollbar-inactive");
+      htmlElement.classList.add("scrollbar-inactive");
     }, 2000);
 
     return () => {
