@@ -824,3 +824,46 @@ body.scrollbar-hide::-webkit-scrollbar {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* Auto-hiding scrollbar for main page */
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+body::-webkit-scrollbar-track {
+  background: var(--hw-shadow);
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--hw-steel-teal);
+  border-radius: 5px;
+  transition: opacity 0.3s ease, background 0.2s ease;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary-hover);
+}
+
+/* Firefox scrollbar */
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hw-steel-teal) var(--hw-shadow);
+}
+
+/* Auto-hide scrollbar on inactivity */
+@supports selector(::-webkit-scrollbar) {
+  body::-webkit-scrollbar-thumb {
+    opacity: 1;
+  }
+
+  body.scrollbar-inactive::-webkit-scrollbar-thumb {
+    opacity: 0;
+    transition: opacity 0.6s ease 1s;
+  }
+
+  body:hover::-webkit-scrollbar-thumb,
+  body.scrollbar-active::-webkit-scrollbar-thumb {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+}
