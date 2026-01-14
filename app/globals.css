@@ -239,7 +239,7 @@ body {
   opacity: 1;
 }
 
-/* Primary Button - Crimson CTA  */
+/* Primary Button - Crimson CTA */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -820,6 +820,42 @@ body.scrollbar-hide {
 
 html.scrollbar-hide::-webkit-scrollbar,
 body.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Auto-hiding scrollbar for main page */
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+  background: var(--hw-shadow);
+}
+
+html::-webkit-scrollbar-thumb {
+  background: var(--hw-steel-teal);
+  border-radius: 5px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary-hover);
+}
+
+/* Firefox scrollbar */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hw-steel-teal) var(--hw-shadow);
+}
+
+/* Hide scrollbar when inactive */
+html.scrollbar-inactive {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.scrollbar-inactive::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;

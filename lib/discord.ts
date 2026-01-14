@@ -2,6 +2,10 @@ import { normalizeDiscordMentions } from "./discord/formatMentions";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
+// In-memory cache to prevent rate limit issues
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 600000; // 10 minutes in milliseconds
+
 interface DiscordMessage {
   id: string;
   content: string;
@@ -73,20 +77,49 @@ async function fetchDiscord(endpoint: string) {
     return null;
   }
 
+  // Check in-memory cache first
+  const cached = cache.get(endpoint);
+  const now = Date.now();
+
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    console.log(`Using cached data for ${endpoint}`);
+    return cached.data;
+  }
+
   try {
     const response = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
       headers: { Authorization: `Bot ${token}` },
-      next: { revalidate: 300 }
+      next: { revalidate: 600 }, // Cache for 10 minutes
+      cache: 'force-cache' // Aggressive caching to prevent rate limits
     });
 
     if (!response.ok) {
-      console.error(`Discord API error: ${response.status}`);
+      if (response.status === 429) {
+        console.warn(`Discord API rate limit hit for ${endpoint}. Using cached data if available.`);
+        // Return stale cache if available during rate limit
+        if (cached) {
+          console.log(`Returning stale cached data for ${endpoint}`);
+          return cached.data;
+        }
+      } else {
+        console.error(`Discord API error: ${response.status} for ${endpoint}`);
+      }
       return null;
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Store in cache
+    cache.set(endpoint, { data, timestamp: now });
+
+    return data;
   } catch (error) {
     console.error("Failed to fetch from Discord:", error);
+    // Return stale cache if available during error
+    if (cached) {
+      console.log(`Returning stale cached data for ${endpoint} due to error`);
+      return cached.data;
+    }
     return null;
   }
 }
