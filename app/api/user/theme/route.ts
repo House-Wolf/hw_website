@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { themes, ThemeName } from '@/lib/theme-config';
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { theme } = body;
 
-    if (!theme || !['night', 'kamposian'].includes(theme)) {
+    const validThemes = Object.keys(themes) as ThemeName[];
+    if (!theme || !validThemes.includes(theme)) {
       return NextResponse.json(
         { error: 'Invalid theme' },
         { status: 400 }
