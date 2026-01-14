@@ -4,7 +4,7 @@ import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import Navbar from "@/components/layout/Navbar";
 import { validateEnv } from "@/lib/env";
 import WolfChatLauncher from "@/components/chat/WolfChatLauncher";
-import { Analytics } from "@vercel/analytics/next"
+import ScrollbarAutoHide from "@/components/utils/ScrollbarAutoHide";
 
 /**
  * Root Layout Component
@@ -20,8 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <HeaderWrapper />
           <Navbar />
           {children}
-          <Analytics />
           <WolfChatLauncher />
+          <ScrollbarAutoHide />
         </Providers>
       </body>
     </html>
