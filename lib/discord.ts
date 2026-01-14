@@ -76,11 +76,16 @@ async function fetchDiscord(endpoint: string) {
   try {
     const response = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
       headers: { Authorization: `Bot ${token}` },
-      next: { revalidate: 300 }
+      next: { revalidate: 600 }, // Cache for 10 minutes
+      cache: 'force-cache' // Aggressive caching to prevent rate limits
     });
 
     if (!response.ok) {
-      console.error(`Discord API error: ${response.status}`);
+      if (response.status === 429) {
+        console.warn(`Discord API rate limit hit for ${endpoint}. Using cached data if available.`);
+      } else {
+        console.error(`Discord API error: ${response.status} for ${endpoint}`);
+      }
       return null;
     }
 
