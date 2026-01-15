@@ -18,6 +18,7 @@ interface Event {
   date: string;
   time: string;
   description: string;
+  scheduledStartTime: string; // ISO timestamp for client-side formatting
 }
 
 interface Announcement {
@@ -299,13 +300,16 @@ export default function Hero({
                 </p>
 
                 <p className="text-sm text-steel-light font-mono mb-3">
-                  {new Date(e.date).toLocaleDateString("en-US", {
+                  {new Date(e.scheduledStartTime).toLocaleDateString("en-US", {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}{" "}
-                  • {e.time}
+                  • {new Date(e.scheduledStartTime).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
                 </p>
 
                 <MarkdownContent
