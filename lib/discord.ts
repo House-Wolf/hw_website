@@ -5,6 +5,10 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 // In-memory cache to prevent rate limit issues
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 600000; // 10 minutes in milliseconds
+const STALE_CACHE_TTL = 3600000; // 1 hour - acceptable for stale data during errors/rate limits
+
+// Request deduplication: track in-flight requests to prevent simultaneous calls
+const pendingRequests = new Map<string, Promise<any>>();
 
 interface DiscordMessage {
   id: string;
@@ -40,6 +44,7 @@ interface Event {
   date: string;
   time: string;
   description: string;
+  scheduledStartTime: string; // ISO timestamp for client-side formatting
 }
 
 interface Announcement {
@@ -86,42 +91,64 @@ async function fetchDiscord(endpoint: string) {
     return cached.data;
   }
 
-  try {
-    const response = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
-      headers: { Authorization: `Bot ${token}` },
-      next: { revalidate: 600 }, // Cache for 10 minutes
-      cache: 'force-cache' // Aggressive caching to prevent rate limits
-    });
+  // Request deduplication: if there's already a pending request, return it
+  const existingRequest = pendingRequests.get(endpoint);
+  if (existingRequest) {
+    console.log(`Deduplicating request for ${endpoint}`);
+    return existingRequest;
+  }
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn(`Discord API rate limit hit for ${endpoint}. Using cached data if available.`);
-        // Return stale cache if available during rate limit
-        if (cached) {
-          console.log(`Returning stale cached data for ${endpoint}`);
-          return cached.data;
+  // Create new request and track it
+  const requestPromise = (async () => {
+    try {
+      const response = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
+        headers: { Authorization: `Bot ${token}` },
+        next: { revalidate: 600 }, // Cache for 10 minutes
+        cache: 'force-cache' // Aggressive caching to prevent rate limits
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.warn(`Discord API rate limit hit for ${endpoint}. Using cached data if available.`);
+          // Return stale cache if available during rate limit (accept older data)
+          if (cached && now - cached.timestamp < STALE_CACHE_TTL) {
+            console.log(`Returning stale cached data for ${endpoint} (age: ${Math.floor((now - cached.timestamp) / 1000)}s)`);
+            // Extend the cache timestamp to prevent immediate retries during rate limit
+            cache.set(endpoint, { data: cached.data, timestamp: now });
+            return cached.data;
+          }
+        } else {
+          console.error(`Discord API error: ${response.status} for ${endpoint}`);
         }
-      } else {
-        console.error(`Discord API error: ${response.status} for ${endpoint}`);
+        return null;
+      }
+
+      const data = await response.json();
+
+      // Store in cache
+      cache.set(endpoint, { data, timestamp: now });
+
+      return data;
+    } catch (error) {
+      console.error("Failed to fetch from Discord:", error);
+      // Return stale cache if available during error (accept older data)
+      if (cached && now - cached.timestamp < STALE_CACHE_TTL) {
+        console.log(`Returning stale cached data for ${endpoint} due to error (age: ${Math.floor((now - cached.timestamp) / 1000)}s)`);
+        // Extend the cache timestamp to prevent immediate retries during errors
+        cache.set(endpoint, { data: cached.data, timestamp: now });
+        return cached.data;
       }
       return null;
+    } finally {
+      // Clean up pending request tracker
+      pendingRequests.delete(endpoint);
     }
+  })();
 
-    const data = await response.json();
+  // Track the pending request
+  pendingRequests.set(endpoint, requestPromise);
 
-    // Store in cache
-    cache.set(endpoint, { data, timestamp: now });
-
-    return data;
-  } catch (error) {
-    console.error("Failed to fetch from Discord:", error);
-    // Return stale cache if available during error
-    if (cached) {
-      console.log(`Returning stale cached data for ${endpoint} due to error`);
-      return cached.data;
-    }
-    return null;
-  }
+  return requestPromise;
 }
 
 /**
@@ -148,13 +175,25 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 
   console.log(`Fetched ${events.length} total events from Discord`);
 
-  const upcomingEvents = events.filter(
-    (event) => new Date(event.scheduled_start_time) > new Date()
-  );
+  // Filter events: show events scheduled for today or future dates (entire day, not just future times)
+  const upcomingEvents = events.filter((event) => {
+    const eventDate = new Date(event.scheduled_start_time);
+    const today = new Date();
+
+    // Compare dates only (ignore time) - set both to midnight
+    eventDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return eventDate >= today;
+  });
 
   console.log(`${upcomingEvents.length} upcoming events after filtering`);
 
+  // Sort by scheduled start time (ascending - soonest first) and show up to 3 events
   return upcomingEvents
+    .sort((a, b) =>
+      new Date(a.scheduled_start_time).getTime() - new Date(b.scheduled_start_time).getTime()
+    )
     .slice(0, 3)
     .map((event) => {
       const date = new Date(event.scheduled_start_time);
@@ -166,7 +205,8 @@ export async function getUpcomingEvents(): Promise<Event[]> {
           hour: "2-digit",
           minute: "2-digit"
         }),
-        description: event.description ?? ""
+        description: event.description ?? "",
+        scheduledStartTime: event.scheduled_start_time // Keep raw ISO timestamp
       };
     });
 }

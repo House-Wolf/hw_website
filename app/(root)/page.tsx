@@ -72,6 +72,10 @@ export const metadata: Metadata = {
   },
 }
 
+// Enable ISR (Incremental Static Regeneration) to cache page for 10 minutes
+// This prevents overwhelming the Discord API with requests on every page load
+export const revalidate = 600; // 10 minutes in seconds
+
 
 /**
  * @component Home
