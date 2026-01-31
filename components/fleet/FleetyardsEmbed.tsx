@@ -36,7 +36,10 @@ export default function FleetyardsEmbed() {
 
   /* 🌐 Load Fleetyards embed */
   useEffect(() => {
-    if (document.getElementById("fleetyards-embed")) return;
+    const existingScript = document.getElementById("fleetyards-embed");
+    if (existingScript) {
+      existingScript.remove();
+    }
 
     window.FleetYardsFleetchartConfig = {
       details: true,
@@ -64,13 +67,7 @@ export default function FleetyardsEmbed() {
   const showSpinner = !(scriptLoaded && delayDone);
 
   return (
-    <div
-      className="
-        relative
-        w-full
-        h-full
-      "
-    >
+    <div className="relative w-full min-h-[420px] md:min-h-[560px] lg:min-h-[640px]">
       {/* 🔄 Spinner Overlay */}
       {showSpinner && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
