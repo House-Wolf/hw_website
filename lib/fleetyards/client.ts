@@ -42,30 +42,27 @@ function getTotalPages(data: any): number {
 }
 
 async function getAllPages(path: string): Promise<any[]> {
-  const pageSize = 100;
-  let page = 1;
-  let allItems: any[] = [];
+  const firstPath = `${path}?page=1&per_page=100`;
+  const first = await getJson(firstPath);
 
-  while (true) {
-    const data = await getJson(
-      `${path}?page[number]=${page}&page[size]=${pageSize}`
-    );
+  const firstItems = normalizeArray(first);
+  const totalPages = getTotalPages(first);
 
-    const items = normalizeArray(data);
-
-    console.log(`FleetYards page ${page}:`, items.length, data);
-
-    allItems = [...allItems, ...items];
-
-    if (items.length < pageSize) {
-      break;
-    }
-
-    page++;
+  if (totalPages <= 1) {
+    return firstItems;
   }
 
-  return allItems;
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, async (_, index) => {
+      const page = index + 2;
+      const data = await getJson(`${path}?page=${page}&per_page=100`);
+      return normalizeArray(data);
+    })
+  );
+
+  return [...firstItems, ...remainingPages.flat()];
 }
+
 
 export async function getPublicFleetData(
   fleetSlug: string,
