@@ -5,33 +5,30 @@ interface FleetShipCardProps {
   vehicle: FleetYardsVehicle;
 }
 
+export interface FleetYardsModel {
+  slug: string;
+  name: string;
+  storeImage: string | null; // <-- camelCase, direct field
+  fleetchartImage: string | null; // <-- camelCase, direct field
+  backgroundImage: string | null;
+  manufacturer?: {
+    name: string;
+  };
+  focus?: string | null;
+  size?: string | null;
+  sizeLabel?: string | null;
+  classification?: string | null;
+  classificationLabel?: string | null;
+  productionStatus?: string | null;
+  productionStatusLabel?: string | null;
+}
+
 function getImage(vehicle: FleetYardsVehicle) {
   const model: any = vehicle.model;
   if (!model) return null;
 
-  // FleetYards v2 API: media is an array of { category, source, ... }
-  if (Array.isArray(model.media)) {
-    const storeImg = model.media.find(
-      (m: any) => m.category === "store_image" || m.category === "storeImage"
-    );
-    if (storeImg?.source) return storeImg.source;
-
-    // Fall back to any media item with a source
-    const anyImg = model.media.find((m: any) => m.source);
-    if (anyImg?.source) return anyImg.source;
-  }
-
-  // FleetYards v1 / flat fields
   return (
-    model.storeImage ??
-    model.storeImageMedium ??
-    model.storeImageLarge ??
-    model.store_image ??
-    model.store_image_medium ??
-    model.store_image_large ??
-    model.fleetchartImage ??
-    model.fleetchart_image ??
-    null
+    model.storeImage ?? model.backgroundImage ?? model.fleetchartImage ?? null
   );
 }
 
@@ -47,6 +44,10 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
             src={image}
             alt={model?.name ?? "Fleet ship"}
             className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
+            onError={(e) => {
+              console.error("Image failed to load:", image);
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
           />
         ) : (
           <div className="text-sm uppercase tracking-widest text-white/30">

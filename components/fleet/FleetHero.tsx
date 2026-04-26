@@ -13,7 +13,7 @@ export default function FleetHero({ totalShips }: FleetHeroProps) {
       <div className="relative z-10 max-w-3xl">
         {/* Header Tag */}
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-500">
-          House Wolf Battalion
+          House Wolf Fleet Command
         </p>
 
         {/* Main Title */}
