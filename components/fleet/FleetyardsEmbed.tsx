@@ -6,6 +6,7 @@ declare global {
   interface Window {
     FleetYardsFleetchartConfig?: FleetYardsFleetchartConfig;
     FleetYardsFleetchart?: unknown;
+    API_ENDPOINT?: string;
   }
 }
 
@@ -26,7 +27,8 @@ export default function FleetyardsEmbed() {
 
   useEffect(() => {
     if (document.getElementById("fleetyards-embed")) {
-      // Script already loaded from a previous navigation — poll for mount
+      // Script already loaded from a previous navigation
+      window.API_ENDPOINT = "/api/fleet-proxy";
       pollForMount();
       return;
     }
@@ -46,7 +48,13 @@ export default function FleetyardsEmbed() {
     script.id = "fleetyards-embed";
     script.src = "https://fleetyards.net/embed-v2.js";
     script.async = true;
-    script.onload = pollForMount;
+    script.onload = () => {
+      // embed-v2.js sets window.API_ENDPOINT = 'https://api.fleetyards.net/v1'
+      // Override it to our proxy before the deferred Vue module bundle reads it,
+      // so XHR requests go server-side and bypass the CORS withCredentials conflict.
+      window.API_ENDPOINT = "/api/fleet-proxy";
+      pollForMount();
+    };
     document.body.appendChild(script);
 
     return () => {
