@@ -4,16 +4,22 @@ interface FleetShipCardProps {
   vehicle: FleetYardsVehicle;
 }
 
-function getImage(vehicle: FleetYardsVehicle) {
-  const model = vehicle.model;
-  if (!model) return null;
+function getImage(vehicle: FleetYardsVehicle): string | null {
+  const media = vehicle.model?.media;
+  if (!media) return null;
 
+  // storeImage is an object with a url property
+  if (media.storeImage?.url) return media.storeImage.url;
+
+  // fleetchartImage is a direct string URL
+  if (media.fleetchartImage) return media.fleetchartImage;
+
+  // Fall back to any other view
   return (
-    model.storeImage ??
-    model.storeImageMedium ??
-    model.storeImageLarge ??
-    model.backgroundImage ??
-    model.fleetchartImage ??
+    media.angledView?.url ??
+    media.sideView?.url ??
+    media.topView?.url ??
+    media.frontView?.url ??
     null
   );
 }

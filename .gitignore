@@ -68,3 +68,4 @@ AUTH_IMPLEMENTATION_SUMMARY.md
 /public/uploads/
 CLAUDE.md
 AGENTS.md
+.env*.local

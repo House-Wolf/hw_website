@@ -1,3 +1,24 @@
+export interface FleetYardsMediaImage {
+  url: string;
+  smallUrl?: string;
+  mediumUrl?: string;
+  largeUrl?: string;
+  xlargeUrl?: string;
+  name?: string;
+  contentType?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface FleetYardsMedia {
+  storeImage?: FleetYardsMediaImage | null;
+  fleetchartImage?: string | null; // direct URL string, not an object
+  angledView?: FleetYardsMediaImage | null;
+  frontView?: FleetYardsMediaImage | null;
+  sideView?: FleetYardsMediaImage | null;
+  topView?: FleetYardsMediaImage | null;
+}
+
 export interface FleetYardsManufacturer {
   name?: string | null;
   slug?: string | null;
@@ -16,11 +37,7 @@ export interface FleetYardsModel {
   productionStatus?: string | null;
   productionStatusLabel?: string | null;
   manufacturer?: FleetYardsManufacturer | null;
-  storeImage?: string | null;
-  storeImageMedium?: string | null;
-  storeImageLarge?: string | null;
-  fleetchartImage?: string | null;
-  backgroundImage?: string | null;
+  media?: FleetYardsMedia | null;
 }
 
 export interface FleetYardsVehicle {

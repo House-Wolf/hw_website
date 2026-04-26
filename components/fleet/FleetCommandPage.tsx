@@ -135,7 +135,7 @@ export default function FleetCommandPage() {
         <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {filteredVehicles.map((vehicle, index) => (
             <FleetShipCard
-              key={vehicle.id ?? `${vehicle.model?.slug}-${index}`}
+              key={`${vehicle.id ?? "unknown"}-${index}`}
               vehicle={vehicle}
             />
           ))}

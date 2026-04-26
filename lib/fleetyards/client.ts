@@ -62,48 +62,11 @@ async function getAllVehiclePages(path: string): Promise<any[]> {
   return allItems;
 }
 
-const modelCache = new Map<string, any>();
-
-async function getModelDetails(slug: string): Promise<any> {
-  if (modelCache.has(slug)) return modelCache.get(slug);
-
-  const data = await getJson(`/models/${slug}`);
-  if (data) modelCache.set(slug, data);
-  return data;
-}
-
-async function enrichVehiclesWithModelDetails(vehicles: any[]): Promise<any[]> {
-  const slugs = [
-    ...new Set(
-      vehicles
-        .map((v) => v.model?.slug)
-        .filter(Boolean)
-    ),
-  ] as string[];
-
-  console.log(`Fetching full model details for ${slugs.length} unique models...`);
-
-  const BATCH_SIZE = 10;
-  for (let i = 0; i < slugs.length; i += BATCH_SIZE) {
-    const batch = slugs.slice(i, i + BATCH_SIZE);
-    await Promise.all(batch.map((slug) => getModelDetails(slug)));
-  }
-
-  return vehicles.map((v) => {
-    const slug = v.model?.slug;
-    if (!slug) return v;
-    const fullModel = modelCache.get(slug);
-    return fullModel
-      ? { ...v, model: { ...v.model, ...fullModel } }
-      : v;
-  });
-}
-
 export async function getPublicFleetData(
   fleetSlug: string
 ): Promise<HouseWolfFleetPayload> {
   const [
-    rawVehicles,
+    vehicles,
     modelCountsRaw,
     manufacturersRaw,
     classificationsRaw,
@@ -117,8 +80,6 @@ export async function getPublicFleetData(
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-size`),
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-production-status`),
   ]);
-
-  const vehicles = await enrichVehiclesWithModelDetails(rawVehicles);
 
   return {
     fleetSlug,
