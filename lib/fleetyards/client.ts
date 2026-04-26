@@ -20,19 +20,11 @@ async function getJson(path: string) {
 
 function normalizeArray(data: any): any[] {
   if (Array.isArray(data)) return data;
+
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.vehicles)) return data.vehicles;
   if (Array.isArray(data?.results)) return data.results;
-
-  if (data && typeof data === "object") {
-    return Object.entries(data).map(([key, value]) => ({
-      name: key,
-      label: key,
-      count: typeof value === "number" ? value : 0,
-      value,
-    }));
-  }
 
   return [];
 }
@@ -50,20 +42,22 @@ function getTotalPages(data: any): number {
 }
 
 async function getAllPages(path: string): Promise<any[]> {
-  const perPage = 100;
+  const pageSize = 100;
   let page = 1;
   let allItems: any[] = [];
 
   while (true) {
-    const data = await getJson(`${path}?page=${page}&per_page=${perPage}`);
+    const data = await getJson(
+      `${path}?page[number]=${page}&page[size]=${pageSize}`
+    );
+
     const items = normalizeArray(data);
+
+    console.log(`FleetYards page ${page}:`, items.length, data);
 
     allItems = [...allItems, ...items];
 
-    console.log(`FleetYards page ${page}:`, items.length);
-
-    // Stop when FleetYards gives less than a full page
-    if (items.length < perPage) {
+    if (items.length < pageSize) {
       break;
     }
 
