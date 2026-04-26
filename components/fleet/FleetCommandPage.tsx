@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HouseWolfFleetPayload, FleetYardsVehicle } from "@/lib/fleetyards/types";
+import FleetHero from "./FleetHero";
 import FleetStats from "./FleetStats";
 import FleetFilters from "./FleetFilters";
 import FleetShipCard from "./FleetShipCard";
-import PageHeader from "../layout/PageHeader";
-
-
 
 export default function FleetCommandPage() {
   const [data, setData] = useState<HouseWolfFleetPayload | null>(null);
@@ -109,11 +107,7 @@ export default function FleetCommandPage() {
   return (
     <main className="min-h-screen bg-[#090706] text-white">
       <section className="mx-auto max-w-7xl px-6 py-10">
-        <PageHeader
-                title="House Wolf War Pack"
-                subtitle="Explore our fleet of ships and vehicles through the interactive display below."
-                iconSrc="/images/global/HWiconnew.png"
-              />
+        <FleetHero totalShips={vehicles.length} />
 
         <FleetStats data={data} />
 
