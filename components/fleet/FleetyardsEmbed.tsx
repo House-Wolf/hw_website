@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 declare global {
   interface Window {
     FleetYardsFleetchartConfig?: FleetYardsFleetchartConfig;
+    FleetYardsFleetchart?: unknown;
   }
 }
 
@@ -19,24 +20,16 @@ interface FleetYardsFleetchartConfig {
   fleetId: string;
 }
 
-const MIN_SPINNER_TIME = 7000;
-
 export default function FleetyardsEmbed() {
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [delayDone, setDelayDone] = useState(false);
+  const [embedReady, setEmbedReady] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ⏱️ Spinner minimum duration */
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDelayDone(true);
-    }, MIN_SPINNER_TIME);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  /* 🌐 Load Fleetyards embed */
-  useEffect(() => {
-    if (document.getElementById("fleetyards-embed")) return;
+    if (document.getElementById("fleetyards-embed")) {
+      // Script already loaded from a previous navigation — poll for mount
+      pollForMount();
+      return;
+    }
 
     window.FleetYardsFleetchartConfig = {
       details: true,
@@ -53,26 +46,39 @@ export default function FleetyardsEmbed() {
     script.id = "fleetyards-embed";
     script.src = "https://fleetyards.net/embed-v2.js";
     script.async = true;
-
-    script.onload = () => {
-      setScriptLoaded(true);
-    };
-
+    script.onload = pollForMount;
     document.body.appendChild(script);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, []);
 
-  const showSpinner = !(scriptLoaded && delayDone);
+  function pollForMount() {
+    // window.FleetYardsFleetchart is set by the embed after Vue mounts
+    pollRef.current = setInterval(() => {
+      if (window.FleetYardsFleetchart) {
+        clearInterval(pollRef.current!);
+        setEmbedReady(true);
+      }
+    }, 200);
+
+    // Safety: hide spinner after 15s regardless
+    setTimeout(() => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      setEmbedReady(true);
+    }, 15000);
+  }
 
   return (
     <div className="relative w-full min-h-[700px]">
       {/* Spinner Overlay */}
-      {showSpinner && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm min-h-[700px]">
+      {!embedReady && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center min-h-[700px]">
           <div className="relative">
-            <div className="h-20 w-20 rounded-full border-4 border-white/10 border-t-[#470000] animate-spin" />
-            <div className="absolute inset-0 rounded-full blur-xl bg-[#470000]/30" />
+            <div className="h-20 w-20 rounded-full border-4 border-white/20 border-t-red-700 animate-spin" />
+            <div className="absolute inset-0 rounded-full blur-xl bg-red-900/20" />
           </div>
-
           <p className="mt-6 text-sm tracking-widest uppercase text-white/70">
             Fleet Command Uplink
           </p>
