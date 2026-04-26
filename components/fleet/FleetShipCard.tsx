@@ -6,10 +6,26 @@ interface FleetShipCardProps {
 }
 
 function getImage(vehicle: FleetYardsVehicle) {
+  const model: any = vehicle.model;
+  const media: any = model?.media;
+
   return (
-    vehicle.model?.media?.storeImageMedium ||
-    vehicle.model?.media?.storeImageLarge ||
-    vehicle.model?.media?.storeImage ||
+    media?.storeImageMedium ||
+    media?.storeImageLarge ||
+    media?.storeImageSmall ||
+    media?.storeImage ||
+    media?.fleetchartImage ||
+    media?.sideView ||
+    media?.angledView ||
+    media?.topView ||
+    model?.storeImageMedium ||
+    model?.storeImageLarge ||
+    model?.storeImageSmall ||
+    model?.storeImage ||
+    model?.fleetchartImage ||
+    model?.image ||
+    model?.imageUrl ||
+    model?.mediaUrl ||
     null
   );
 }
@@ -22,11 +38,10 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
     <article className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/80 shadow-2xl transition hover:-translate-y-1 hover:border-red-800/60">
       <div className="relative flex h-56 items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4">
         {image ? (
-          <Image
+          <img
             src={image}
             alt={model?.name ?? "Fleet ship"}
-            fill
-            className="object-contain p-4 transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="text-sm uppercase tracking-widest text-white/30">
