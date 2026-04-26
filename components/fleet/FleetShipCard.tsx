@@ -30,12 +30,12 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
 
   return (
     <article className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/80 shadow-2xl transition hover:-translate-y-1 hover:border-red-800/60">
-      <div className="relative flex h-56 items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4">
+      <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-black">
         {image ? (
           <img
             src={image}
             alt={model?.name ?? "Fleet ship"}
-            className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             onError={(e) => {
               console.error("Image failed to load:", image);
               (e.target as HTMLImageElement).style.display = "none";
