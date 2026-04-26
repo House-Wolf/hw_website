@@ -20,45 +20,69 @@ async function getJson(path: string) {
 
 function normalizeArray(data: any): any[] {
   if (Array.isArray(data)) return data;
-
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.vehicles)) return data.vehicles;
   if (Array.isArray(data?.results)) return data.results;
 
   if (data && typeof data === "object") {
-    return Object.entries(data).map(([key, value]) => {
-      if (typeof value === "number") {
-        return {
-          name: key,
-          label: key,
-          count: value,
-        };
-      }
-
-      return {
-        name: key,
-        label: key,
-        value,
-      };
-    });
+    return Object.entries(data).map(([key, value]) => ({
+      name: key,
+      label: key,
+      count: typeof value === "number" ? value : 0,
+      value,
+    }));
   }
 
   return [];
+}
+
+function getTotalPages(data: any): number {
+  return (
+    data?.meta?.totalPages ??
+    data?.meta?.total_pages ??
+    data?.pagination?.totalPages ??
+    data?.pagination?.total_pages ??
+    data?.totalPages ??
+    data?.total_pages ??
+    1
+  );
+}
+
+async function getAllPages(path: string): Promise<any[]> {
+  const firstPath = `${path}?page=1&per_page=100`;
+  const first = await getJson(firstPath);
+
+  const firstItems = normalizeArray(first);
+  const totalPages = getTotalPages(first);
+
+  if (totalPages <= 1) {
+    return firstItems;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, async (_, index) => {
+      const page = index + 2;
+      const data = await getJson(`${path}?page=${page}&per_page=100`);
+      return normalizeArray(data);
+    })
+  );
+
+  return [...firstItems, ...remainingPages.flat()];
 }
 
 export async function getPublicFleetData(
   fleetSlug: string
 ): Promise<HouseWolfFleetPayload> {
   const [
-    vehiclesRaw,
+    vehicles,
     modelCountsRaw,
     manufacturersRaw,
     classificationsRaw,
     sizesRaw,
     productionStatusesRaw,
   ] = await Promise.all([
-    getJson(`/public/fleets/${fleetSlug}/vehicles`),
+    getAllPages(`/public/fleets/${fleetSlug}/vehicles`),
     getJson(`/public/fleets/${fleetSlug}/stats/model-counts`),
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-manufacturer`),
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-classification`),
@@ -68,7 +92,7 @@ export async function getPublicFleetData(
 
   return {
     fleetSlug,
-    vehicles: normalizeArray(vehiclesRaw),
+    vehicles,
     modelCounts: normalizeArray(modelCountsRaw),
     manufacturers: normalizeArray(manufacturersRaw),
     classifications: normalizeArray(classificationsRaw),

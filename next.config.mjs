@@ -43,6 +43,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "cdn.fleetyards.net",
       },
+      {
+        protocol: "https",
+        hostname: "media.fleetyards.net",
+      },
     ],
   },
 

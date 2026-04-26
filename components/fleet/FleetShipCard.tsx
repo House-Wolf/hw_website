@@ -34,7 +34,6 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
           </div>
         )}
       </div>
-
       <div className="p-5">
         <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">
           {model?.manufacturer?.name ?? "Unknown Manufacturer"}
@@ -65,13 +64,7 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
   );
 }
 
-function Info({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | null;
-}) {
+function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <p className="text-xs uppercase tracking-widest text-white/35">{label}</p>
