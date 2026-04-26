@@ -5,10 +5,11 @@ interface FleetShipCardProps {
   vehicle: FleetYardsVehicle;
 }
 
+
 function getImage(vehicle: FleetYardsVehicle) {
   const model: any = vehicle.model;
   const media: any = model?.media;
-
+  
   return (
     media?.storeImageMedium ||
     media?.storeImageLarge ||
@@ -38,10 +39,12 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
     <article className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/80 shadow-2xl transition hover:-translate-y-1 hover:border-red-800/60">
       <div className="relative flex h-56 items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={model?.name ?? "Fleet ship"}
-            className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+            width={400}
+            height={400}
           />
         ) : (
           <div className="text-sm uppercase tracking-widest text-white/30">
