@@ -1,34 +1,20 @@
-import Image from "next/image";
 import { FleetYardsVehicle } from "@/lib/fleetyards/types";
 
 interface FleetShipCardProps {
   vehicle: FleetYardsVehicle;
 }
 
-export interface FleetYardsModel {
-  slug: string;
-  name: string;
-  storeImage: string | null; // <-- camelCase, direct field
-  fleetchartImage: string | null; // <-- camelCase, direct field
-  backgroundImage: string | null;
-  manufacturer?: {
-    name: string;
-  };
-  focus?: string | null;
-  size?: string | null;
-  sizeLabel?: string | null;
-  classification?: string | null;
-  classificationLabel?: string | null;
-  productionStatus?: string | null;
-  productionStatusLabel?: string | null;
-}
-
 function getImage(vehicle: FleetYardsVehicle) {
-  const model: any = vehicle.model;
+  const model = vehicle.model;
   if (!model) return null;
 
   return (
-    model.storeImage ?? model.backgroundImage ?? model.fleetchartImage ?? null
+    model.storeImage ??
+    model.storeImageMedium ??
+    model.storeImageLarge ??
+    model.backgroundImage ??
+    model.fleetchartImage ??
+    null
   );
 }
 
@@ -64,20 +50,20 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
           {model?.name ?? vehicle.name ?? "Unknown Ship"}
         </h3>
 
-        {vehicle.name && (
+        {vehicle.name != null && vehicle.name !== "" && (
           <p className="mt-1 text-sm text-white/50">Callsign: {vehicle.name}</p>
         )}
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <Info label="Role" value={model?.focus} />
-          <Info label="Size" value={model?.size} />
+          <Info label="Size" value={model?.sizeLabel ?? model?.size} />
           <Info
             label="Class"
-            value={model?.classificationLabel || model?.classification}
+            value={model?.classificationLabel ?? model?.classification}
           />
           <Info
             label="Status"
-            value={model?.productionStatusLabel || model?.productionStatus}
+            value={model?.productionStatusLabel ?? model?.productionStatus}
           />
         </div>
       </div>
@@ -89,7 +75,7 @@ function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <p className="text-xs uppercase tracking-widest text-white/35">{label}</p>
-      <p className="mt-1 font-semibold text-white/80">{value || "Unknown"}</p>
+      <p className="mt-1 font-semibold text-white/80">{value ?? "Unknown"}</p>
     </div>
   );
 }

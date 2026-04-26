@@ -1,10 +1,3 @@
-export interface FleetYardsMedia {
-  storeImage?: string | null;
-  storeImageLarge?: string | null;
-  storeImageMedium?: string | null;
-  storeImageSmall?: string | null;
-}
-
 export interface FleetYardsManufacturer {
   name?: string | null;
   slug?: string | null;
@@ -19,10 +12,15 @@ export interface FleetYardsModel {
   classificationLabel?: string | null;
   focus?: string | null;
   size?: string | null;
+  sizeLabel?: string | null;
   productionStatus?: string | null;
   productionStatusLabel?: string | null;
   manufacturer?: FleetYardsManufacturer | null;
-  media?: FleetYardsMedia | null;
+  storeImage?: string | null;
+  storeImageMedium?: string | null;
+  storeImageLarge?: string | null;
+  fleetchartImage?: string | null;
+  backgroundImage?: string | null;
 }
 
 export interface FleetYardsVehicle {
