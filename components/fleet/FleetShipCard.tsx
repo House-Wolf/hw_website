@@ -5,28 +5,32 @@ interface FleetShipCardProps {
   vehicle: FleetYardsVehicle;
 }
 
-
 function getImage(vehicle: FleetYardsVehicle) {
   const model: any = vehicle.model;
-  const media: any = model?.media;
-  
+  if (!model) return null;
+
+  // FleetYards v2 API: media is an array of { category, source, ... }
+  if (Array.isArray(model.media)) {
+    const storeImg = model.media.find(
+      (m: any) => m.category === "store_image" || m.category === "storeImage"
+    );
+    if (storeImg?.source) return storeImg.source;
+
+    // Fall back to any media item with a source
+    const anyImg = model.media.find((m: any) => m.source);
+    if (anyImg?.source) return anyImg.source;
+  }
+
+  // FleetYards v1 / flat fields
   return (
-    media?.storeImageMedium ||
-    media?.storeImageLarge ||
-    media?.storeImageSmall ||
-    media?.storeImage ||
-    media?.fleetchartImage ||
-    media?.sideView ||
-    media?.angledView ||
-    media?.topView ||
-    model?.storeImageMedium ||
-    model?.storeImageLarge ||
-    model?.storeImageSmall ||
-    model?.storeImage ||
-    model?.fleetchartImage ||
-    model?.image ||
-    model?.imageUrl ||
-    model?.mediaUrl ||
+    model.storeImage ??
+    model.storeImageMedium ??
+    model.storeImageLarge ??
+    model.store_image ??
+    model.store_image_medium ??
+    model.store_image_large ??
+    model.fleetchartImage ??
+    model.fleetchart_image ??
     null
   );
 }
@@ -39,12 +43,10 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
     <article className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/80 shadow-2xl transition hover:-translate-y-1 hover:border-red-800/60">
       <div className="relative flex h-56 items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4">
         {image ? (
-          <Image
+          <img
             src={image}
             alt={model?.name ?? "Fleet ship"}
-            className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
-            width={400}
-            height={400}
+            className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="text-sm uppercase tracking-widest text-white/30">

@@ -31,21 +31,13 @@ const nextConfig = {
         protocol: "https",
         hostname: "**",
       },
-      {
+     {
         protocol: "https",
-        hostname: "fleetyards.net",
-      },
-      {
-        protocol: "https",
-        hostname: "api.fleetyards.net",
+        hostname: "**.fleetyards.net",
       },
       {
         protocol: "https",
         hostname: "cdn.fleetyards.net",
-      },
-      {
-        protocol: "https",
-        hostname: "media.fleetyards.net",
       },
     ],
   },
