@@ -64,16 +64,10 @@ export default function FleetyardsEmbed() {
   const showSpinner = !(scriptLoaded && delayDone);
 
   return (
-    <div
-      className="
-        relative
-        w-full
-        h-full
-      "
-    >
-      {/* 🔄 Spinner Overlay */}
+    <div className="relative w-full min-h-[700px]">
+      {/* Spinner Overlay */}
       {showSpinner && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm min-h-[700px]">
           <div className="relative">
             <div className="h-20 w-20 rounded-full border-4 border-white/10 border-t-[#470000] animate-spin" />
             <div className="absolute inset-0 rounded-full blur-xl bg-[#470000]/30" />
@@ -88,8 +82,8 @@ export default function FleetyardsEmbed() {
         </div>
       )}
 
-      {/* 🚀 Fleetyards Render Target */}
-      <div id="fleetyards-view" className="absolute inset-0" />
+      {/* Fleetyards Render Target */}
+      <div id="fleetyards-view" className="w-full" />
     </div>
   );
 }
