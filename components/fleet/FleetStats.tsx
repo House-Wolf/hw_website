@@ -4,29 +4,32 @@ interface FleetStatsProps {
   data: HouseWolfFleetPayload;
 }
 
-function totalFromStats(items: any[]) {
-  return items.reduce((sum, item) => {
-    return sum + Number(item.count ?? item.value ?? 0);
-  }, 0);
-}
-
 export default function FleetStats({ data }: FleetStatsProps) {
+  const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+  const modelCounts = Array.isArray(data.modelCounts) ? data.modelCounts : [];
+  const manufacturers = Array.isArray(data.manufacturers)
+    ? data.manufacturers
+    : [];
+  const classifications = Array.isArray(data.classifications)
+    ? data.classifications
+    : [];
+
   const cards = [
     {
       label: "Total Vehicles",
-      value: data.vehicles.length,
+      value: vehicles.length,
     },
     {
       label: "Unique Models",
-      value: data.modelCounts.length || "—",
+      value: modelCounts.length || "—",
     },
     {
       label: "Manufacturers",
-      value: data.manufacturers.length || "—",
+      value: manufacturers.length || "—",
     },
     {
       label: "Classifications",
-      value: data.classifications.length || "—",
+      value: classifications.length || "—",
     },
   ];
 
