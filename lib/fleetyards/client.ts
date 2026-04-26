@@ -3,15 +3,15 @@ import { HouseWolfFleetPayload } from "./types";
 const FLEETYARDS_BASE_URL = "https://api.fleetyards.net/v1";
 
 async function getJson(path: string) {
-  const res = await fetch(`${FLEETYARDS_BASE_URL}${path}`, {
+  const url = `${FLEETYARDS_BASE_URL}${path}`;
+
+  const res = await fetch(url, {
     next: { revalidate: 60 * 30 },
-    headers: {
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
   });
 
   if (!res.ok) {
-    console.error(`FleetYards request failed: ${path}`, res.status);
+    console.error("FleetYards request failed:", url, res.status);
     return null;
   }
 
@@ -20,52 +20,54 @@ async function getJson(path: string) {
 
 function normalizeArray(data: any): any[] {
   if (Array.isArray(data)) return data;
-
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.vehicles)) return data.vehicles;
   if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.models)) return data.models;
+
+  if (data && typeof data === "object") {
+    return Object.entries(data).map(([key, value]) => ({
+      name: key,
+      label: key,
+      count: typeof value === "number" ? value : 0,
+      value,
+    }));
+  }
 
   return [];
 }
 
-function getTotalPages(data: any): number {
-  return (
-    data?.meta?.totalPages ??
-    data?.meta?.total_pages ??
-    data?.pagination?.totalPages ??
-    data?.pagination?.total_pages ??
-    data?.totalPages ??
-    data?.total_pages ??
-    1
-  );
-}
+async function getAllVehiclePages(path: string): Promise<any[]> {
+  const perPage = 25;
+  const maxPages = 50;
+  let page = 1;
+  let allItems: any[] = [];
 
-async function getAllPages(path: string): Promise<any[]> {
-  const firstPath = `${path}?page=1&per_page=100`;
-  const first = await getJson(firstPath);
+  while (page <= maxPages) {
+    const data = await getJson(`${path}?page=${page}&per_page=${perPage}`);
+    const items = normalizeArray(data);
 
-  const firstItems = normalizeArray(first);
-  const totalPages = getTotalPages(first);
+    console.log(`FleetYards vehicles page ${page}:`, items.length);
 
-  if (totalPages <= 1) {
-    return firstItems;
+    if (items.length === 0) {
+      break;
+    }
+
+    allItems = [...allItems, ...items];
+
+    if (items.length < perPage) {
+      break;
+    }
+
+    page++;
   }
 
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, async (_, index) => {
-      const page = index + 2;
-      const data = await getJson(`${path}?page=${page}&per_page=100`);
-      return normalizeArray(data);
-    })
-  );
-
-  return [...firstItems, ...remainingPages.flat()];
+  return allItems;
 }
 
-
 export async function getPublicFleetData(
-  fleetSlug: string,
+  fleetSlug: string
 ): Promise<HouseWolfFleetPayload> {
   const [
     vehicles,
@@ -75,7 +77,7 @@ export async function getPublicFleetData(
     sizesRaw,
     productionStatusesRaw,
   ] = await Promise.all([
-    getAllPages(`/public/fleets/${fleetSlug}/vehicles`),
+    getAllVehiclePages(`/public/fleets/${fleetSlug}/vehicles`),
     getJson(`/public/fleets/${fleetSlug}/stats/model-counts`),
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-manufacturer`),
     getJson(`/public/fleets/${fleetSlug}/stats/models-by-classification`),
