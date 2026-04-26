@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
  */
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-   reactStrictMode: true,
+  reactStrictMode: true,
   outputFileTracingRoot: __dirname,
 
   turbopack: {
@@ -26,18 +26,30 @@ const nextConfig = {
 
   images: {
     formats: ["image/avif", "image/webp"],
-      remotePatterns: [
-        {
-          protocol: "https",
-          hostname: "**",
-        },
-      ],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "https",
+        hostname: "fleetyards.net",
+      },
+      {
+        protocol: "https",
+        hostname: "api.fleetyards.net",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.fleetyards.net",
+      },
+    ],
   },
 
   // Increase body size limit for file uploads
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: "10mb",
     },
   },
 };
