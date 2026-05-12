@@ -1,6 +1,7 @@
 /**
- * SRP (Suggested Retail Price) Calculator
- * Based on HouseWolf SRP V4.0 formula
+ * SRP Calculator - HouseWolf SRP V4.1
+ *
+ * Final SRP = Base Value x Condition Multiplier x Crafted Quality Modifier
  */
 
 export type SrpItemType = "Guns" | "Armor" | "Components" | "Ship Weapons";
@@ -12,12 +13,8 @@ export type SrpCalculatorValues = {
   size: number;
   shipWeapon: number;
   component: number;
-
-  /**
-   * Crafted quality only applies to R5 Crafted items.
-   * Valid range: 700-1000 in intervals of 50.
-   */
   craftedQuality?: number;
+  manualBaseValue?: number;
 };
 
 export type RankOption = {
@@ -25,25 +22,22 @@ export type RankOption = {
   value: number;
 };
 
-// Floor Base Values by item type
-export const FBV_BY_ITEM_TYPE: Record<SrpItemType, number> = {
-  Guns: 2500,
-  Armor: 10000,
-  Components: 25000,
-  "Ship Weapons": 35000,
-};
-
-// Constants
-export const SRP_MARKUP = 0.35;
-export const RARITY_COEFFICIENT_INCREMENT = 0.09;
-export const MAX_RARITY_SCORE = 19;
+type RankBaseMap = Record<number, number>;
+type NestedRankBaseMap = Record<number, RankBaseMap>;
 
 export const MIN_CRAFTED_QUALITY = 700;
 export const MAX_CRAFTED_QUALITY = 1000;
 export const CRAFTED_QUALITY_INTERVAL = 50;
 export const CRAFTED_QUALITY_INCREMENT = 0.08;
 
-// Condition / Rarity Options
+/**
+ * Kept for compatibility with existing imports/UI.
+ * This no longer drives the final SRP formula.
+ */
+export const MAX_RARITY_SCORE = 10;
+
+export const MARKETPLACE_MARKUP = 1.35;
+
 export const CONDITION_OPTIONS: RankOption[] = [
   { label: "C1 Purchasable", value: 0 },
   { label: "C2 Not Purchasable", value: 1 },
@@ -52,7 +46,14 @@ export const CONDITION_OPTIONS: RankOption[] = [
   { label: "R5 Crafted", value: 4 },
 ];
 
-// Crafted Quality Options
+export const CONDITION_MULTIPLIERS: Record<number, number> = {
+  0: 0.70,
+  1: 1.25,
+  2: 1.4,
+  3: 1.65,
+  4: 1.5,
+};
+
 export const CRAFTED_QUALITY_OPTIONS: RankOption[] = [
   { label: "Q700 Crafted", value: 700 },
   { label: "Q750 Crafted", value: 750 },
@@ -63,21 +64,19 @@ export const CRAFTED_QUALITY_OPTIONS: RankOption[] = [
   { label: "Q1000 Crafted", value: 1000 },
 ];
 
-// Gun Options
 export const GUN_OPTIONS: RankOption[] = [
   { label: "G1 Knife", value: 1 },
   { label: "G2 Pistol", value: 2 },
   { label: "G3 SMG / PDW", value: 3 },
   { label: "G4 Shotgun", value: 4 },
-  { label: "G5 Carbine", value: 5 },
-  { label: "G6 Rifle", value: 6 },
-  { label: "G7 LMG", value: 7 },
-  { label: "G8 Sniper", value: 8 },
-  { label: "G9 Launcher", value: 9 },
+  { label: "G5 Assault Rifle", value: 5 },
+  { label: "G6 Light Machine Gun", value: 6 },
+  { label: "G7 Sniper Rifle", value: 7 },
+  { label: "G8 Grenade Launcher", value: 8 },
+  { label: "G9 Rocket Launcher", value: 9 },
   { label: "G10 Railgun", value: 10 },
 ];
 
-// Armor Options
 export const ARMOR_OPTIONS: RankOption[] = [
   { label: "A1 Undersuit", value: 1 },
   { label: "A2 Light Armor", value: 2 },
@@ -86,7 +85,6 @@ export const ARMOR_OPTIONS: RankOption[] = [
   { label: "A5 Full Set / Special", value: 5 },
 ];
 
-// Size Options
 export const SIZE_OPTIONS: RankOption[] = [
   { label: "S1 Smallest", value: 1 },
   { label: "S2", value: 2 },
@@ -96,27 +94,73 @@ export const SIZE_OPTIONS: RankOption[] = [
   { label: "S6 Largest", value: 6 },
 ];
 
-// Ship Weapon Options
 export const SHIP_WEAPON_OPTIONS: RankOption[] = [
   { label: "W1 Ballistic Repeater", value: 1 },
   { label: "W2 Laser Repeater", value: 2 },
   { label: "W3 Ballistic Cannon", value: 3 },
-  { label: "W4 Laser Cannon", value: 4 },
-  { label: "W5 Ballistic Scatter / Plasma", value: 5 },
+  { label: "W4 Distortion Repeater", value: 4 },
+  { label: "W5 Laser Cannon", value: 5 },
   { label: "W6 Distortion Cannon", value: 6 },
 ];
 
-// Component Options
 export const COMPONENT_OPTIONS: RankOption[] = [
   { label: "Comp1 Cooler", value: 1 },
-  { label: "Comp2 Power Plant", value: 2 },
-  { label: "Comp3 Shield", value: 3 },
+  { label: "Comp2 Shield", value: 2 },
+  { label: "Comp3 Power Plant", value: 3 },
   { label: "Comp4 Quantum Drive", value: 4 },
 ];
 
-/**
- * Get SRP item type from category name
- */
+export const GUN_BASE_BY_RANK: RankBaseMap = {
+  1: 1500,
+  2: 1000,
+  3: 3500,
+  4: 5500,
+  5: 5000,
+  6: 6500,
+  7: 10000,
+  8: 15000,
+  9: 20000,
+  10: 30000,
+};
+
+export const ARMOR_BASE_BY_RANK: RankBaseMap = {
+  1: 2500,
+  2: 5000,
+  3: 7500,
+  4: 10000,
+  5: 15000,
+};
+
+export const COMPONENT_BASE_BY_SIZE_AND_TYPE: NestedRankBaseMap = {
+  1: {
+    1: 25000,
+    2: 35000,
+    3: 50000,
+    4: 50000,
+  },
+  2: {
+    1: 35000,
+    2: 50000,
+    3: 100000,
+    4: 100000,
+  },
+  3: {
+    1: 75000,
+    2: 125000,
+    3: 200000,
+    4: 150000,
+  },
+};
+
+export const SHIP_WEAPON_BASE_BY_SIZE_AND_TYPE: NestedRankBaseMap = {
+  1: { 1: 5500, 2: 10500, 3: 15000, 4: 15000, 5: 15000, 6: 20000 },
+  2: { 1: 15000, 2: 25000, 3: 30000, 4: 30000, 5: 35000, 6: 45000 },
+  3: { 1: 30000, 2: 55000, 3: 60000, 4: 65000, 5: 80000, 6: 100000 },
+  4: { 1: 55000, 2: 125000, 3: 140000, 4: 0, 5: 175000, 6: 0 },
+  5: { 1: 120000, 2: 275000, 3: 300000, 4: 0, 5: 380000, 6: 0 },
+  6: { 1: 300000, 2: 620000, 3: 650000, 4: 0, 5: 900000, 6: 0 },
+};
+
 export function getSrpItemTypeFromCategory(category: string): SrpItemType | null {
   const map: Record<string, SrpItemType> = {
     Armor: "Armor",
@@ -128,42 +172,19 @@ export function getSrpItemTypeFromCategory(category: string): SrpItemType | null
   return map[category] ?? null;
 }
 
-/**
- * Check if selected condition is R5 Crafted.
- */
 export function isCraftedCondition(condition: number): boolean {
   return condition === 4;
 }
 
-/**
- * Clamp crafted quality between 700 and 1000.
- */
 export function clampCraftedQuality(quality: number): number {
   return Math.min(Math.max(quality, MIN_CRAFTED_QUALITY), MAX_CRAFTED_QUALITY);
 }
 
-/**
- * Normalize crafted quality to the nearest valid 50-point interval.
- */
 export function normalizeCraftedQuality(quality: number): number {
   const clamped = clampCraftedQuality(quality);
-
-  return (
-    Math.round(clamped / CRAFTED_QUALITY_INTERVAL) * CRAFTED_QUALITY_INTERVAL
-  );
+  return Math.round(clamped / CRAFTED_QUALITY_INTERVAL) * CRAFTED_QUALITY_INTERVAL;
 }
 
-/**
- * Get crafted quality modifier.
- *
- * 700  = 1.00
- * 750  = 1.08
- * 800  = 1.16
- * 850  = 1.24
- * 900  = 1.32
- * 950  = 1.40
- * 1000 = 1.48
- */
 export function getCraftedQualityModifier(quality?: number): number {
   if (!quality) return 1;
 
@@ -174,113 +195,125 @@ export function getCraftedQualityModifier(quality?: number): number {
   return 1 + qualitySteps * CRAFTED_QUALITY_INCREMENT;
 }
 
-/**
- * Calculate rarity score from calculator values.
- *
- * R5 Crafted adds the condition score plus the crafted quality bonus.
- */
-export function calculateRarityScore(
+export function calculateBaseValueFromRanks(
   itemType: SrpItemType,
   values: SrpCalculatorValues
 ): number | null {
-  const { condition, gun, armor, size, shipWeapon, component, craftedQuality } =
-    values;
-
-  let baseScore: number;
+  if (values.manualBaseValue && values.manualBaseValue > 0) {
+    return values.manualBaseValue;
+  }
 
   switch (itemType) {
     case "Guns":
-      baseScore = condition + gun;
-      break;
+      return GUN_BASE_BY_RANK[values.gun || 1] ?? null;
 
     case "Armor":
-      baseScore = condition + armor;
-      break;
+      return ARMOR_BASE_BY_RANK[values.armor || 1] ?? null;
 
-    case "Components":
-      baseScore = condition + size + component;
-      break;
+    case "Components": {
+      const sizeRank = Math.min(values.size || 1, 3);
+      const componentRank = values.component || 1;
+      return COMPONENT_BASE_BY_SIZE_AND_TYPE[sizeRank]?.[componentRank] ?? null;
+    }
 
-    case "Ship Weapons":
-      baseScore = condition + size + shipWeapon;
-      break;
+    case "Ship Weapons": {
+      const sizeRank = values.size || 1;
+      const weaponRank = values.shipWeapon || 1;
+      const baseValue = SHIP_WEAPON_BASE_BY_SIZE_AND_TYPE[sizeRank]?.[weaponRank];
+
+      return baseValue && baseValue > 0 ? baseValue : null;
+    }
 
     default:
       return null;
   }
+}
 
-  if (!isCraftedCondition(condition)) {
-    return baseScore;
+export function calculateRarityScore(
+  _itemType: SrpItemType,
+  values: SrpCalculatorValues
+): number | null {
+  if (!isCraftedCondition(values.condition)) {
+    return values.condition;
   }
 
-  const normalizedQuality = normalizeCraftedQuality(
-    craftedQuality ?? MIN_CRAFTED_QUALITY
+  const quality = normalizeCraftedQuality(
+    values.craftedQuality ?? MIN_CRAFTED_QUALITY
   );
 
-  const craftedQualityBonus =
-    (normalizedQuality - MIN_CRAFTED_QUALITY) / CRAFTED_QUALITY_INTERVAL;
+  const qualityBonus =
+    (quality - MIN_CRAFTED_QUALITY) / CRAFTED_QUALITY_INTERVAL;
 
-  return baseScore + craftedQualityBonus;
+  return values.condition + qualityBonus;
 }
 
-/**
- * Calculate SRP from rarity score.
- *
- * Formula:
- * SRP = FBV × RC × Crafted Quality Modifier × (1 + SRP_MARKUP)
- *
- * Where:
- * RC = 1 + (RS × RARITY_COEFFICIENT_INCREMENT)
- */
+export function getRarityCoefficient(condition: number): number {
+  return CONDITION_MULTIPLIERS[condition] ?? 1;
+}
+
 export function calculateSRP(
-  itemType: SrpItemType,
+  baseValue: number,
   rarityScore: number,
   craftedQuality?: number,
-  isCrafted = false
+  isCraftedOverride?: boolean
 ): number | null {
-  const fbv = FBV_BY_ITEM_TYPE[itemType];
-  if (!fbv) return null;
+  if (!Number.isFinite(baseValue) || baseValue <= 0) return null;
 
-  const clampedScore = Math.min(Math.max(rarityScore, 0), MAX_RARITY_SCORE);
+  // 1. Determine scarcity multiplier
+  // If it's a known condition (0-4), use the table.
+  // Otherwise, use the fallback formula (1 + RS * 0.09)
+  const floorScore = Math.floor(rarityScore);
+  let scarcityMultiplier =
+    CONDITION_MULTIPLIERS[floorScore] ?? 1 + rarityScore * 0.09;
 
-  const rarityCoefficient =
-    1 + clampedScore * RARITY_COEFFICIENT_INCREMENT;
+  // 2. Handle crafted items
+  const isCrafted = isCraftedOverride ?? isCraftedCondition(rarityScore);
 
-  const craftedQualityModifier = isCrafted
-    ? getCraftedQualityModifier(craftedQuality)
-    : 1;
+  let finalMultiplier = scarcityMultiplier;
 
-  const srp =
-    fbv * rarityCoefficient * craftedQualityModifier * (1 + SRP_MARKUP);
+  if (isCrafted) {
+    // If crafted, we use the R5 base (1.5) and then apply quality modifier
+    const r5Base = CONDITION_MULTIPLIERS[4];
+    
+    // If we have an explicit craftedQuality, use it.
+    // Otherwise, derive it from rarityScore if rarityScore > 4.
+    let qualityModifier = 1;
+    if (craftedQuality !== undefined) {
+      qualityModifier = getCraftedQualityModifier(craftedQuality);
+    } else if (rarityScore > 4) {
+      const qualitySteps = rarityScore - 4;
+      qualityModifier = 1 + qualitySteps * CRAFTED_QUALITY_INCREMENT;
+    }
+    
+    finalMultiplier = r5Base * qualityModifier;
+  }
 
-  return Math.round(srp);
+  // 3. Final Calculation with Marketplace Markup
+  return Math.round(baseValue * finalMultiplier * MARKETPLACE_MARKUP);
 }
 
-/**
- * Convenience function:
- * calculates full SRP directly from item type and calculator values.
- */
 export function calculateFullSRP(
   itemType: SrpItemType,
   values: SrpCalculatorValues
 ): number | null {
-  const rarityScore = calculateRarityScore(itemType, values);
+  const baseValue = calculateBaseValueFromRanks(itemType, values);
 
-  if (rarityScore === null) return null;
+  if (baseValue === null) return null;
+
+  const isCrafted = isCraftedCondition(values.condition);
 
   return calculateSRP(
-    itemType,
-    rarityScore,
+    baseValue,
+    values.condition,
     values.craftedQuality,
-    isCraftedCondition(values.condition)
+    isCrafted
   );
 }
 
-/**
- * Get rarity coefficient from rarity score.
- */
-export function getRarityCoefficient(rarityScore: number): number {
-  const clampedScore = Math.min(Math.max(rarityScore, 0), MAX_RARITY_SCORE);
+export function getSupportedSizeOptions(itemType: SrpItemType): RankOption[] {
+  if (itemType === "Components") {
+    return SIZE_OPTIONS.filter((option) => option.value <= 3);
+  }
 
-  return 1 + clampedScore * RARITY_COEFFICIENT_INCREMENT;
+  return SIZE_OPTIONS;
 }

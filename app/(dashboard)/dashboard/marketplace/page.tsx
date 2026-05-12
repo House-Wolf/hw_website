@@ -13,13 +13,16 @@ import {
     getCategoryIdByName,
 } from "@/lib/marketplace/categories";
 import {
+    calculateBaseValueFromRanks,
+    calculateFullSRP,
     calculateRarityScore,
     calculateSRP,
-    FBV_BY_ITEM_TYPE,
+    CRAFTED_QUALITY_OPTIONS,
     getRarityCoefficient,
+    getSupportedSizeOptions,
     getSrpItemTypeFromCategory,
+    isCraftedCondition,
     MAX_RARITY_SCORE,
-    SRP_MARKUP,
     type SrpItemType,
     type SrpCalculatorValues,
     CONDITION_OPTIONS,
@@ -103,6 +106,17 @@ const initialFormData: FormData = {
     location: "",
 };
 
+const DARK_SELECT_STYLE = {
+    backgroundColor: "#0b1820",
+    color: "#f5efe2",
+    colorScheme: "dark" as const,
+};
+
+const DARK_OPTION_STYLE = {
+    backgroundColor: "#0b1820",
+    color: "#f5efe2",
+};
+
 /**
  * @component MarketplaceDashboardContent
  * @description Main component for marketplace creation and management dashboard.
@@ -135,6 +149,7 @@ function MarketplaceDashboardContent() {
     const [srpItemType, setSrpItemType] = useState<SrpItemType>("Armor");
     const [srpRarityScore, setSrpRarityScore] = useState("");
     const [showSrpCalculator, setShowSrpCalculator] = useState(false);
+    const [showSrpExplanation, setShowSrpExplanation] = useState(false);
     const [srpCalculatorValues, setSrpCalculatorValues] = useState<SrpCalculatorValues>({
         condition: CONDITION_OPTIONS[0].value,
         gun: GUN_OPTIONS[0].value,
@@ -151,26 +166,43 @@ function MarketplaceDashboardContent() {
         srpRarityScoreWasClamped,
         suggestedRetailPrice,
         calculatorRarityScore,
+        calculatorSuggestedRetailPrice,
     } = useMemo(() => {
-        const srpBaseValue = FBV_BY_ITEM_TYPE[srpItemType];
+        const srpBaseValue = calculateBaseValueFromRanks(srpItemType, srpCalculatorValues);
+        const calculatorRarityScore = calculateRarityScore(srpItemType, srpCalculatorValues);
         const parsedRarityScore = parseFloat(srpRarityScore);
-        const rarityScoreNumber = Number.isNaN(parsedRarityScore) ? null : parsedRarityScore;
+        const hasManualOverride = srpRarityScore.trim().length > 0;
+        const rarityScoreNumber = hasManualOverride
+            ? Number.isNaN(parsedRarityScore)
+                ? null
+                : parsedRarityScore
+            : calculatorRarityScore;
         const normalizedRarityScore =
             rarityScoreNumber !== null
                 ? Math.min(Math.max(rarityScoreNumber, 0), MAX_RARITY_SCORE)
                 : null;
         const srpRarityScoreWasClamped =
+            hasManualOverride &&
             rarityScoreNumber !== null &&
             (rarityScoreNumber < 0 || rarityScoreNumber > MAX_RARITY_SCORE);
+        const crafted = isCraftedCondition(srpCalculatorValues.condition);
         const suggestedRetailPrice =
-            normalizedRarityScore !== null ? calculateSRP(srpItemType, normalizedRarityScore) : null;
-        const calculatorRarityScore = calculateRarityScore(srpItemType, srpCalculatorValues);
+            normalizedRarityScore !== null && srpBaseValue !== null
+                ? calculateSRP(
+                      srpBaseValue,
+                      normalizedRarityScore,
+                      srpCalculatorValues.craftedQuality,
+                      crafted
+                  )
+                : null;
+        const calculatorSuggestedRetailPrice = calculateFullSRP(srpItemType, srpCalculatorValues);
         return {
             srpBaseValue,
             normalizedRarityScore,
             srpRarityScoreWasClamped,
             suggestedRetailPrice,
             calculatorRarityScore,
+            calculatorSuggestedRetailPrice,
         };
     }, [srpItemType, srpRarityScore, srpCalculatorValues]);
 
@@ -244,14 +276,25 @@ function MarketplaceDashboardContent() {
             setFormData((prev) => ({
                 ...prev,
                 description: prev.description || result.description || "",
-                imageUrl: prev.imageUrl || result.image || "",
+                imageUrl: result.image || prev.imageUrl || "", // Favor wiki image if found
                 categoryId: suggestedCategoryId
                     ? suggestedCategoryId.toString()
                     : prev.categoryId,
             }));
 
+            // Auto-set SRP base value if wiki price exists
+            if (result.price && isMarketplaceAdmin) {
+                setSrpCalculatorValues((prev) => ({
+                    ...prev,
+                    manualBaseValue: result.price ?? undefined,
+                }));
+                setShowSrpHelper(true);
+                showMessage("success", `Wiki data found and price auto-filled: ${result.price.toLocaleString()} aUEC`);
+            } else if (isMarketplaceAdmin) {
+                showMessage("info", "Wiki data found, but no in-game price data is available for this item.");
+            }
+
             setCategoryAutoSet(!!suggestedCategoryId);
-            showMessage("success", `Wiki data found and form auto-filled.`); // NEW: Success message
         } catch (err) {
             console.error("Wiki fetch failed:", err);
             setWikiData(null);
@@ -441,16 +484,21 @@ function MarketplaceDashboardContent() {
     };
 
     /**
-     * @function applyCalculatedRarityScore
-     * @description Applies the calculated Rarity Score from the cheat sheet to the RS input field.
+     * @function applyCalculatedPrice
+     * @description Applies the fully calculated SRP from the rank-based calculator.
      * @returns {void}
      * @author House Wolf Dev Team
      */
-    const applyCalculatedRarityScore = () => {
-        if (calculatorRarityScore === null) return;
-        const boundedScore = Math.min(Math.max(calculatorRarityScore, 0), MAX_RARITY_SCORE);
-        setSrpRarityScore(boundedScore.toString());
-        showMessage("success", `Applied RS ${boundedScore} from cheat sheet`);
+    const applyCalculatedPrice = () => {
+        if (!calculatorSuggestedRetailPrice) return;
+        setFormData((prev) => ({
+            ...prev,
+            price: calculatorSuggestedRetailPrice.toString(),
+        }));
+        showMessage(
+            "success",
+            `Applied calculated SRP of ${calculatorSuggestedRetailPrice.toLocaleString()} aUEC`
+        );
     };
 
     // Form Submission -------------------------------------------------------------------------------
@@ -766,8 +814,65 @@ function MarketplaceDashboardContent() {
                                     Fetching wiki info from StarCitizen.tools...
                                 </p>
                             )}
-                        </div>
 
+                            {/* Wiki Preview Card */}
+                            {wikiData && (
+                                <div className="mt-4 p-4 border border-indigo-500/30 bg-indigo-950/10 rounded-xl flex gap-4 items-start">
+                                    {wikiData.image && (
+                                        <div className="w-24 h-24 rounded-lg overflow-hidden border border-indigo-500/20 shrink-0">
+                                            <img
+                                                src={wikiData.image}
+                                                alt={wikiData.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="text-sm font-bold text-indigo-300 truncate">
+                                                {wikiData.name}
+                                            </h4>
+                                            {wikiData.wikiUrl && (
+                                                <a
+                                                    href={wikiData.wikiUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                                                >
+                                                    Wiki Page
+                                                </a>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-400 line-clamp-2 mt-1">
+                                            {wikiData.description}
+                                        </p>
+                                        {wikiData.price && (
+                                            <div className="mt-2 flex items-center justify-between">
+                                                <span className="text-xs font-semibold text-green-400">
+                                                    Wiki Price: {wikiData.price.toLocaleString()} aUEC
+                                                </span>
+                                                {isMarketplaceAdmin && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSrpCalculatorValues((prev) => ({
+                                                                ...prev,
+                                                                manualBaseValue: wikiData.price ?? undefined,
+                                                            }));
+                                                            setShowSrpHelper(true);
+                                                            showMessage("success", "Wiki price applied as SRP base value.");
+                                                        }}
+                                                        className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded transition-colors"
+                                                    >
+                                                        Use as SRP Base
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            </div>
                         {/* Category, Price & Quantity */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
@@ -782,16 +887,13 @@ function MarketplaceDashboardContent() {
                                     }
                                     disabled={loading} // NEW: Disable while submitting
                                     className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
-                                    style={{
-                                        backgroundColor: "var(--background-secondary)",
-                                        color: "var(--foreground)",
-                                    }}
+                                    style={DARK_SELECT_STYLE}
                                 >
                                     {categories.map((cat) => (
                                         <option
                                             key={cat.id}
                                             value={cat.id}
-                                            className="bg-[var(--background-secondary)] text-[var(--foreground)]"
+                                            style={DARK_OPTION_STYLE}
                                         >
                                             {cat.name}
                                         </option>
@@ -826,14 +928,14 @@ function MarketplaceDashboardContent() {
                                                     Suggested Retail Price (SRP)
                                                 </p>
                                                 <p className="text-xs text-[var(--foreground-muted)]">
-                                                    FBV × RC × (1 + {SRP_MARKUP}). Pulled from HouseWolf SRP V3.0 & internal FBV
-                                                    floors.
+                                                    Base value x scarcity multiplier x crafted quality x marketplace markup.
+                                                    Rank tables come from HouseWolf notes and internal marketplace pricing.
                                                 </p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowSrpHelper((prev) => !prev)}
-                                                disabled={loading || wikiLoading} // NEW: Disable during async operations
+                                                disabled={loading || wikiLoading}
                                                 className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
                                             >
                                                 {showSrpHelper ? "Hide tool" : "Show tool"}
@@ -844,36 +946,75 @@ function MarketplaceDashboardContent() {
                                             <div className="mt-4 space-y-4 text-sm">
                                                 <div>
                                                     <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
-                                                        Item type / FBV floor
+                                                        SRP category
                                                     </label>
                                                     <select
                                                         value={srpItemType}
                                                         onChange={(e) =>
                                                             setSrpItemType(e.target.value as SrpItemType)
                                                         }
-                                                        disabled={loading || wikiLoading} // NEW: Disable during async operations
+                                                        disabled={loading || wikiLoading}
                                                         className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                        style={DARK_SELECT_STYLE}
                                                     >
-                                                        {(
-                                                            Object.entries(FBV_BY_ITEM_TYPE) as [
-                                                                SrpItemType,
-                                                                number
-                                                            ][]
-                                                        ).map(([type, value]) => (
-                                                            <option key={type} value={type}>
-                                                                {type} • {value.toLocaleString()} aUEC FBV
+                                                        {(["Guns", "Armor", "Components", "Ship Weapons"] as SrpItemType[]).map((type) => (
+                                                            <option
+                                                                key={type}
+                                                                value={type}
+                                                                style={DARK_OPTION_STYLE}
+                                                            >
+                                                                {type}
                                                             </option>
                                                         ))}
                                                     </select>
                                                     <p className="text-xs text-[var(--foreground-muted)] mt-1">
-                                                        FBV anchors your floor ({srpBaseValue.toLocaleString()}{" "}
-                                                        aUEC for {srpItemType}).
+                                                        Base value comes from the selected rank table, not a single flat
+                                                        category floor.
                                                     </p>
                                                 </div>
 
                                                 <div>
                                                     <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
-                                                        Rarity Score (RS 0‒{MAX_RARITY_SCORE})
+                                                        Manual base value override (aUEC)
+                                                    </label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="1"
+                                                            value={srpCalculatorValues.manualBaseValue || ""}
+                                                            onChange={(e) =>
+                                                                updateCalculatorValue(
+                                                                    "manualBaseValue",
+                                                                    e.target.value === "" ? 0 : Number(e.target.value)
+                                                                )
+                                                            }
+                                                            disabled={loading || wikiLoading}
+                                                            className="flex-1 bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                            placeholder="Leave blank to use rank-based tables"
+                                                        />
+                                                        {wikiData?.price && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    updateCalculatorValue("manualBaseValue", wikiData.price ?? 0);
+                                                                    showMessage("success", "Wiki price applied as base value.");
+                                                                }}
+                                                                disabled={loading || wikiLoading}
+                                                                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                                                            >
+                                                                Use Wiki Price
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-[var(--foreground-muted)] mt-1">
+                                                        If set, this replaces the base value from the rank tables below.
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                        Manual scarcity score override (0-{MAX_RARITY_SCORE})
                                                     </label>
                                                     <input
                                                         type="number"
@@ -882,36 +1023,41 @@ function MarketplaceDashboardContent() {
                                                         step="1"
                                                         value={srpRarityScore}
                                                         onChange={(e) => setSrpRarityScore(e.target.value)}
-                                                        disabled={loading || wikiLoading} // NEW: Disable during async operations
+                                                        disabled={loading || wikiLoading}
                                                         className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
-                                                        placeholder="Condition + category ranks"
+                                                        placeholder="Leave blank to use the calculated score"
                                                     />
                                                     <p className="text-xs text-[var(--foreground-muted)] mt-1">
-                                                        Use the tables in Formula.md to sum Condition + Item ranks
-                                                        (each point adds 9% RC).
+                                                        Leave this empty to use the score from the rank-based calculator.
+                                                        Fill it in only if you want to override the scarcity multiplier.
                                                     </p>
                                                     {srpRarityScoreWasClamped && (
                                                         <p className="text-xs text-amber-400 mt-1">
-                                                            RS is capped at {MAX_RARITY_SCORE}; values beyond that
-                                                            are normalized to keep RC ≤ 2.35.
+                                                            Scarcity score is capped at {MAX_RARITY_SCORE} to keep the
+                                                            multiplier within range.
                                                         </p>
                                                     )}
                                                 </div>
 
-                                                {/* SRP Output and Apply Button */}
                                                 <div className="pt-4 border-t border-[var(--border)] flex justify-between items-center">
                                                     <div>
                                                         <p className="text-sm font-bold text-[var(--accent-strong)]">
                                                             SRP: {suggestedRetailPrice?.toLocaleString() || "N/A"} aUEC
                                                         </p>
                                                         <p className="text-xs text-[var(--foreground-muted)]">
-                                                            RC: {normalizedRarityScore !== null ? (getRarityCoefficient(normalizedRarityScore) * 100).toFixed(0) : "N/A"}%
+                                                            Base value: {srpBaseValue?.toLocaleString() || "N/A"} aUEC
+                                                        </p>
+                                                        <p className="text-xs text-[var(--foreground-muted)]">
+                                                            Scarcity multiplier:{" "}
+                                                            {normalizedRarityScore !== null
+                                                                ? `x${getRarityCoefficient(normalizedRarityScore).toFixed(2)}`
+                                                                : "N/A"}
                                                         </p>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={applySuggestedPrice}
-                                                        disabled={!suggestedRetailPrice || loading || wikiLoading} // NEW: Disable when N/A or loading
+                                                        disabled={!suggestedRetailPrice || loading || wikiLoading}
                                                         className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors"
                                                     >
                                                         Apply SRP
@@ -922,42 +1068,48 @@ function MarketplaceDashboardContent() {
                                                     <div className="flex items-start justify-between gap-4">
                                                         <div>
                                                             <p className="text-sm font-semibold text-[var(--foreground)]">
-                                                                Need help calculating RS?
+                                                                Rank-based calculator
                                                             </p>
                                                             <p className="text-xs text-[var(--foreground-muted)]">
-                                                                Use the cheat sheet to mix condition + category ranks.
+                                                                Pick the actual item ranks and let the helper build the
+                                                                value.
                                                             </p>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowSrpCalculator((prev) => !prev)}
-                                                            disabled={loading || wikiLoading} // NEW: Disable during async operations
-                                                            className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
-                                                        >
-                                                            {showSrpCalculator
-                                                                ? "Hide cheat sheet"
-                                                                : "Show cheat sheet"}
-                                                        </button>
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowSrpExplanation(true)}
+                                                                disabled={loading || wikiLoading}
+                                                                className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
+                                                            >
+                                                                How pricing works
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowSrpCalculator((prev) => !prev)}
+                                                                disabled={loading || wikiLoading}
+                                                                className="text-xs font-semibold text-[var(--accent-strong)] hover:text-[var(--accent-strong)]/80 transition-colors cursor-pointer"
+                                                            >
+                                                                {showSrpCalculator ? "Hide calculator" : "Show calculator"}
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     {showSrpCalculator && (
                                                         <div className="mt-4 space-y-4">
                                                             <div className="text-xs text-[var(--foreground-muted)]">
-                                                                <p>
-                                                                    RS = Condition + category ranks (Guns: G1‒G10,
-                                                                    Armor: A1‒A5, Components/Ship Weapons: Size +
-                                                                    Comp/Weapon rank).
-                                                                </p>
+                                                                <p>Step 1: choose the rank table that matches the item.</p>
                                                                 <p className="mt-1">
-                                                                    Every point bumps RC by 9% before the 35% markup
-                                                                    hits the SRP.
+                                                                    Step 2: the calculator builds the base value, then
+                                                                    applies condition, crafted quality, and marketplace
+                                                                    markup.
                                                                 </p>
                                                             </div>
 
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                                                 <div>
                                                                     <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
-                                                                        Condition (C1‒C4)
+                                                                        Availability / condition
                                                                     </label>
                                                                     <select
                                                                         value={srpCalculatorValues.condition}
@@ -967,12 +1119,17 @@ function MarketplaceDashboardContent() {
                                                                                 Number(e.target.value)
                                                                             )
                                                                         }
-                                                                        disabled={loading || wikiLoading} // NEW: Disable during async operations
+                                                                        disabled={loading || wikiLoading}
                                                                         className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                        style={DARK_SELECT_STYLE}
                                                                     >
                                                                         {CONDITION_OPTIONS.map((opt) => (
-                                                                            <option key={opt.value} value={opt.value}>
-                                                                                {opt.label} (+{opt.value})
+                                                                            <option
+                                                                                key={opt.value}
+                                                                                value={opt.value}
+                                                                                style={DARK_OPTION_STYLE}
+                                                                            >
+                                                                                {opt.label}
                                                                             </option>
                                                                         ))}
                                                                     </select>
@@ -981,7 +1138,7 @@ function MarketplaceDashboardContent() {
                                                                 {srpItemType === "Guns" && (
                                                                     <div>
                                                                         <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
-                                                                            Weapon Rank (G1‒G10)
+                                                                            Weapon class
                                                                         </label>
                                                                         <select
                                                                             value={srpCalculatorValues.gun}
@@ -991,43 +1148,279 @@ function MarketplaceDashboardContent() {
                                                                                     Number(e.target.value)
                                                                                 )
                                                                             }
-                                                                            disabled={loading || wikiLoading} // NEW: Disable during async operations
+                                                                            disabled={loading || wikiLoading}
                                                                             className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                            style={DARK_SELECT_STYLE}
                                                                         >
                                                                             {GUN_OPTIONS.map((opt) => (
-                                                                                <option key={opt.value} value={opt.value}>
-                                                                                    {opt.label} (+{opt.value})
+                                                                                <option
+                                                                                    key={opt.value}
+                                                                                    value={opt.value}
+                                                                                    style={DARK_OPTION_STYLE}
+                                                                                >
+                                                                                    {opt.label}
                                                                                 </option>
                                                                             ))}
                                                                         </select>
                                                                     </div>
                                                                 )}
 
-                                                                {/* NEW: Other SRP Item Type controls would go here */}
+                                                                {srpItemType === "Armor" && (
+                                                                    <div>
+                                                                        <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                            Armor tier
+                                                                        </label>
+                                                                        <select
+                                                                            value={srpCalculatorValues.armor}
+                                                                            onChange={(e) =>
+                                                                                updateCalculatorValue(
+                                                                                    "armor",
+                                                                                    Number(e.target.value)
+                                                                                )
+                                                                            }
+                                                                            disabled={loading || wikiLoading}
+                                                                            className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                            style={DARK_SELECT_STYLE}
+                                                                        >
+                                                                            {ARMOR_OPTIONS.map((opt) => (
+                                                                                <option
+                                                                                    key={opt.value}
+                                                                                    value={opt.value}
+                                                                                    style={DARK_OPTION_STYLE}
+                                                                                >
+                                                                                    {opt.label}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                )}
 
+                                                                {srpItemType === "Components" && (
+                                                                    <>
+                                                                        <div>
+                                                                            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                                Component size
+                                                                            </label>
+                                                                            <select
+                                                                                value={srpCalculatorValues.size}
+                                                                                onChange={(e) =>
+                                                                                    updateCalculatorValue(
+                                                                                        "size",
+                                                                                        Number(e.target.value)
+                                                                                    )
+                                                                                }
+                                                                                disabled={loading || wikiLoading}
+                                                                                className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                                style={DARK_SELECT_STYLE}
+                                                                            >
+                                                                                {getSupportedSizeOptions(srpItemType).map((opt) => (
+                                                                                    <option
+                                                                                        key={opt.value}
+                                                                                        value={opt.value}
+                                                                                        style={DARK_OPTION_STYLE}
+                                                                                    >
+                                                                                        {opt.label}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                                Component type
+                                                                            </label>
+                                                                            <select
+                                                                                value={srpCalculatorValues.component}
+                                                                                onChange={(e) =>
+                                                                                    updateCalculatorValue(
+                                                                                        "component",
+                                                                                        Number(e.target.value)
+                                                                                    )
+                                                                                }
+                                                                                disabled={loading || wikiLoading}
+                                                                                className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                                style={DARK_SELECT_STYLE}
+                                                                            >
+                                                                                {COMPONENT_OPTIONS.map((opt) => (
+                                                                                    <option
+                                                                                        key={opt.value}
+                                                                                        value={opt.value}
+                                                                                        style={DARK_OPTION_STYLE}
+                                                                                    >
+                                                                                        {opt.label}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                {srpItemType === "Ship Weapons" && (
+                                                                    <>
+                                                                        <div>
+                                                                            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                                Weapon size
+                                                                            </label>
+                                                                            <select
+                                                                                value={srpCalculatorValues.size}
+                                                                                onChange={(e) =>
+                                                                                    updateCalculatorValue(
+                                                                                        "size",
+                                                                                        Number(e.target.value)
+                                                                                    )
+                                                                                }
+                                                                                disabled={loading || wikiLoading}
+                                                                                className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                                style={DARK_SELECT_STYLE}
+                                                                            >
+                                                                                {getSupportedSizeOptions(srpItemType).map((opt) => (
+                                                                                    <option
+                                                                                        key={opt.value}
+                                                                                        value={opt.value}
+                                                                                        style={DARK_OPTION_STYLE}
+                                                                                    >
+                                                                                        {opt.label}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                                Weapon type
+                                                                            </label>
+                                                                            <select
+                                                                                value={srpCalculatorValues.shipWeapon}
+                                                                                onChange={(e) =>
+                                                                                    updateCalculatorValue(
+                                                                                        "shipWeapon",
+                                                                                        Number(e.target.value)
+                                                                                    )
+                                                                                }
+                                                                                disabled={loading || wikiLoading}
+                                                                                className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                                style={DARK_SELECT_STYLE}
+                                                                            >
+                                                                                {SHIP_WEAPON_OPTIONS.map((opt) => (
+                                                                                    <option
+                                                                                        key={opt.value}
+                                                                                        value={opt.value}
+                                                                                        style={DARK_OPTION_STYLE}
+                                                                                    >
+                                                                                        {opt.label}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                {isCraftedCondition(srpCalculatorValues.condition) && (
+                                                                    <div>
+                                                                        <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                                                                            Crafted quality
+                                                                        </label>
+                                                                        <select
+                                                                            value={srpCalculatorValues.craftedQuality ?? CRAFTED_QUALITY_OPTIONS[0].value}
+                                                                            onChange={(e) =>
+                                                                                updateCalculatorValue(
+                                                                                    "craftedQuality",
+                                                                                    Number(e.target.value)
+                                                                                )
+                                                                            }
+                                                                            disabled={loading || wikiLoading}
+                                                                            className="w-full bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent-strong)] focus:border-transparent outline-none transition-all"
+                                                                            style={DARK_SELECT_STYLE}
+                                                                        >
+                                                                            {CRAFTED_QUALITY_OPTIONS.map((opt) => (
+                                                                                <option
+                                                                                    key={opt.value}
+                                                                                    value={opt.value}
+                                                                                    style={DARK_OPTION_STYLE}
+                                                                                >
+                                                                                    {opt.label}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            {/* SRP Calculator Output and Apply Button */}
+
                                                             <div className="pt-4 border-t border-[var(--border)] flex justify-between items-center">
                                                                 <div>
                                                                     <p className="text-sm font-bold text-indigo-400">
-                                                                        Calculated RS: {calculatorRarityScore}
+                                                                        Calculated SRP: {calculatorSuggestedRetailPrice?.toLocaleString() || "N/A"} aUEC
                                                                     </p>
                                                                     <p className="text-xs text-[var(--foreground-muted)]">
-                                                                        (Condition {srpCalculatorValues.condition} + Rank)
+                                                                        Base value: {srpBaseValue?.toLocaleString() || "N/A"} aUEC
+                                                                    </p>
+                                                                    <p className="text-xs text-[var(--foreground-muted)]">
+                                                                        Scarcity score: {calculatorRarityScore ?? "N/A"}
                                                                     </p>
                                                                 </div>
                                                                 <button
                                                                     type="button"
-                                                                    onClick={applyCalculatedRarityScore}
-                                                                    disabled={calculatorRarityScore === null || loading || wikiLoading} // NEW: Disable when N/A or loading
+                                                                    onClick={applyCalculatedPrice}
+                                                                    disabled={!calculatorSuggestedRetailPrice || loading || wikiLoading}
                                                                     className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors"
                                                                 >
-                                                                    Apply RS
+                                                                    Apply calculated SRP
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {showSrpExplanation && (
+                                                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+                                                        <div className="w-full max-w-2xl rounded-2xl border border-white/20 bg-[#08131a] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <div>
+                                                                    <h3 className="text-lg font-semibold text-[#f8f3e7]">
+                                                                        How the SRP calculator works
+                                                                    </h3>
+                                                                    <p className="mt-1 text-sm text-[#d6d0c3]">
+                                                                        The calculator now prices the item from its actual rank table first, then applies scarcity and markup.
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowSrpExplanation(false)}
+                                                                    className="text-sm font-semibold text-[#d6d0c3] hover:text-[#f8f3e7] transition-colors"
+                                                                >
+                                                                    Close
+                                                                </button>
+                                                            </div>
+
+                                                            <div className="mt-6 space-y-4 text-sm text-[#f8f3e7]">
+                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                    <p className="font-semibold">1. Base value</p>
+                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                        Guns and armor use a direct rank table. Components and ship weapons use a size-plus-type table.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                    <p className="font-semibold">2. Scarcity multiplier</p>
+                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                        Condition affects scarcity. Purchasable items stay lowest, while non-purchasable, pledged, event, and crafted items scale higher.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                    <p className="font-semibold">3. Crafted quality</p>
+                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                        Crafted items get an additional quality modifier from Q700 through Q1000.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                    <p className="font-semibold">4. Final formula</p>
+                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                        Final SRP = base value x scarcity multiplier x crafted quality modifier x marketplace markup.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

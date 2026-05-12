@@ -9,6 +9,7 @@ export interface WikiItem {
   description?: string | null;
   image?: string | null;
   wikiUrl?: string | null;
+  price?: number | null;
 }
 
 /**
@@ -24,10 +25,61 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
   const encodedQuery = encodeURIComponent(query.trim());
 
   try {
-    // STEP 1: Search for a page
+    // STEP 1: Search for a page on star-citizen.wiki API (more structured)
+    const apiRes = await fetch(
+      `https://api.star-citizen.wiki/api/v2/items?filter[name]=${encodedQuery}&include=uex_prices`,
+      { next: { revalidate: 3600 } }
+    );
+
+    if (apiRes.ok) {
+      const apiJson = await apiRes.json();
+      const items = apiJson?.data || [];
+
+      if (items.length > 0) {
+        // Look for the first item that has a price
+        let selectedItem = items[0];
+        let minPrice: number | null = null;
+
+        for (const item of items) {
+          if (item.uex_prices && Array.isArray(item.uex_prices)) {
+            const buyPrices = item.uex_prices
+              .map((p: any) => p.price_buy)
+              .filter((p: any) => p > 0);
+            if (buyPrices.length > 0) {
+              minPrice = Math.min(...buyPrices);
+              selectedItem = item;
+              break; // Found one with a price!
+            }
+          }
+          
+          // Also check shops if uex_prices is empty
+          if (!minPrice && item.shops && Array.isArray(item.shops)) {
+             const shopPrices = item.shops
+               .map((s: any) => s.pivot?.price_buy || s.price_buy)
+               .filter((p: any) => p > 0);
+             if (shopPrices.length > 0) {
+               minPrice = Math.min(...shopPrices);
+               selectedItem = item;
+               break;
+             }
+          }
+        }
+
+        return {
+          uuid: selectedItem.uuid,
+          name: selectedItem.name,
+          description: selectedItem.description?.en_EN || selectedItem.description?.de_DE || null,
+          image: selectedItem.images?.[0]?.original_url || null,
+          wikiUrl: `https://starcitizen.tools/${encodeURIComponent(selectedItem.name.replace(/ /g, "_"))}`,
+          price: minPrice,
+        };
+      }
+    }
+
+    // FALLBACK: Original search via starcitizen.tools API
     const searchRes = await fetch(
       `https://starcitizen.tools/api.php?action=query&list=search&srsearch=${encodedQuery}&format=json&origin=*`,
-      { next: { revalidate: 3600 } } // Cache for 1 hour
+      { next: { revalidate: 3600 } }
     );
 
     if (!searchRes.ok) {
@@ -44,12 +96,11 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
     const pageTitle = firstResult.title;
     const pageUrl = `https://starcitizen.tools/${encodeURIComponent(pageTitle.replace(/ /g, "_"))}`;
 
-    // STEP 2: Get description + image
     const detailRes = await fetch(
       `https://starcitizen.tools/api.php?action=query&prop=extracts|pageimages&exintro=1&explaintext=1&piprop=original&titles=${encodeURIComponent(
         pageTitle
       )}&format=json&origin=*`,
-      { next: { revalidate: 3600 } } // Cache for 1 hour
+      { next: { revalidate: 3600 } }
     );
 
     if (!detailRes.ok) {
@@ -62,14 +113,12 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
       original?: { source?: string };
     };
 
-    const description = page.extract || "No description available.";
-    const image = page.original?.source || null;
-
     return {
       name: pageTitle,
-      description,
-      image,
+      description: page.extract || "No description available.",
+      image: page.original?.source || null,
       wikiUrl: pageUrl,
+      price: null,
     };
   } catch (error) {
     console.error("Wiki search error:", error);
