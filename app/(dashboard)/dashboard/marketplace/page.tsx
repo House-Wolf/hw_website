@@ -132,7 +132,7 @@ function MarketplaceDashboardContent() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [wikiLoading, setWikiLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(
         null
     );
     const [wikiData, setWikiData] = useState<WikiItem | null>(null);
@@ -208,13 +208,13 @@ function MarketplaceDashboardContent() {
 
     /**
      * @function showMessage
-     * @description Displays a temporary success or error message.
-     * @param {'success' | 'error'} type The type of message to display.
+     * @description Displays a temporary success, error, or info message.
+     * @param {'success' | 'error' | 'info'} type The type of message to display.
      * @param {string} text The message content.
      * @returns {void}
      * @author House Wolf Dev Team
      */
-    const showMessage = useCallback((type: "success" | "error", text: string) => {
+    const showMessage = useCallback((type: "success" | "error" | "info", text: string) => {
         setMessage({ type, text });
         setTimeout(() => setMessage(null), 5000);
     }, []); // NEW: Memoize showMessage using useCallback
@@ -696,13 +696,15 @@ function MarketplaceDashboardContent() {
                 </div>
             </div>
 
-            {/* Success/Error Messages */}
+            {/* Success/Error/Info Messages */}
             {message && (
                 <div
                     className={`mb-6 p-4 rounded-lg border bg-black ${
                         message.type === "success"
                             ? "border-green-700 text-green-300"
-                            : "border-red-700 text-red-300"
+                            : message.type === "info"
+                                ? "border-indigo-700 text-indigo-300"
+                                : "border-red-700 text-red-300"
                     }`}
                 >
                     {message.text}
