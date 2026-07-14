@@ -268,7 +268,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
                     House Wolf Command / Kamposian Dragoon Mercenaries
                   </p>
                   <h1 className="mt-2 text-3xl font-black uppercase leading-tight text-white md:text-5xl">
-                    Formal Invitation to the Pack
+                    Invitation to the Pack
                   </h1>
                   <div className="invite-divider my-4 h-px" />
                   <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
