@@ -437,7 +437,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
               className="invite-action-button invite-action-discord"
             >
               <DiscordMark className="h-6 w-6" />
-              Report to Command
+              Join our Discord
               <ExternalLink className="h-4 w-4" />
             </a>
           </footer>

@@ -123,12 +123,11 @@ export function getInvitation(rawCode: string): HouseWolfInvitation {
 export function getInvitationLetter(invitation: HouseWolfInvitation): string[] {
   return [
     `Citizen ${invitation.rsiHandle},`,
-    "Your actions, character, and potential have drawn the attention of House Wolf.",
-    "We are not merely an organization of independent pilots. We are a united force of soldiers, industrialists, explorers, specialists, and citizens who understand that survival among the stars is achieved through discipline, loyalty, and strength of purpose.",
-    "You are hereby formally invited to stand among the Kamposian Dragoons and take your place within the ranks of House Wolf.",
-    "Those who accept this invitation will gain more than an organization tag. They will gain a pack - citizens who fight together, build together, and answer the call when one of their own is in need.",
-    "Should you accept, report to House Wolf command and complete your induction into the pack.",
-    "The 'Verse rewards the capable. The frontier respects the prepared. The wolf survives because the pack stands together.",
+    "Your character, teamwork, and potential have made a great impression on House Wolf.",
+    "We are a community of pilots, explorers, industrialists, and specialists who enjoy experiencing the 'Verse together.",
+    "Whether we are tackling major operations or simply helping another member, our strength comes from friendship, teamwork, and having people we can rely on.",
+    "We would be honored to welcome you into House Wolf and invite you to become part of the Kamposian Dragoons.",
+    "If you choose to accept, we look forward to welcoming you to the pack and sharing many adventures throughout the 'Verse.",
     "This is the way.",
   ];
 }
