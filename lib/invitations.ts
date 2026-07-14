@@ -128,9 +128,8 @@ export function getInvitationLetter(invitation: HouseWolfInvitation): string[] {
     "You are hereby formally invited to stand among the Kamposian Dragoons and take your place within the ranks of House Wolf.",
     "Those who accept this invitation will gain more than an organization tag. They will gain a pack - citizens who fight together, build together, and answer the call when one of their own is in need.",
     "Should you accept, report to House Wolf command and complete your induction into the pack.",
-    "The stars reward the capable. The frontier respects the prepared. The wolf survives because the pack stands together.",
-    "Strength in unity. Victory in battle.",
-    "Hunt as One.",
+    "The 'Verse rewards the capable. The frontier respects the prepared. The wolf survives because the pack stands together.",
+    "This is the way.",
   ];
 }
 
