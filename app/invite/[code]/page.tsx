@@ -67,7 +67,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     letter[2],
     letter[3],
     "Accept this invitation, report to command, and take your place among the Dragoons.",
-    "Strength in unity. Victory in battle. Hunt as One.",
+    "This is the way.",
   ];
 
   const inviteDetails = [
