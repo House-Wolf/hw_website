@@ -13,7 +13,7 @@ import NavbarClient from "./NavbarClient";
 export default function Navbar() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/dashboard")) {
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/invite/")) {
     return null;
   }
 

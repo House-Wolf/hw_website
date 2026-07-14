@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import WolfChatWindow from "@/components/chat/WolfChatWindow";
 
 export default function WolfChatLauncher() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const isInvitePage = pathname?.startsWith("/invite/");
 
   // Auto-open once per session
   useEffect(() => {
+    if (isInvitePage) return;
+
     const seen = sessionStorage.getItem("wolfChatOpened");
     if (!seen) {
       setTimeout(() => {
@@ -16,7 +21,11 @@ export default function WolfChatLauncher() {
         sessionStorage.setItem("wolfChatOpened", "true");
       }, 1200);
     }
-  }, []);
+  }, [isInvitePage]);
+
+  if (isInvitePage) {
+    return null;
+  }
 
   return (
     <>
