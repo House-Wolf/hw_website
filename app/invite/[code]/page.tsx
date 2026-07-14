@@ -129,7 +129,53 @@ export default async function InvitePage({ params }: InvitePageProps) {
         }
 
         .invite-crest {
+          position: relative;
+          z-index: 1;
           filter: drop-shadow(0 0 26px rgba(17, 78, 98, 0.9)) drop-shadow(0 0 22px rgba(138, 0, 0, 0.82));
+        }
+
+        .invite-crest-aura::before {
+          content: "";
+          position: absolute;
+          inset: -1.2rem;
+          border-radius: 999px;
+          background:
+            radial-gradient(circle, rgba(138, 0, 0, 0.5) 0%, rgba(138, 0, 0, 0.24) 31%, transparent 66%),
+            radial-gradient(circle, rgba(96, 210, 230, 0.34) 0%, rgba(17, 78, 98, 0.18) 42%, transparent 72%);
+          filter: blur(18px);
+          opacity: 0.58;
+          transform: scale(0.92);
+          animation: wolf-breath 6.4s ease-in-out infinite;
+        }
+
+        @keyframes wolf-breath {
+          0%,
+          100% {
+            opacity: 0.42;
+            transform: scale(0.9);
+          }
+          34% {
+            opacity: 0.92;
+            transform: scale(1.08);
+          }
+          47% {
+            opacity: 0.62;
+            transform: scale(0.99);
+          }
+          61% {
+            opacity: 0.86;
+            transform: scale(1.05);
+          }
+          82% {
+            opacity: 0.5;
+            transform: scale(0.94);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .invite-crest-aura::before {
+            animation: none;
+          }
         }
 
         .invite-soft {
@@ -205,14 +251,16 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
               <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start">
                 <div className="mx-auto flex w-36 shrink-0 justify-center lg:mx-0">
-                  <Image
-                    src="/images/global/HWiconnew.png"
-                    alt="House Wolf crest"
-                    width={144}
-                    height={144}
-                    priority
-                    className="invite-crest h-auto w-32 md:w-36"
-                  />
+                  <div className="invite-crest-aura relative flex h-36 w-36 items-center justify-center">
+                    <Image
+                      src="/images/global/HWiconnew.png"
+                      alt="House Wolf crest"
+                      width={144}
+                      height={144}
+                      priority
+                      className="invite-crest h-auto w-32 md:w-36"
+                    />
+                  </div>
                 </div>
 
                 <div className="min-w-0 flex-1">
