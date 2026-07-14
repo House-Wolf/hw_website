@@ -40,7 +40,7 @@ export async function generateMetadata({
       canonical: `https://housewolf.co/invite/${invitation.code}`,
     },
     openGraph: {
-      title: "Formal Invitation to the Pack",
+      title: "Invitation to the Pack",
       description: `House Wolf Command invitation for ${invitation.rsiHandle}.`,
       url: `https://housewolf.co/invite/${invitation.code}`,
       siteName: "House Wolf",
