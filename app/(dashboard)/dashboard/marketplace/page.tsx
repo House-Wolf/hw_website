@@ -189,6 +189,7 @@ function MarketplaceDashboardContent() {
         const suggestedRetailPrice =
             normalizedRarityScore !== null && srpBaseValue !== null
                 ? calculateSRP(
+                      srpItemType,
                       srpBaseValue,
                       normalizedRarityScore,
                       srpCalculatorValues.craftedQuality,
