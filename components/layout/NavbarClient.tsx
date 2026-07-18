@@ -75,6 +75,61 @@ const navItems: NavItem[] = [
     label: "Socials",
     href: "/socials",
   },
+  {
+    label: "PackTracker",
+    submenu: [
+      {
+        label: "Operations",
+        items: [
+          {
+            label: "Dashboard",
+            href: "/pack-tracker/dashboard",
+            description: "Live operations overview",
+          },
+          {
+            label: "Assistance Hub",
+            href: "/pack-tracker/assistance",
+            description: "Request help with missions & more",
+          },
+          {
+            label: "Crafting Queue",
+            href: "/pack-tracker/crafting",
+            description: "Blueprint crafting requests",
+          },
+          {
+            label: "Procurement",
+            href: "/pack-tracker/procurement",
+            description: "Material sourcing requests",
+          },
+          {
+            label: "Lobby Chat",
+            href: "/pack-tracker/chat",
+            description: "Real-time ops communication",
+          },
+        ],
+      },
+      {
+        label: "Resources",
+        items: [
+          {
+            label: "Blueprint Explorer",
+            href: "/pack-tracker/blueprints",
+            description: "Browse Star Citizen blueprints",
+          },
+          {
+            label: "Trading Hub",
+            href: "/pack-tracker/trading",
+            description: "UEX commodity prices",
+          },
+          {
+            label: "Medals",
+            href: "/pack-tracker/medals",
+            description: "Recognition & leaderboard",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 

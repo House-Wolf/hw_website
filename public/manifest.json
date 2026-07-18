@@ -1,0 +1,62 @@
+{
+  "name": "House Wolf",
+  "short_name": "House Wolf",
+  "description": "Elite Star Citizen Mercenary Organization — Operations, PackTracker & Marketplace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070B0C",
+  "theme_color": "#470000",
+  "orientation": "any",
+  "lang": "en",
+  "categories": ["games", "utilities"],
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/images/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/pwa/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pack Tracker",
+      "short_name": "PackTracker",
+      "description": "Operations dashboard, blueprints, and request management",
+      "url": "/pack-tracker",
+      "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Market",
+      "description": "Browse and trade in the marketplace",
+      "url": "/marketplace",
+      "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Divisions",
+      "short_name": "Divisions",
+      "description": "Explore House Wolf divisions",
+      "url": "/divisions",
+      "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

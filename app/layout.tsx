@@ -1,16 +1,36 @@
 import "./globals.css";
+import type { Metadata, Viewport } from "next";
 import { Providers } from "./providers";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import Navbar from "@/components/layout/Navbar";
 import { validateEnv } from "@/lib/env";
 import WolfChatLauncher from "@/components/chat/WolfChatLauncher";
 import ScrollbarAutoHide from "@/components/utils/ScrollbarAutoHide";
+import PWARegister from "@/components/utils/PWARegister";
 
-/**
- * Root Layout Component
- * @description The root layout for the application, wrapping all pages with common components like header and navbar.
- * @author House Wolf Dev Team
- */
+export const metadata: Metadata = {
+  title: { default: "House Wolf", template: "%s — House Wolf" },
+  description:
+    "Elite Star Citizen mercenary organization — operations, PackTracker, marketplace, and fleet management.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "House Wolf",
+  },
+  icons: {
+    icon: "/images/global/favicon.ico",
+    apple: "/images/pwa/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#470000",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   validateEnv();
   return (
@@ -22,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <WolfChatLauncher />
           <ScrollbarAutoHide />
+          <PWARegister />
         </Providers>
       </body>
     </html>

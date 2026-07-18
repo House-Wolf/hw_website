@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -38,6 +39,21 @@ model User {
   socialLinks               SocialLink[]
   roles                     UserRole[]
   themePreference           String?                           @default("night") @map("theme_preference")
+  // PackTracker relations
+  ptAssistanceRequestsCreated  PtAssistanceRequest[]          @relation("AssistanceRequestsCreated")
+  ptCraftingRequestsCreated    PtCraftingRequest[]            @relation("CraftingRequestsCreated")
+  ptCraftingRequestsAssigned   PtCraftingRequest[]            @relation("CraftingRequestCrafter")
+  ptProcurementRequestsCreated PtProcurementRequest[]         @relation("ProcurementRequestsCreated")
+  ptRequestComments            PtRequestComment[]             @relation("PtRequestCommentAuthor")
+  ptRequestClaims              PtRequestClaim[]               @relation("PtRequestClaimProfile")
+  ptBlueprintInterests         PtMemberBlueprintInterest[]
+  ptMedalsReceived             PtMedalAward[]                 @relation("PtMedalRecipient")
+  ptMedalsAwarded              PtMedalAward[]                 @relation("PtMedalAwardedBy")
+  ptNominationsReceived        PtMedalNomination[]            @relation("PtMedalNominee")
+  ptNominationsCreated         PtMedalNomination[]            @relation("PtMedalNominatedBy")
+  ptNominationsReviewed        PtMedalNomination[]            @relation("PtMedalReviewer")
+  ptChatMessages               PtLobbyChatMessage[]
+  ptPushSubscriptions          PtPushSubscription[]
 
   @@map("users")
 }
@@ -335,23 +351,18 @@ model MarketplaceListingAuditLog {
 
 model MarketplaceGuest {
   id            Int      @id @default(autoincrement())
-
   discordUserId String   @map("discord_user_id")
   discordTag    String?  @map("discord_tag")
   guildId       String   @map("guild_id")
-
   joinedAt      DateTime @map("joined_at") @db.Timestamptz(6)
   expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
   warningAt     DateTime @map("warning_at") @db.Timestamptz(6)
-
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([discordUserId, guildId])
   @@map("marketplace_guests")
 }
-
-
 
 model AuditLog {
   id         Int      @id @default(autoincrement())
@@ -419,6 +430,8 @@ model featured_videos {
   updated_by String?  @db.Uuid
 }
 
+// ─── Non-PT Enums ─────────────────────────────────────────────────────────────
+
 enum notification_type_enum {
   PROFILE_APPROVED
   PROFILE_REJECTED
@@ -447,4 +460,415 @@ enum ProfileAction {
   APPROVED
   REJECTED
   REVERTED
+}
+
+// ─── PackTracker Enums ────────────────────────────────────────────────────────
+
+enum PtAssistanceKind {
+  MINING_MATERIALS
+  TRADING_GOODS
+  SHIP_COMPONENTS
+  MISSION_BACKUP
+  CARGO_ESCORT
+  COMBAT_SUPPORT
+  SHIP_CREW
+  TRANSPORTATION
+  LOCATION_SCOUT
+  GUIDANCE
+  EVENT_SUPPORT
+  OTHER
+}
+
+enum PtRequestStatus {
+  OPEN
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUSED
+}
+
+enum PtRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum PtMaterialSupplyMode {
+  REQUESTER_WILL_SUPPLY
+  CRAFTER_MUST_SUPPLY
+  NEGOTIABLE
+}
+
+enum PtPreferredForm {
+  ANY
+  REFINED
+  RAW
+}
+
+enum PtOwnershipStatus {
+  CLAIMED
+  VERIFIED
+  INACTIVE
+  UNAVAILABLE
+}
+
+enum PtInterestType {
+  OWNS
+  WANTS
+}
+
+enum PtMedalTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum PtNominationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─── PackTracker Models ───────────────────────────────────────────────────────
+
+model PtMaterial {
+  id                 Int      @id @default(autoincrement())
+  name               String   @unique
+  slug               String   @unique
+  description        String?
+  category           String?
+  imageUrl           String?  @map("image_url")
+  tier               Int?     @default(1)
+  materialType       String?  @map("material_type")
+  sourceType         String?  @map("source_type")
+  isRawOre           Boolean  @default(false) @map("is_raw_ore")
+  isRefinedMaterial  Boolean  @default(false) @map("is_refined_material")
+  isCraftedComponent Boolean  @default(false) @map("is_crafted_component")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipeMaterials     PtBlueprintRecipeMaterial[]
+  procurementRequests PtProcurementRequest[]
+
+  @@map("pt_materials")
+}
+
+model PtBlueprint {
+  id                  Int      @id @default(autoincrement())
+  name                String
+  slug                String   @unique
+  craftedItemName     String?  @map("crafted_item_name")
+  description         String?
+  category            String?
+  tier                Int      @default(1)
+  imageUrl            String?  @map("image_url")
+  wikiUrl             String?  @map("wiki_url")
+  isInGameAvailable   Boolean  @default(true) @map("is_in_game_available")
+  acquisitionSummary  String?  @map("acquisition_summary")
+  acquisitionLocation String?  @map("acquisition_location")
+  acquisitionMethod   String?  @map("acquisition_method")
+  dataConfidence      String?  @map("data_confidence")
+  craftingStationType String?  @map("crafting_station_type")
+  timeToCraftSeconds  Int?     @map("time_to_craft_seconds")
+  outputQuantity      Int      @default(1) @map("output_quantity")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipeMaterials  PtBlueprintRecipeMaterial[]
+  memberInterests  PtMemberBlueprintInterest[]
+  craftingRequests PtCraftingRequest[]
+
+  @@map("pt_blueprints")
+}
+
+model PtBlueprintRecipeMaterial {
+  id                      Int         @id @default(autoincrement())
+  blueprintId             Int         @map("blueprint_id")
+  materialId              Int         @map("material_id")
+  quantity                Int         @default(1)
+  unit                    String?     @default("SCU")
+  isOptional              Boolean     @default(false) @map("is_optional")
+  isIntermediateCraftable Boolean     @default(false) @map("is_intermediate_craftable")
+  notes                   String?
+  blueprint               PtBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  material                PtMaterial  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([blueprintId, materialId])
+  @@map("pt_blueprint_recipe_materials")
+}
+
+model PtMemberBlueprintInterest {
+  id           Int               @id @default(autoincrement())
+  userId       String            @map("user_id") @db.Uuid
+  blueprintId  Int               @map("blueprint_id")
+  interestType PtInterestType    @map("interest_type")
+  ownerStatus  PtOwnershipStatus? @map("owner_status")
+  addedAt      DateTime          @default(now()) @map("added_at") @db.Timestamptz(6)
+  notes        String?
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueprint PtBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blueprintId, interestType])
+  @@map("pt_member_blueprint_interests")
+}
+
+// Assistance Requests — general help (mining, combat support, trading, etc.)
+model PtAssistanceRequest {
+  id                  String            @id @default(uuid()) @db.Uuid
+  status              PtRequestStatus   @default(OPEN)
+  priority            PtRequestPriority @default(MEDIUM)
+  kind                PtAssistanceKind  @default(OTHER)
+  title               String
+  description         String?
+  skillObjective      String?           @map("skill_objective")
+  gameBuild           String?           @map("game_build")
+  playerHandle        String?           @map("player_handle")
+  timezone            String?
+  hasMicrophone       Boolean?          @map("has_microphone")
+  platformSpecs       String?           @map("platform_specs")
+  availability        String?
+  currentBaseline     String?           @map("current_baseline")
+  assetsShips         String?           @map("assets_ships")
+  urgency             String?
+  groupPreference     String?           @map("group_preference")
+  successCriteria     String?           @map("success_criteria")
+  recordingPermission Boolean?          @map("recording_permission")
+  materialName        String?           @map("material_name")
+  quantityNeeded      Int?              @map("quantity_needed")
+  meetingLocation     String?           @map("meeting_location")
+  rewardOffered       String?           @map("reward_offered")
+  maxClaims           Int               @default(1) @map("max_claims")
+  dueAt               DateTime?         @map("due_at") @db.Timestamptz(6)
+  isPinned            Boolean           @default(false) @map("is_pinned")
+  createdById         String            @map("created_by_id") @db.Uuid
+  acceptedAt          DateTime?         @map("accepted_at") @db.Timestamptz(6)
+  completedAt         DateTime?         @map("completed_at") @db.Timestamptz(6)
+  cancelledAt         DateTime?         @map("cancelled_at") @db.Timestamptz(6)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy User               @relation("AssistanceRequestsCreated", fields: [createdById], references: [id])
+  comments  PtRequestComment[] @relation("AssistanceRequestComments")
+  claims    PtRequestClaim[]   @relation("AssistanceRequestClaims")
+
+  @@map("pt_assistance_requests")
+}
+
+// Crafting Requests — blueprint crafting workflow
+model PtCraftingRequest {
+  id                 String               @id @default(uuid()) @db.Uuid
+  status             PtRequestStatus      @default(OPEN)
+  priority           PtRequestPriority    @default(MEDIUM)
+  blueprintId        Int                  @map("blueprint_id")
+  itemName           String               @map("item_name")
+  quantityRequested  Int                  @default(1) @map("quantity_requested")
+  minimumQuality     Int                  @default(1) @map("minimum_quality")
+  maxClaims          Int                  @default(1) @map("max_claims")
+  materialSupplyMode PtMaterialSupplyMode @default(NEGOTIABLE) @map("material_supply_mode")
+  rewardOffered      String?              @map("reward_offered")
+  deliveryLocation   String?              @map("delivery_location")
+  requiredBy         DateTime?            @map("required_by") @db.Timestamptz(6)
+  notes              String?
+  isPinned           Boolean              @default(false) @map("is_pinned")
+  createdById        String               @map("created_by_id") @db.Uuid
+  assignedCrafterId  String?              @map("assigned_crafter_id") @db.Uuid
+  acceptedAt         DateTime?            @map("accepted_at") @db.Timestamptz(6)
+  completedAt        DateTime?            @map("completed_at") @db.Timestamptz(6)
+  cancelledAt        DateTime?            @map("cancelled_at") @db.Timestamptz(6)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  blueprint                 PtBlueprint            @relation(fields: [blueprintId], references: [id])
+  createdBy                 User                   @relation("CraftingRequestsCreated", fields: [createdById], references: [id])
+  assignedCrafter           User?                  @relation("CraftingRequestCrafter", fields: [assignedCrafterId], references: [id])
+  comments                  PtRequestComment[]     @relation("CraftingRequestComments")
+  claims                    PtRequestClaim[]       @relation("CraftingRequestClaims")
+  linkedProcurementRequests PtProcurementRequest[] @relation("ProcurementForCrafting")
+
+  @@map("pt_crafting_requests")
+}
+
+// Procurement Requests — material sourcing workflow
+model PtProcurementRequest {
+  id                      String            @id @default(uuid()) @db.Uuid
+  status                  PtRequestStatus   @default(OPEN)
+  priority                PtRequestPriority @default(MEDIUM)
+  materialId              Int?              @map("material_id")
+  materialName            String            @map("material_name")
+  linkedCraftingRequestId String?           @map("linked_crafting_request_id") @db.Uuid
+  quantityRequested       Int               @default(1) @map("quantity_requested")
+  quantityDelivered       Int               @default(0) @map("quantity_delivered")
+  minimumQuality          Int               @default(1) @map("minimum_quality")
+  preferredForm           PtPreferredForm   @default(ANY) @map("preferred_form")
+  maxClaims               Int               @default(1) @map("max_claims")
+  deliveryLocation        String?           @map("delivery_location")
+  rewardOffered           String?           @map("reward_offered")
+  notes                   String?
+  isPinned                Boolean           @default(false) @map("is_pinned")
+  createdById             String            @map("created_by_id") @db.Uuid
+  acceptedAt              DateTime?         @map("accepted_at") @db.Timestamptz(6)
+  completedAt             DateTime?         @map("completed_at") @db.Timestamptz(6)
+  cancelledAt             DateTime?         @map("cancelled_at") @db.Timestamptz(6)
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  material              PtMaterial?          @relation(fields: [materialId], references: [id])
+  linkedCraftingRequest PtCraftingRequest?   @relation("ProcurementForCrafting", fields: [linkedCraftingRequestId], references: [id])
+  createdBy             User                 @relation("ProcurementRequestsCreated", fields: [createdById], references: [id])
+  comments              PtRequestComment[]   @relation("ProcurementRequestComments")
+  claims                PtRequestClaim[]     @relation("ProcurementRequestClaims")
+
+  @@map("pt_procurement_requests")
+}
+
+// Unified comment model — covers all 3 request types + live chat
+model PtRequestComment {
+  id                   String    @id @default(uuid()) @db.Uuid
+  authorId             String    @map("author_id") @db.Uuid
+  content              String
+  isLiveChat           Boolean   @default(false) @map("is_live_chat")
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  editedAt             DateTime? @map("edited_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assistanceRequestId  String?   @map("assistance_request_id") @db.Uuid
+  craftingRequestId    String?   @map("crafting_request_id") @db.Uuid
+  procurementRequestId String?   @map("procurement_request_id") @db.Uuid
+
+  author               User                  @relation("PtRequestCommentAuthor", fields: [authorId], references: [id])
+  assistanceRequest    PtAssistanceRequest?  @relation("AssistanceRequestComments", fields: [assistanceRequestId], references: [id], onDelete: Cascade)
+  craftingRequest      PtCraftingRequest?    @relation("CraftingRequestComments", fields: [craftingRequestId], references: [id], onDelete: Cascade)
+  procurementRequest   PtProcurementRequest? @relation("ProcurementRequestComments", fields: [procurementRequestId], references: [id], onDelete: Cascade)
+
+  @@map("pt_request_comments")
+}
+
+// Request claims — tracks who claimed which requests (supports maxClaims)
+model PtRequestClaim {
+  id                   Int       @id @default(autoincrement())
+  profileId            String    @map("profile_id") @db.Uuid
+  claimedAt            DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  assistanceRequestId  String?   @map("assistance_request_id") @db.Uuid
+  craftingRequestId    String?   @map("crafting_request_id") @db.Uuid
+  procurementRequestId String?   @map("procurement_request_id") @db.Uuid
+
+  profile              User                  @relation("PtRequestClaimProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  assistanceRequest    PtAssistanceRequest?  @relation("AssistanceRequestClaims", fields: [assistanceRequestId], references: [id], onDelete: Cascade)
+  craftingRequest      PtCraftingRequest?    @relation("CraftingRequestClaims", fields: [craftingRequestId], references: [id], onDelete: Cascade)
+  procurementRequest   PtProcurementRequest? @relation("ProcurementRequestClaims", fields: [procurementRequestId], references: [id], onDelete: Cascade)
+
+  @@map("pt_request_claims")
+}
+
+// Commodity trading data (UEX Corp)
+model PtCommodity {
+  id          Int      @id @default(autoincrement())
+  uexId       String?  @unique @map("uex_id")
+  name        String
+  slug        String   @unique
+  description String?
+  category    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  prices PtCommodityPrice[]
+
+  @@map("pt_commodities")
+}
+
+model PtCommodityPrice {
+  id          Int         @id @default(autoincrement())
+  commodityId Int         @map("commodity_id")
+  location    String
+  buyPrice    Decimal?    @map("buy_price") @db.Decimal(12, 2)
+  sellPrice   Decimal?    @map("sell_price") @db.Decimal(12, 2)
+  lastUpdated DateTime    @map("last_updated") @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  commodity PtCommodity @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+
+  @@unique([commodityId, location])
+  @@map("pt_commodity_prices")
+}
+
+model PtMedalDefinition {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String
+  imageUrl    String?     @map("image_url")
+  tier        PtMedalTier @default(BRONZE)
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  awards      PtMedalAward[]
+  nominations PtMedalNomination[]
+
+  @@map("pt_medal_definitions")
+}
+
+model PtMedalAward {
+  id          Int               @id @default(autoincrement())
+  medalId     Int               @map("medal_id")
+  recipientId String            @map("recipient_id") @db.Uuid
+  awardedById String            @map("awarded_by_id") @db.Uuid
+  reason      String?
+  awardedAt   DateTime          @default(now()) @map("awarded_at") @db.Timestamptz(6)
+
+  medal     PtMedalDefinition @relation(fields: [medalId], references: [id], onDelete: Cascade)
+  recipient User              @relation("PtMedalRecipient", fields: [recipientId], references: [id])
+  awardedBy User              @relation("PtMedalAwardedBy", fields: [awardedById], references: [id])
+
+  @@map("pt_medal_awards")
+}
+
+model PtMedalNomination {
+  id            Int                @id @default(autoincrement())
+  medalId       Int                @map("medal_id")
+  nomineeId     String             @map("nominee_id") @db.Uuid
+  nominatedById String             @map("nominated_by_id") @db.Uuid
+  reason        String
+  status        PtNominationStatus @default(PENDING)
+  reviewedById  String?            @map("reviewed_by_id") @db.Uuid
+  reviewedAt    DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  medal       PtMedalDefinition @relation(fields: [medalId], references: [id], onDelete: Cascade)
+  nominee     User              @relation("PtMedalNominee", fields: [nomineeId], references: [id])
+  nominatedBy User              @relation("PtMedalNominatedBy", fields: [nominatedById], references: [id])
+  reviewedBy  User?             @relation("PtMedalReviewer", fields: [reviewedById], references: [id])
+
+  @@map("pt_medal_nominations")
+}
+
+model PtLobbyChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("pt_lobby_chat_messages")
+}
+
+model PtPushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pt_push_subscriptions")
 }
