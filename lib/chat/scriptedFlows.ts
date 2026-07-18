@@ -11,6 +11,8 @@ export const INITIAL_OPTIONS: ChatOption[] = [
   { label: "Open Discord", message: "discord", kind: "primary" },
   { label: "Tell me House Wolf lore", message: "house wolf", kind: "secondary" },
   { label: "Explain the Dragoon Code", message: "dragoon code", kind: "secondary" },
+  { label: "Rank Structure", message: "ranks", kind: "secondary" },
+  { label: "Training Programs", message: "training", kind: "secondary" },
   { label: "Tell me about Kampos", message: "kampos", kind: "secondary" },
   { label: "Help / Commands", message: "help", kind: "secondary" },
 ];
