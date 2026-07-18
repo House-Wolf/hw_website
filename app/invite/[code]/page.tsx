@@ -46,10 +46,10 @@ export async function generateMetadata({
       siteName: "House Wolf",
       images: [
         {
-          url: "/images/global/Websitebgnew.png",
+          url: `/api/og/invite?code=${invitation.code}`,
           width: 1200,
           height: 630,
-          alt: "House Wolf command background",
+          alt: "House Wolf — Invitation to the Pack",
         },
       ],
       type: "website",
