@@ -51,6 +51,24 @@ export default function DiscordInviteModal({
     return null;
   }
 
+  if (threadUrl) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="marketplace-conversation-title" className="relative w-full max-w-xl rounded-3xl border border-[var(--hw-steel-teal)]/40 bg-[var(--background-card)] p-8 shadow-2xl">
+          <button type="button" aria-label="Close" onClick={onClose} className="absolute right-4 top-4 text-foreground-muted"><X size={20} /></button>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--hw-steel-teal)]">House Wolf Marketplace</p>
+          <h2 id="marketplace-conversation-title" className="text-2xl font-bold text-foreground">Your conversation is ready</h2>
+          <p className="mt-4 font-semibold text-foreground">{itemTitle}</p>
+          <p className="mt-3 text-sm text-foreground-muted">Your inquiry has been posted in Discord. Open the conversation to coordinate with the seller. If Discord could not deliver a direct message, you can still use the link below.</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href={threadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary flex items-center gap-2">Open Discord conversation <ExternalLink size={17} /></a>
+            <button type="button" onClick={onClose} className="btn btn-secondary">Close</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* BACKDROP */}

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import type { NextAuthRequest } from "next-auth";
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 
 /**
  * @component - Authentication and Authorization Proxy Middleware
@@ -11,51 +12,58 @@ import { NextResponse } from "next/server";
  * @returns {NextResponse} - The appropriate NextResponse based on authentication and authorization status.
  * @author House Wolf Dev Team
  */
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
+  // Auth.js may replace req.url with AUTH_URL; redirects must retain the browser's origin.
+  const originalOrigin = new URL(request.url).origin;
+  const handler: (req: NextAuthRequest, event: NextFetchEvent) => NextResponse = (req) => {
+    const { pathname } = req.nextUrl;
 
-  const session = req.auth;
-  const isAuthenticated = !!session?.user;
-  const isSuspended = session?.user?.isActive === false;
+    const session = req.auth;
+    const isAuthenticated = !!session?.user;
+    const isSuspended = session?.user?.isActive === false;
 
-  const protectedRoutes = [
-    "/dashboard",
-    "/profile",
-    "/settings",
-    "/api/contact-seller",
-    "/api/marketplace/contact-seller",
-    "/api/marketplace/create",
-    "/api/marketplace/delete",
-    "/api/marketplace/my-listings",
-    "/api/marketplace/update",
-    "/api/marketplace/upload",
-    "/api/packtracker",
-    "/api/social-links",
-    "/api/user",
-  ];
+    const protectedRoutes = [
+      "/dashboard",
+      "/profile",
+      "/settings",
+      "/api/contact-seller",
+      "/api/marketplace/contact-seller",
+      "/api/marketplace/create",
+      "/api/marketplace/delete",
+      "/api/marketplace/my-listings",
+      "/api/marketplace/update",
+      "/api/marketplace/upload",
+      "/api/packtracker",
+      "/api/social-links",
+      "/api/user",
+    ];
 
-  const isProtected = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+    const isProtected = protectedRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
 
-  if (isProtected && !isAuthenticated) {
-    const url = new URL("/auth/signin", req.url);
-    url.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(url);
-  }
+    if (isProtected && !isAuthenticated) {
+      if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Sign in with Discord first." }, { status: 401 });
+      const url = new URL("/auth/signin", originalOrigin);
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
+    }
 
-  if (isProtected && isSuspended) {
-    const url = new URL("/auth/error", req.url);
-    url.searchParams.set("error", "Suspended");
-    return NextResponse.redirect(url);
-  }
+    if (isProtected && isSuspended) {
+      if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Your account is suspended." }, { status: 403 });
+      const url = new URL("/auth/error", originalOrigin);
+      url.searchParams.set("error", "Suspended");
+      return NextResponse.redirect(url);
+    }
 
-  if (pathname.startsWith("/auth/signin") && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
+    if (pathname.startsWith("/auth/signin") && isAuthenticated) {
+      return NextResponse.redirect(new URL("/dashboard", originalOrigin));
+    }
 
-  return NextResponse.next();
-});
+    return NextResponse.next();
+  };
+  return auth(handler)(request, event);
+}
 
 /**
  * Middleware Configuration

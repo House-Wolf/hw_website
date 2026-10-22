@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ListingsGrid from "@/app/(root)/marketplace/components/ListingsGrid";
 import MarketplaceHero from "@/app/(root)/marketplace/components/MarketPlaceHero";
@@ -151,7 +151,9 @@ export default function MarketplacePage() {
     title: string
   ) {
     // For unauthenticated users: use OAuth flow
-    if (status === "unauthenticated" || !session?.user) {
+    setError(null);
+    const currentSession = status === "loading" ? await getSession().catch(() => null) : session;
+    if (!currentSession?.user) {
       // Redirect to OAuth flow to join server with Buyer role
       // Transaction data is passed via URL params (not localStorage)
       await handleSecureRedirect(listingId);
@@ -171,7 +173,12 @@ export default function MarketplacePage() {
         }),
       });
 
-      const data = await res.json();
+      // An expired server session must restart marketplace OAuth, not parse a sign-in page.
+      if (res.status === 401 || res.redirected) {
+        await handleSecureRedirect(listingId);
+        return;
+      }
+      const data = await res.json().catch(() => ({ error: "Marketplace messaging returned an unexpected response. Please try again." }));
 
       // Check response status BEFORE opening modal
       if (!res.ok) throw new Error(data.error || "Failed to contact seller");
@@ -183,6 +190,8 @@ export default function MarketplacePage() {
         await handleSecureRedirect(listingId);
         return;
       }
+
+      if (!data.success || !data.threadUrl) throw new Error("Discord did not return a conversation link. Please try again.");
 
       // User is already in Discord server - show modal with thread link
       setInviteModal({
@@ -202,7 +211,6 @@ export default function MarketplacePage() {
       const message =
         err instanceof Error ? err.message : "Failed to contact seller";
       setError(message);
-      setTimeout(() => setError(null), 5000); // Clear after 5 seconds
     }
   }
 

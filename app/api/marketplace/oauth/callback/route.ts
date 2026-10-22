@@ -1,8 +1,7 @@
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 import {
-  createBotServiceHeaders,
-  createMarketplaceThreadPayload,
   getContactableMarketplaceListing,
 } from "@/lib/marketplace/server";
 import {
@@ -10,6 +9,7 @@ import {
   MARKETPLACE_OAUTH_STATE_COOKIE,
   parseMarketplaceOAuthState,
 } from "@/lib/marketplace/oauth-state";
+import { contactMarketplaceSeller } from "@/lib/marketplace/messaging";
 import { devLog } from "@/lib/devLogger";
 import { prepareMarketplaceGuest } from "@/lib/marketplace/guestJoin";
 import { PERSONNEL_ROLES } from "@/lib/personnel/policy.js";
@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
     const visitorRoleId = process.env.VISITOR_ROLE_ID || PERSONNEL_ROLES.visitor;
     const onboardingRoleIds = (process.env.MARKETPLACE_ONBOARDING_ROLE_IDS || "").split(",").map((roleId) => roleId.trim()).filter(Boolean);
     const botToken = process.env.DISCORD_BOT_TOKEN;
-    const botServiceUrl = process.env.BOT_SERVICE_URL;
 
     if (!clientId || !clientSecret || !baseUrl || !guildId || !buyerRoleId || !visitorRoleId || !botToken || visitorRoleId === buyerRoleId || onboardingRoleIds.includes(buyerRoleId)) {
       devLog.error("Missing marketplace OAuth callback configuration");
@@ -158,31 +157,14 @@ export async function GET(request: NextRequest) {
       return marketplaceRedirect("guest_access_failed");
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-
     let threadUrl: string | null = null;
-    if (botServiceUrl) {
-      const threadResponse = await fetch(
-        new URL("/create-transaction-thread", botServiceUrl).toString(),
-        {
-          method: "POST",
-          headers: createBotServiceHeaders(),
-          body: JSON.stringify(
-            createMarketplaceThreadPayload(listing, {
-              discordId: userId,
-              discordUsername: userTag,
-              name: userTag,
-            })
-          ),
-        }
-      );
-
-      if (threadResponse.ok) {
-        const threadData = await threadResponse.json().catch(() => null);
-        threadUrl = typeof threadData?.threadUrl === "string" ? threadData.threadUrl : null;
-      } else {
-        devLog.error("Failed to create marketplace thread:", await threadResponse.text());
-      }
+    try {
+      const result = await contactMarketplaceSeller(listing, { discordId: userId, discordUsername: userTag, name: userTag });
+      if ("threadUrl" in result) threadUrl = result.threadUrl ?? null;
+      if (!threadUrl) return marketplaceRedirect("inquiry_failed");
+    } catch {
+      console.error("Marketplace OAuth inquiry failed");
+      return marketplaceRedirect("inquiry_failed");
     }
 
     const marketplaceChannelId = process.env.MARKETPLACE_CHANNEL_ID;

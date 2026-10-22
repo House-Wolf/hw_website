@@ -6,7 +6,6 @@ const requiredEnvVars = [
   "DISCORD_GUILD_ID",
   "NEXTAUTH_SECRET",
   "NEXTAUTH_URL",
-  "BOT_SERVICE_URL",
   "BUYER_ROLE_ID",
   "MARKETPLACE_CHANNEL_ID",
 ] as const;
