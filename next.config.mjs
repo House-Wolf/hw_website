@@ -15,6 +15,7 @@ const contentSecurityPolicy = [
     "script-src 'self' 'unsafe-inline'",
     isDevelopment ? "'unsafe-eval'" : "",
     "https://va.vercel-scripts.com",
+    "https://static.cloudflareinsights.com",
   ]
     .filter(Boolean)
     .join(" "),
@@ -34,6 +35,7 @@ const contentSecurityPolicy = [
     "https://api.groq.com",
     "https://vitals.vercel-insights.com",
     "https://*.vercel-insights.com",
+    "https://cloudflareinsights.com",
   ].join(" "),
   "media-src 'self' blob:",
   "frame-src 'self' https://discord.com https://www.youtube.com https://www.youtube-nocookie.com",
