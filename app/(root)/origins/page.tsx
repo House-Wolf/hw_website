@@ -1,195 +1,130 @@
 import { JSX } from "react";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
-import { SafeImage } from "@/components/utils/SafeImage";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
+import { SafeImage } from "@/components/utils/SafeImage";
 
-/**
- * @component OriginsPage
- * @description Displays the origins and history of the Kamposian Dragoons with lore sections, images, and interactive cards.
- * @returns {JSX.Element} The fully rendered Origins page.
- * @author House Wolf Dev
- */
+/** House Wolf's origins, from Kampos to the legacy carried by the pack. */
 export default function OriginsPage(): JSX.Element {
   return (
-    <div className="min-h-screen bg-background-elevated">
+    <main className="min-h-screen bg-background-elevated">
       <PageHeader
         title="Our Origins"
         subtitle="The legendary history of the Kamposian Dragoons"
         iconSrc="/images/global/HWiconnew.png"
       />
-      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
 
-        <div className="max-w-4xl mx-auto relative z-10">
-          <div className="bg-gradient-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)]">
-            <p className="text-xl md:text-2xl text-foreground leading-relaxed mb-6">
-              The{" "}
-              <span className="text-steel-light font-bold">
-                Kamposian Dragoons
-              </span>{" "}
-              were a clan-based culture composed of multiple species and bound
-              by a common creed, language, and code.
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+        <section aria-labelledby="kampos-heading" className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-12">
+          <figure className="order-2 mx-auto w-full max-w-[320px] overflow-hidden rounded-xl border border-white/10 bg-background-base lg:order-1">
+            <SafeImage
+              src="/images/origins/kamposimagnusskull.png"
+              alt="A skull on display, representing the history of Kampos"
+              width={488}
+              height={706}
+              sizes="(max-width: 359px) calc(100vw - 40px), 320px"
+              className="h-auto w-full"
+            />
+            <figcaption className="border-t border-white/10 px-4 py-3 text-xs text-foreground-muted">
+              Kampos (Ellis IV) <span aria-hidden="true">·</span> Birthplace of the Dragoons
+            </figcaption>
+          </figure>
+
+          <div className="order-1 lg:order-2">
+            <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">01 / Our beginnings</p>
+            <h2 id="kampos-heading" className="mb-5 text-3xl font-bold text-white sm:text-4xl">Forged on Kampos</h2>
+            <p className="mb-4 text-lg leading-relaxed text-foreground">
+              The <strong className="font-semibold text-white">Kamposian Dragoons</strong> were a clan-based culture composed of multiple species, bound by a common creed, language, and code.
             </p>
-            <p className="text-lg md:text-xl text-foreground-muted leading-relaxed">
-              Known as elite mercenaries and bounty hunters, the Dragoons shaped
-              the galaxy through war, honor, and conquest.
+            <p className="mb-4 text-base leading-relaxed text-foreground-muted">
+              Originating on <strong className="font-medium text-foreground">Kampos (Ellis IV)</strong>, the Dragoons built a warrior culture founded on honor and strength. This unforgiving world forged them into a disciplined, legendary fighting force feared across the sector.
             </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 bg-background-elevated">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          {/* Image */}
-          <div className="relative">
-            <div
-              className="
-                rounded-xl overflow-hidden
-                border-2 border-steel/40
-                bg-gradient-to-br from-steel-dark/30 to-obsidian
-                shadow-[0_0_18px_rgba(0,180,255,0.25)]
-                hover:shadow-[0_0_28px_rgba(0,200,255,0.45)]
-                transition-shadow duration-300
-                will-change-transform
-              "
-            >
-              <SafeImage
-                src="/images/origins/kamposimagnusskull.png"
-                alt="Kampos - Birthplace of the Dragoons"
-                width={800}
-                height={600}
-                className="w-full h-auto object-cover"
-                loading="lazy" // NEW: Performance
-              />
-            </div>
-          </div>
-
-          {/* Text */}
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 uppercase tracking-wider">
-              Kampos
-            </h2>
-            <div className="h-1 w-24 bg-steel-light mb-6" />
-
-            <p className="text-lg text-foreground-muted leading-relaxed mb-4">
-              Originating on{" "}
-              <span className="text-steel-light font-semibold">
-                Kampos (Ellis IV)
-              </span>
-              , the Dragoons built a warrior culture founded on honor and
-              strength.
+            <p className="text-base leading-relaxed text-foreground-muted">
+              Known as elite mercenaries and bounty hunters, the Dragoons shaped the galaxy through war, honor, and conquest.
             </p>
 
-            <p className="text-lg text-foreground-muted leading-relaxed mb-6">
-              This unforgiving world forged the Dragoons into a disciplined,
-              legendary fighting force feared across the sector.
-            </p>
-
-            {/* External Links */}
-            <div className="flex flex-wrap gap-4">
-              <Link
-                target="_blank"
-                rel="noopener noreferrer" // NEW: Security best practice
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-3">
+              <a
                 href="https://robertsspaceindustries.com/galactapedia/article/RAXxrxr7M5-kampos-ellis-iv"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-steel text-foreground font-bold rounded-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] transition-all"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground underline decoration-white/25 underline-offset-4 transition-colors hover:text-white hover:decoration-white/60 focus-visible:outline-white"
+                aria-label="Explore Kampos in Galactapedia (opens in a new tab)"
               >
-                <ExternalLink size={18} />
-                Galactapedia
-              </Link>
-
-              <Link
-                target="_blank"
-                rel="noopener noreferrer"
+                Explore Galactapedia <ExternalLink size={14} aria-hidden="true" />
+              </a>
+              <a
                 href="https://robertsspaceindustries.com/en/starmap?location=ELLIS.PLANETS.ELLISIVKAMPOS"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-steel text-foreground font-bold rounded-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] transition-all"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground underline decoration-white/25 underline-offset-4 transition-colors hover:text-white hover:decoration-white/60 focus-visible:outline-white"
+                aria-label="Find Kampos on the Star Map (opens in a new tab)"
               >
-                <ExternalLink size={18} />
-                Star Map
-              </Link>
+                View Star Map <ExternalLink size={14} aria-hidden="true" />
+              </a>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
-        {/* NEW: Glow now visible */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-crimson/10 rounded-full blur-[150px]" />
+        <section aria-labelledby="expansion-heading" className="mt-10 border-t border-white/10 pt-10 sm:mt-12 sm:pt-12">
+          <header className="mb-6">
+            <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">02 / Beyond the home world</p>
+            <h2 id="expansion-heading" className="text-3xl font-bold text-white sm:text-4xl">The Great Expansion</h2>
+          </header>
 
-        <div className="max-w-6xl mx-auto relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-crimson-light text-center mb-16 uppercase tracking-wider">
-            The Great Expansion
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Wars Card */}
-            <div className="group bg-gradient-to-br from-crimson-dark/20 to-obsidian border border-crimson/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
+          <div className="grid gap-6 md:grid-cols-2">
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-background-base">
               <SafeImage
                 src="/images/origins/wars.png"
-                alt="Wars of Expansion"
-                width={900}
-                height={700}
-                className="w-full h-64 object-cover rounded-lg mb-6"
-                loading="lazy" // NEW
+                alt="A burning city beneath a dark sky"
+                width={1536}
+                height={1024}
+                sizes="(min-width: 1152px) 532px, (min-width: 768px) calc(50vw - 44px), calc(100vw - 40px)"
+                className="h-auto w-full"
               />
-              <h3 className="text-2xl font-bold text-crimson-light mb-4 uppercase">
-                Wars of Expansion
-              </h3>
-              <p className="text-foreground-muted leading-relaxed">
-                The Dragoons expanded aggressively, conquering neighboring
-                systems and establishing their dominance.
-              </p>
-            </div>
+              <div className="p-5 sm:p-6">
+                <h3 className="mb-3 text-xl font-semibold text-white">Wars of Expansion</h3>
+                <p className="text-base leading-relaxed text-foreground-muted">
+                  The Dragoons expanded aggressively, conquering neighboring systems and establishing their dominance.
+                </p>
+              </div>
+            </article>
 
-            {/* Dragoon Space Card */}
-            <div className="group bg-gradient-to-br from-steel-dark/20 to-obsidian border border-steel/30 rounded-lg p-8 hover:scale-105 transition-all will-change-transform">
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-background-base">
               <SafeImage
                 src="/images/origins/dragoonSpace.png"
-                alt="Dragoon Space"
-                width={900}
-                height={700}
-                className="w-full h-64 object-cover rounded-lg mb-6"
-                loading="lazy"
+                alt="A planet surrounded by an orange nebula"
+                width={1536}
+                height={1024}
+                sizes="(min-width: 1152px) 532px, (min-width: 768px) calc(50vw - 44px), calc(100vw - 40px)"
+                className="h-auto w-full"
               />
-              <h3 className="text-2xl font-bold text-white mb-4 uppercase">
-                Dragoon Space
-              </h3>
-              <p className="text-foreground-muted leading-relaxed">
-                The surrounding sector became known as{" "}
-                <strong>Dragoon Space</strong>, signifying unstoppable military
-                dominance.
-              </p>
-            </div>
+              <div className="p-5 sm:p-6">
+                <h3 className="mb-3 text-xl font-semibold text-white">Dragoon Space</h3>
+                <p className="text-base leading-relaxed text-foreground-muted">
+                  The surrounding sector became known as <strong className="font-medium text-foreground">Dragoon Space</strong>, signifying unstoppable military dominance.
+                </p>
+              </div>
+            </article>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 uppercase tracking-wider">
-            Our Legacy Continues
-          </h2>
-
-          <p className="text-xl text-foreground-muted mb-12 leading-relaxed max-w-3xl mx-auto">
-            House Wolf carries the Dragoon legacy forward—honoring tradition
-            while forging a new path among the stars.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/code"
-              className="px-8 py-4 bg-crimson text-foreground font-bold rounded-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] transition-all will-change-transform"
-            >
-              The Dragoon Code
+        <section aria-labelledby="legacy-heading" className="mt-10 flex flex-col gap-6 rounded-xl border border-white/10 bg-background-base p-6 sm:mt-12 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+          <div className="max-w-xl">
+            <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">03 / The pack today</p>
+            <h2 id="legacy-heading" className="mb-3 text-2xl font-bold text-white sm:text-3xl">Our legacy continues</h2>
+            <p className="text-base leading-relaxed text-foreground-muted">
+              House Wolf carries the Dragoon legacy forward—honoring tradition while forging a new path among the stars.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
+            <Link href="/code" className="inline-flex min-h-11 items-center justify-between gap-5 rounded-md border border-white/15 bg-crimson px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-crimson-light focus-visible:outline-white">
+              The Dragoon Code <ArrowRight size={16} aria-hidden="true" />
             </Link>
-            <Link
-              href="/leadership"
-              className="px-8 py-4 bg-steel text-foreground font-bold rounded-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(17,78,98,0.6)] transition-all will-change-transform"
-            >
-              Leadership
+            <Link href="/leadership" className="inline-flex min-h-11 items-center justify-between gap-5 rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/5 focus-visible:outline-white">
+              Meet our leadership <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
