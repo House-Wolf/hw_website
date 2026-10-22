@@ -175,7 +175,7 @@ test("Captain cannot grant rank or command authority even if put on an allowlist
 test("the supplied command families and Captain bindings are preserved", () => {
   assert.equal(COMMAND_DEFINITIONS.find((definition) => definition.key === "tacops").captainDiscordIds[0], captainId);
   assert.equal(COMMAND_DEFINITIONS.find((definition) => definition.key === "locops").captainDiscordIds[0], "173989558877159424");
-  assert.deepEqual(COMMAND_DEFINITIONS.map((definition) => definition.roles.length), [2, 3, 4, 3]);
+  assert.deepEqual(COMMAND_DEFINITIONS.map((definition) => definition.roles.length), [2, 3, 5, 3]);
   assert.equal(OFFICER_ROLE_IDS.length, 7);
 });
 
@@ -289,6 +289,13 @@ function fixture(options = {}) {
     },
     personnelAudit: { create: async ({ data }) => { audits.push(data); return data; } },
     personnelCommand: {
+      updateMany: async ({ where, data }) => {
+        const command = commands.find(item => item.guildId === where.guildId && item.key === where.key);
+        if (!command || command.allowedRoleIds.includes(where.NOT.allowedRoleIds.has)) return { count: 0 };
+        command.allowedRoleIds.push(data.allowedRoleIds.push);
+        command.updatedBy = data.updatedBy;
+        return { count: 1 };
+      },
       findUnique: async ({ where }) => commands.find((item) => item.id === where.guildId_key.key),
       findMany: async () => commands,
       upsert: async ({ where, create, update }) => {
@@ -620,6 +627,51 @@ test("fresh databases automatically map each division and offer only its own spe
     assert.equal(command.updatedBy, "bot");
   }
   assert.equal(state.roleCalls.length, 0);
+});
+
+test("Merchant can be added to an existing LOCOPS mapping without replacing Captains or other roles", async () => {
+  const state = unmappedCommandsFixture();
+  await state.service.ensureCommandsConfigured();
+  const mapping = state.commands.find(item => item.key === "locops");
+  const merchantId = "role-LOCOPS - Merchant";
+  mapping.allowedRoleIds = mapping.allowedRoleIds.filter(id => id !== merchantId);
+  mapping.captainDiscordIds = ["configured-captain"];
+  const before = structuredClone(state.commands);
+  await state.service.addApprovedSpecialistRole("locops", "LOCOPS - Merchant");
+  assert.deepEqual(mapping.allowedRoleIds, [...before.find(item => item.key === "locops").allowedRoleIds, merchantId]);
+  assert.deepEqual(mapping.captainDiscordIds, ["configured-captain"]);
+  assert.deepEqual(state.commands.filter(item => item.key !== "locops"), before.filter(item => item.key !== "locops"));
+  assert.ok((await state.service.commandRoleChoices("locops")).some(choice => choice.value === merchantId));
+  assert.equal((await state.service.commandRoleChoices("tacops")).some(choice => choice.value === merchantId), false);
+  await state.service.addApprovedSpecialistRole("locops", "LOCOPS - Merchant");
+  assert.equal(mapping.allowedRoleIds.filter(id => id === merchantId).length, 1);
+  assert.equal(state.roleCalls.length, 0);
+});
+
+for (const issue of ["missing", "duplicate", "privileged", "managed", "uneditable"]) {
+  test(`Merchant mapping rejects an unsafe role: ${issue}`, async () => {
+    const state = unmappedCommandsFixture();
+    await state.service.ensureCommandsConfigured();
+    const mapping = state.commands.find(item => item.key === "locops");
+    mapping.allowedRoleIds = mapping.allowedRoleIds.filter(id => id !== "role-LOCOPS - Merchant");
+    const before = structuredClone(state.commands);
+    const role = state.roleDefinitions.get("role-LOCOPS - Merchant");
+    if (issue === "missing") state.roleDefinitions.delete(role.id);
+    if (issue === "duplicate") state.roleDefinitions.set("duplicate", { ...role, id: "duplicate" });
+    if (issue === "privileged") role.permissions = new PermissionsBitField(PermissionsBitField.Flags.Administrator);
+    if (issue === "managed") role.managed = true;
+    if (issue === "uneditable") role.editable = false;
+    await assert.rejects(state.service.addApprovedSpecialistRole("locops", "LOCOPS - Merchant"));
+    assert.deepEqual(state.commands, before);
+    assert.equal(state.roleCalls.length, 0);
+  });
+}
+
+test("specialist maintenance rejects unapproved and cross-division role names", async () => {
+  const state = unmappedCommandsFixture();
+  await state.service.ensureCommandsConfigured();
+  await assert.rejects(state.service.addApprovedSpecialistRole("tacops", "LOCOPS - Merchant"), /not an approved/);
+  await assert.rejects(state.service.addApprovedSpecialistRole("locops", "LOCOPS - Command"), /not an approved/);
 });
 
 test("automatic command mapping preserves existing mappings and captain bindings across restarts", async () => {

@@ -299,6 +299,28 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return results;
   }
 
+  // Explicit maintenance operation; not exposed through a Discord command.
+  // Append only a code-approved specialist without replacing Captain bindings.
+  async function addApprovedSpecialistRole(commandKey, roleName) {
+    const definition = COMMAND_DEFINITIONS.find(item => item.key === commandKey);
+    if (!definition?.roles.includes(roleName)) throw new Error("Role is not an approved specialist for this division.");
+    const command = await prisma.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: commandKey } } });
+    if (!command) throw new Error("Configure this division before adding a specialist.");
+    const roles = await (await guild()).roles.fetch();
+    const matches = [...roles.values()].filter(role => role.name === roleName);
+    if (matches.length !== 1) throw new Error("Exact specialist role name is missing or duplicated.");
+    const roleId = matches[0].id;
+    const commands = await prisma.personnelCommand.findMany({ where: { guildId: config.guildId } });
+    if (Object.values(PERSONNEL_ROLES).includes(roleId) || roleId === config.buyerRoleId || commands.some(item => item.commandRoleId === roleId)) throw new Error("Cannot approve a protected role.");
+    await preflightRoles([roleId], { specialist: true });
+    const result = await prisma.personnelCommand.updateMany({
+      where: { guildId: config.guildId, key: commandKey, NOT: { allowedRoleIds: { has: roleId } } },
+      data: { allowedRoleIds: { push: roleId }, updatedBy: client.user.id },
+    });
+    if (result.count) await audit("COMMAND_SPECIALIST_ADDED", client.user.id, { key: commandKey, roleId, roleName }, client.user.id);
+    return `${definition.name}: ${roleName} ${result.count ? "added" : "already configured"}`;
+  }
+
   async function commandRoleChoices(commandKey, search = "", actorId = null) {
     const definition = COMMAND_DEFINITIONS.find((item) => item.key === commandKey);
     if (!definition) return [];
@@ -498,5 +520,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, addApprovedSpecialistRole, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }

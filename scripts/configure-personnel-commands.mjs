@@ -20,6 +20,13 @@ try {
   await ready;
   const service = createPersonnelService({ client, prisma, config: { guildId: process.env.DISCORD_GUILD_ID, buyerRoleId: process.env.BUYER_ROLE_ID } });
   for (const result of await service.ensureCommandsConfigured()) console.log(result);
+  for (const argument of process.argv.filter(value => value.startsWith("--add-specialist="))) {
+    if (process.argv.includes("--verify-only")) throw new Error("Cannot add specialists in verification-only mode.");
+    const value = argument.slice("--add-specialist=".length);
+    const separator = value.indexOf(":");
+    if (separator < 1) throw new Error("Use --add-specialist=division:Exact Role Name");
+    console.log(await service.addApprovedSpecialistRole(value.slice(0, separator), value.slice(separator + 1)));
+  }
   let incomplete = false;
   for (const definition of COMMAND_DEFINITIONS) {
     const choices = await service.commandRoleChoices(definition.key);
@@ -32,6 +39,16 @@ try {
     console.log("Personnel and /tacops, /specops, /locops, /arcops commands updated; assignment no longer uses a division dropdown.");
   } else {
     console.log("Verification only: Discord slash-command registrations were not changed.");
+  }
+  const registered = await (await client.guilds.fetch(process.env.DISCORD_GUILD_ID)).commands.fetch();
+  for (const definition of COMMAND_DEFINITIONS) {
+    const command = registered.find(item => item.name === definition.key);
+    const option = command?.options.find(item => item.name === "role");
+    const expected = await service.commandRoleChoices(definition.key);
+    if (option?.autocomplete || JSON.stringify(option?.choices) !== JSON.stringify(expected)) {
+      throw new Error(`Published /${definition.key} role menu does not match its approved mapping.`);
+    }
+    console.log(`Verified published /${definition.key}: ${expected.length} specialist choices`);
   }
   console.log("All four division mappings and specialist role choices are ready. No member roles were changed.");
 } finally {
