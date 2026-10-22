@@ -13,7 +13,6 @@ export function personnelCommandDefinition() {
     .addStringOption((option) => option.setName("rank").setDescription("Must match their current Discord rank").setRequired(true).addChoices(...SERVICE_RANKS.map((rank) => ({ name: rank.name, value: rank.roleId }))))
     .addStringOption((option) => option.setName("since").setDescription("Actual date this rank began, YYYY-MM-DD").setRequired(true))
     .addStringOption((option) => option.setName("evidence").setDescription("Source of the historical service date").setRequired(true).setMinLength(10).setMaxLength(1000)));
-  command.addSubcommand((subcommand) => subcommand.setName("initialize-commands").setDescription("Warlord: map the four command groups from exact Discord role names"));
   command.addSubcommand((subcommand) => subcommand.setName("assign-role").setDescription("Captain: assign or remove a specialist role within your own command")
     .addStringOption((option) => option.setName("command").setDescription("Your command").setRequired(true).addChoices(...COMMAND_DEFINITIONS.map((definition) => ({ name: definition.name, value: definition.key }))))
     .addUserOption((option) => option.setName("member").setDescription("House Wolf member").setRequired(true))
@@ -66,8 +65,6 @@ export function attachPersonnelInteractions(client, service, config) {
       } else if (action === "service-history") {
         await service.recordHistory({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, rankRoleId: interaction.options.getString("rank", true), since: interaction.options.getString("since", true), evidence: interaction.options.getString("evidence", true) });
         await interaction.editReply("Verified time in rank recorded. If the required term is complete, the officer review is queued.");
-      } else if (action === "initialize-commands") {
-        await interaction.editReply((await service.initializeCommands(interaction.user.id)).join("\n"));
       } else if (action === "assign-role") {
         const assignment = await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: interaction.options.getString("command", true), roleId: interaction.options.getString("role", true), action: interaction.options.getString("action", true) });
         await interaction.editReply(assignment.status === "COMPLETED" ? "Specialist assignment confirmed and entered into the command log." : assignment.status === "CANCELLED" ? "Assignment cancelled because membership or command authority changed. The website has been reconciled with Discord." : "Specialist assignment saved. Discord and website reconciliation is pending and will retry automatically.");

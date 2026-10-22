@@ -282,7 +282,17 @@ function fixture(options = {}) {
       upsert: async ({ update }) => { Object.assign(member, update); return structuredClone(member); },
     },
     personnelAudit: { create: async ({ data }) => { audits.push(data); return data; } },
-    personnelCommand: { findUnique: async ({ where }) => commands.find((item) => item.id === where.guildId_key.key), findMany: async () => commands },
+    personnelCommand: {
+      findUnique: async ({ where }) => commands.find((item) => item.id === where.guildId_key.key),
+      findMany: async () => commands,
+      upsert: async ({ where, create, update }) => {
+        const existing = commands.find(item => item.id === where.guildId_key.key);
+        if (existing) { Object.assign(existing, update); return existing; }
+        const mapped = { id: where.guildId_key.key, ...create };
+        commands.push(mapped);
+        return mapped;
+      },
+    },
     marketplaceGuest: { deleteMany: async () => { options.guestRetired = true; return { count: 1 }; } },
     user: { findUnique: async () => options.websiteUser ? { id: "website-user" } : null },
     discordRole: { upsert: async () => ({}) },
@@ -297,7 +307,7 @@ function fixture(options = {}) {
     return { id: `message-${sent.length}` };
   } };
   const server = { id: guildId, members: { fetch: async ({ user }) => { if (!people.has(user)) throw Object.assign(new Error("Unknown member"), { code: 10007 }); return people.get(user); }, fetchMe: async () => ({}) }, roles: { fetch: async () => roleDefinitions } };
-  const client = { isReady: () => true, guilds: { fetch: async () => server }, channels: { fetch: async () => destination } };
+  const client = { user: { id: "bot" }, isReady: () => true, guilds: { fetch: async () => server }, channels: { fetch: async () => destination } };
   const createService = () => createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer" }, now: () => clock, logger: { error() {} } });
   const service = createService();
   const vote = (actorId, decision = "APPROVE", overrides = {}) => service.castVote({ requestId, actorId, decision, messageId: "review-message", channelId: PERSONNEL_CHANNELS.officers, ...overrides });
@@ -566,7 +576,78 @@ test("slash command schema is valid and offers scoped Captain assignment", () =>
   const role = definition.options.find(option => option.name === "assign-role").options.find(option => option.name === "role");
   assert.equal(role.type, 3);
   assert.equal(role.autocomplete, true);
+  assert.equal(definition.options.some(option => option.name === "initialize-commands"), false);
 });
+
+function unmappedCommandsFixture() {
+  const state = fixture();
+  state.commands.length = 0;
+  const names = new Set(COMMAND_DEFINITIONS.flatMap(definition => [definition.commandRole, ...definition.roles]));
+  for (const [id, role] of state.roleDefinitions) if (names.has(role.name)) state.roleDefinitions.delete(id);
+  for (const definition of COMMAND_DEFINITIONS) {
+    for (const name of [definition.commandRole, ...definition.roles]) {
+      const id = `role-${name}`;
+      state.roleDefinitions.set(id, { id, name, editable: true, managed: false, permissions: new PermissionsBitField(0n) });
+    }
+  }
+  return state;
+}
+
+test("fresh databases automatically map each division and offer only its own specialist roles", async () => {
+  const state = unmappedCommandsFixture();
+  assert.equal((await state.service.ensureCommandsConfigured()).length, 4);
+  for (const definition of COMMAND_DEFINITIONS) {
+    const choices = await state.service.commandRoleChoices(definition.key);
+    assert.deepEqual(choices.map(choice => choice.name).sort(), [...definition.roles].sort());
+    assert.equal(choices.some(choice => choice.name === definition.commandRole), false);
+    const command = state.commands.find(item => item.key === definition.key);
+    assert.deepEqual(command.captainDiscordIds, definition.captainDiscordIds);
+    assert.equal(command.commandRoleId, `role-${definition.commandRole}`);
+    assert.equal(command.updatedBy, "bot");
+  }
+  assert.equal(state.roleCalls.length, 0);
+});
+
+test("automatic command mapping preserves existing mappings and captain bindings across restarts", async () => {
+  const state = unmappedCommandsFixture();
+  await state.service.ensureCommandsConfigured();
+  state.commands[0].captainDiscordIds = ["configured-captain"];
+  const before = structuredClone(state.commands);
+  assert.deepEqual(await state.createService().ensureCommandsConfigured(), []);
+  assert.deepEqual(state.commands, before);
+});
+
+for (const definition of COMMAND_DEFINITIONS) {
+  test(`${definition.name} Captain can assign a selected specialist from their own division`, async () => {
+    const state = unmappedCommandsFixture();
+    await state.service.ensureCommandsConfigured();
+    const actorId = definition.captainDiscordIds[0] || captainId;
+    const mapping = state.commands.find(item => item.key === definition.key);
+    state.people.get(actorId).roles.cache.set(mapping.commandRoleId, state.roleDefinitions.get(mapping.commandRoleId));
+    const roleId = mapping.allowedRoleIds[0];
+    const result = await state.service.assignCommandRole({ actorId, discordId: candidateId, commandKey: definition.key, roleId, action: "ADD" });
+    assert.equal(result.status, "COMPLETED");
+    assert.equal(state.candidate.roles.cache.has(roleId), true);
+    assert.equal(state.candidate.roles.cache.has(mapping.commandRoleId), false);
+    assert.deepEqual(state.roleCalls, [["ADD", roleId]]);
+  });
+}
+
+for (const issue of ["missing", "duplicate", "privileged", "managed", "uneditable"]) {
+  test(`unsafe division mapping is skipped without preventing other divisions: ${issue}`, async () => {
+    const state = unmappedCommandsFixture();
+    const role = state.roleDefinitions.get("role-SPECOPS - Wolfen");
+    if (issue === "missing") state.roleDefinitions.delete(role.id);
+    if (issue === "duplicate") state.roleDefinitions.set("duplicate", { ...role, id: "duplicate" });
+    if (issue === "privileged") role.permissions = new PermissionsBitField(PermissionsBitField.Flags.Administrator);
+    if (issue === "managed") role.managed = true;
+    if (issue === "uneditable") role.editable = false;
+    const results = await state.service.ensureCommandsConfigured();
+    assert.equal(state.commands.some(item => item.key === "specops"), false);
+    assert.equal(state.commands.length, 3);
+    assert.ok(results.some(result => result.startsWith("SPECOPS:") && result.includes("skipped")));
+  });
+}
 
 test("role suggestions contain only approved roles in the selected command", async () => {
   const state = fixture();

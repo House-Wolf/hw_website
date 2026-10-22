@@ -85,6 +85,7 @@ client.once("ready", async () => {
   marketplaceGuests.start();
   if (process.env.PERSONNEL_ENABLED === "true") {
     try {
+      for (const result of await personnel.ensureCommandsConfigured()) console.log(result);
       await registerPersonnelCommand(client, process.env.DISCORD_GUILD_ID);
       personnel.start();
     } catch (error) { console.error("Personnel setup failed; worker not started:", error.message); }

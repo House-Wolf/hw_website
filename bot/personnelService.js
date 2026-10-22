@@ -47,7 +47,8 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     const roles = await server.roles.fetch();
     for (const id of ids) {
       const role = roles.get(id);
-      if (!role || !role.editable || role.managed || id === server.id) throw new Error(`Role ${id} is missing, managed, or above the bot. No roles were changed.`);
+      if (!role || role.managed || id === server.id) throw new Error(`Role ${id} is missing, managed, or protected. No roles were changed.`);
+      if (!role.editable) throw new Error(`The bot cannot manage ${role.name}. Give it Manage Roles and place its bot role above this role in Server Settings > Roles. No roles were changed.`);
       if (specialist && protectedPermissions.some((permission) => role.permissions.has(permission))) throw new Error("Specialist assignments cannot grant moderation or administrative permissions.");
     }
     return roles;
@@ -239,20 +240,31 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     else if (request.status === "REVIEW") await refreshReview(request.id);
   }
 
-  async function initializeCommands(actorId) {
-    await officer(actorId, true);
+  async function ensureCommandsConfigured() {
+    if (!client.user?.id) throw new Error("Discord must be ready before command mappings are initialized.");
+    return configureCommands(client.user.id);
+  }
+
+  async function configureCommands(actorId) {
     const roles = await (await guild()).roles.fetch();
     const results = [];
     for (const definition of COMMAND_DEFINITIONS) {
+      if (await prisma.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: definition.key } } })) continue;
       const names = [definition.commandRole, ...definition.roles];
       const resolved = names.map((name) => [...roles.values()].filter((role) => role.name === name));
       if (resolved.some((matches) => matches.length !== 1)) { results.push(`${definition.name}: exact role names missing or duplicated; skipped`); continue; }
       const commandRoleId = resolved[0][0].id;
       const allowedRoleIds = resolved.slice(1).map((matches) => matches[0].id);
       if ([commandRoleId, ...allowedRoleIds].some((id) => Object.values(PERSONNEL_ROLES).includes(id) || id === config.buyerRoleId)) throw new Error("Command definitions cannot include protected ranks.");
-      await preflightRoles(allowedRoleIds, { specialist: true });
+      try { await preflightRoles(allowedRoleIds, { specialist: true }); }
+      catch (error) {
+        results.push(`${definition.name}: ${error.message}; skipped`);
+        continue;
+      }
       const data = { name: definition.name, commandRoleId, allowedRoleIds, captainDiscordIds: definition.captainDiscordIds, updatedBy: actorId };
-      await prisma.personnelCommand.upsert({ where: { guildId_key: { guildId: config.guildId, key: definition.key } }, create: { guildId: config.guildId, key: definition.key, ...data }, update: data });
+      // Another worker may configure this command while Discord
+      // roles are being fetched. Automatic initialization preserves that mapping.
+      await prisma.personnelCommand.upsert({ where: { guildId_key: { guildId: config.guildId, key: definition.key } }, create: { guildId: config.guildId, key: definition.key, ...data }, update: {} });
       await audit("COMMAND_CONFIGURED", actorId, { key: definition.key, ...data }, actorId);
       results.push(`${definition.name}: specialist roles configured`);
     }
@@ -455,5 +467,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, recordHistory, initializeCommands, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, recordHistory, ensureCommandsConfigured, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }
