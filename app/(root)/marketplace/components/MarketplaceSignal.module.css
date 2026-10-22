@@ -1,0 +1,27 @@
+/* CCTV animations belong to the Marketplace banner, never shared page headers. */
+.scan { animation: scan 8s linear infinite; }
+.pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.flicker { animation: flicker 0.15s infinite; }
+.particle { animation: particle 4s ease-in-out infinite; }
+
+@keyframes scan {
+  from { top: 0; }
+  to { top: 100%; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes flicker {
+  0%, 100% { opacity: 0; }
+  25% { opacity: 0.1; }
+  50% { opacity: 0; }
+  75% { opacity: 0.16; }
+}
+@keyframes particle {
+  0%, 100% { transform: translateY(0); opacity: 0.2; }
+  50% { transform: translateY(-20px); opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan, .pulse, .flicker, .particle { animation: none; }
+}
