@@ -29,6 +29,8 @@ Marketplace Contact Seller and its OAuth callback now create inquiries, threads,
 
 The old Express service still contains legacy DM, member-role, and GitHub webhook endpoints. Those endpoints are **not exposed** by the daemon. `localhost:4000` on a website Function is not this worker. Preserve any external service still used by other integrations; avoid simultaneously enabling its background workers against this bot. `BOT_SERVICE_URL` is no longer globally required by website environment validation.
 
+For a standalone HTTP deployment, the six service endpoints require `BOT_SERVICE_TOKEN` in production and authenticate every supported route spelling, including case variations and trailing slashes. Configure `GITHUB_WEBHOOK_SECRET` to the same secret set on the GitHub webhook. The webhook verifies GitHub's `X-Hub-Signature-256` against the raw JSON request bytes; missing configuration returns 503, and missing or invalid signatures return 401 without posting to Discord. GitHub uses its webhook secret rather than the bot service bearer token.
+
 This configuration is not a claim that every legacy bot HTTP integration is production-ready on Vercel. Test the worker and HTTP integrations separately before a full cutover.
 
 ## Controlled verification

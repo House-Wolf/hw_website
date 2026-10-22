@@ -4,6 +4,7 @@ import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { createMarketplaceGuestService } from "../bot/marketplaceGuestService.js";
+import { Collection, GuildMemberRoleManager } from "discord.js";
 import * as guestRecords from "../lib/marketplace/guestRecords.js";
 
 const guildId = "100000000000000001";
@@ -64,6 +65,7 @@ function fixture(options = {}) {
   const guild = { id: guildId, members: { fetch: async (query) => {
     assert.equal(query.force, true);
     calls.memberFetch++;
+    options.beforeMemberFetch?.(member);
     if (options.fetchFailure) throw options.fetchFailure;
     if (options.promoteDuringExpiry && calls.memberFetch === 2) roles.set("captain", { id: "captain" });
     return member;
@@ -79,6 +81,36 @@ test("expired guests are removed after a worker restart", async () => {
   await state.createService().run();
   assert.equal(state.calls.kick, 1);
   assert.equal(state.record(), null);
+});
+
+test("single-role cleanup preserves a concurrent membership grant and prevents an expiry kick", async () => {
+  const state = fixture({ expired: true, roles: [guildId, "buyer", "visitor", "interest"] });
+  const definitions = new Collection([guildId, "buyer", "visitor", "interest", "captain"].map(id => [id, { id }]));
+  const grant = () => state.roles.set("captain", definitions.get("captain"));
+  const discordMember = {
+    _roles: [...state.roles.keys()],
+    client: { rest: { delete: async route => { grant(); state.roles.delete(route.split("/").at(-1)); } } },
+    guild: { id: guildId, roles: { everyone: definitions.get(guildId), cache: definitions, resolveId: value => typeof value === "string" ? value : value.id } },
+    _clone: () => ({ ...discordMember }),
+    edit: async ({ roles }) => {
+      grant();
+      state.roles.clear();
+      for (const [id, role] of roles) state.roles.set(id, role);
+      return discordMember;
+    },
+  };
+  state.member.roles = new GuildMemberRoleManager(discordMember);
+  state.options.beforeMemberFetch = () => { discordMember._roles = [...state.roles.keys()]; };
+  await state.service.run();
+  assert.equal(state.roles.has("captain"), true);
+  assert.equal(state.roles.has("visitor"), false);
+  assert.equal(state.roles.has("interest"), false);
+  assert.equal(state.calls.kick, 0);
+  // A subsequent pass retires temporary access while preserving the member.
+  await state.service.run();
+  assert.equal(state.record(), null);
+  assert.equal(state.roles.has("captain"), true);
+  assert.equal(state.calls.kick, 0);
 });
 
 test("a community onboarding lease prevents expiry or role removal", async () => {

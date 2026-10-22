@@ -186,8 +186,10 @@ function matches(record, where) {
     else if (expected && typeof expected === "object" && !(expected instanceof Date)) {
       if ("in" in expected && !expected.in.includes(record[key])) return false;
       else if ("lt" in expected && !(record[key] && record[key] < expected.lt)) return false;
+      else if ("lte" in expected && !(record[key] <= expected.lte)) return false;
+      else if ("gt" in expected && !(record[key] > expected.gt)) return false;
       else if ("not" in expected && record[key] === expected.not) return false;
-      else if (!["in", "lt", "not"].some((operator) => operator in expected) && !matches(record[key], expected)) return false;
+      else if (!["in", "lt", "lte", "gt", "not"].some((operator) => operator in expected) && !matches(record[key], expected)) return false;
     } else if (record[key] !== expected) return false;
   }
   return true;
@@ -201,6 +203,9 @@ function fixture(options = {}) {
   const request = { id: requestId, memberId, sourceRankRoleId: sourceRank, targetRankRoleId: targetRank, rankSince: new Date("2026-04-22T12:00:00Z"), eligibleAt: clock, approvalsRequired: options.founding ? 0 : options.approvals || 1, status: options.status || (options.founding ? "APPROVED" : "REVIEW"), officerMessageId: "review-message", announcementMessageId: null, vetoedBy: null, processingToken: null, processingUntil: null, createdAt: clock, executeAfter: null };
   const votes = [];
   const audits = [];
+  const assignments = [];
+  const websiteRoles = new Set();
+  let inTransaction = false;
   const roleCalls = [];
   const sent = [];
   const roleDefinitions = new Map([...Object.values(PERSONNEL_ROLES), "buyer", "dire-wolfs", "mining", "tacops-command", "locops-command", "cosmetic"].map((id) => [id, { id, name: SERVICE_RANKS.find((rank) => rank.roleId === id)?.name || id, editable: true, managed: false, position: 1, color: 0, permissions: new PermissionsBitField(options.privilegedRole === id ? PermissionsBitField.Flags.Administrator : 0n) }]));
@@ -212,8 +217,8 @@ function fixture(options = {}) {
     const cache = new Map(roles.map((roleId) => [roleId, roleDefinitions.get(roleId)]));
     const value = { id, displayName: "Nightmare Wolf", user: { bot: false, displayAvatarURL() { throw new Error("Use local banner fallback"); } }, roles: {
       cache,
-      add: async (roleId) => { assert.equal(typeof roleId, "string"); roleCalls.push(["ADD", roleId]); if (options.addFailure) throw new Error("Role addition failed"); cache.set(roleId, roleDefinitions.get(roleId)); },
-      remove: async (roleId) => { assert.equal(typeof roleId, "string"); roleCalls.push(["REMOVE", roleId]); if (options.removeFailure) throw new Error("Role removal failed"); cache.delete(roleId); },
+      add: async (roleId) => { assert.equal(inTransaction, false, "Discord changes must run outside SQL transactions"); assert.equal(typeof roleId, "string"); roleCalls.push(["ADD", roleId]); if (options.addFailure) throw new Error("Role addition failed"); cache.set(roleId, roleDefinitions.get(roleId)); if (options.ambiguousRoleFailure) throw new Error("Connection lost after Discord applied the role"); },
+      remove: async (roleId) => { assert.equal(inTransaction, false, "Discord changes must run outside SQL transactions"); assert.equal(typeof roleId, "string"); roleCalls.push(["REMOVE", roleId]); if (options.removeFailure) throw new Error("Role removal failed"); cache.delete(roleId); },
     } };
     people.set(id, value);
     return value;
@@ -233,7 +238,30 @@ function fixture(options = {}) {
       let release;
       queue = new Promise((resolve) => { release = resolve; });
       await previous;
-      try { return await operation(prisma); } finally { release(); }
+      const saved = { assignments: structuredClone(assignments), audits: structuredClone(audits), websiteRoles: [...websiteRoles] };
+      inTransaction = true;
+      try {
+        const result = await operation(prisma);
+        if (options.failEnqueueCommit && assignments.length > saved.assignments.length) throw new Error("Enqueue commit failed");
+        if (options.failAssignmentCommit && assignments.some((job, index) => job.status === "COMPLETED" && saved.assignments[index]?.status !== "COMPLETED")) {
+          options.failAssignmentCommit = false;
+          throw new Error("Assignment commit failed");
+        }
+        return result;
+      } catch (error) {
+        assignments.splice(0, assignments.length, ...saved.assignments);
+        audits.splice(0, audits.length, ...saved.audits);
+        websiteRoles.clear();
+        for (const role of saved.websiteRoles) websiteRoles.add(role);
+        throw error;
+      } finally { inTransaction = false; release(); }
+    },
+    personnelRoleAssignment: {
+      create: async ({ data }) => { const job = { id: `assignment-${assignments.length + 1}`, status: "PENDING", processingUntil: null, processingToken: null, ...data }; assignments.push(job); return structuredClone(job); },
+      findFirst: async ({ where }) => structuredClone(assignments.find(job => matches(job, where)) || null),
+      findUnique: async ({ where }) => structuredClone(assignments.find(job => matches(job, where)) || null),
+      findMany: async ({ where, take }) => structuredClone(assignments.filter(job => matches(job, where)).slice(0, take)),
+      updateMany: async ({ where, data }) => { let count = 0; for (const job of assignments) if (matches(job, where)) { Object.assign(job, data); count++; } return { count }; },
     },
     promotionRequest: {
       findUnique: async () => fullRequest(),
@@ -256,18 +284,24 @@ function fixture(options = {}) {
     personnelAudit: { create: async ({ data }) => { audits.push(data); return data; } },
     personnelCommand: { findUnique: async ({ where }) => commands.find((item) => item.id === where.guildId_key.key), findMany: async () => commands },
     marketplaceGuest: { deleteMany: async () => { options.guestRetired = true; return { count: 1 }; } },
-    user: { findUnique: async () => null },
+    user: { findUnique: async () => options.websiteUser ? { id: "website-user" } : null },
+    discordRole: { upsert: async () => ({}) },
+    userRole: {
+      upsert: async ({ create }) => { if (options.websiteSyncFailure) throw new Error("Website role sync failed"); websiteRoles.add(create.discordRoleId); },
+      deleteMany: async ({ where }) => { if (options.websiteSyncFailure) throw new Error("Website role sync failed"); for (const id of where.discordRoleId.in) websiteRoles.delete(id); },
+    },
   };
   const destination = { guildId, isTextBased: () => true, messages: { fetch: async () => ({ edit: async (payload) => { options.lastReview = payload; } }) }, send: async (payload) => {
     if (options.announcementFailure) throw new Error("Announcement permission denied");
     sent.push(payload);
     return { id: `message-${sent.length}` };
   } };
-  const server = { id: guildId, members: { fetch: async ({ user }) => { if (!people.has(user)) throw new Error("Unknown member"); return people.get(user); }, fetchMe: async () => ({}) }, roles: { fetch: async () => roleDefinitions } };
+  const server = { id: guildId, members: { fetch: async ({ user }) => { if (!people.has(user)) throw Object.assign(new Error("Unknown member"), { code: 10007 }); return people.get(user); }, fetchMe: async () => ({}) }, roles: { fetch: async () => roleDefinitions } };
   const client = { isReady: () => true, guilds: { fetch: async () => server }, channels: { fetch: async () => destination } };
-  const service = createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer" }, now: () => clock, logger: { error() {} } });
+  const createService = () => createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer" }, now: () => clock, logger: { error() {} } });
+  const service = createService();
   const vote = (actorId, decision = "APPROVE", overrides = {}) => service.castVote({ requestId, actorId, decision, messageId: "review-message", channelId: PERSONNEL_CHANNELS.officers, ...overrides });
-  return { options, service, prisma, member, request, votes, audits, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
+  return { options, service, createService, prisma, assignments, websiteRoles, member, request, votes, audits, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
 }
 
 test("approval threshold finalizes and applies only the specified rank changes", async () => {
@@ -399,6 +433,110 @@ test("Captain assignment is scoped and uses a single-role API call", async () =>
   await state.service.assignCommandRole({ actorId: captainId, discordId: candidateId, commandKey: "tacops", roleId: "dire-wolfs", action: "ADD" });
   assert.equal(state.candidate.roles.cache.has("dire-wolfs"), true);
   assert.equal(state.audits.at(-1).action, "COMMAND_ROLE_COMPLETED");
+});
+
+const specialistInput = { actorId: captainId, discordId: candidateId, commandKey: "tacops", roleId: "dire-wolfs", action: "ADD" };
+
+test("an assignment enqueue rollback never changes Discord", async () => {
+  const state = fixture({ failEnqueueCommit: true });
+  await assert.rejects(state.service.assignCommandRole(specialistInput), /Enqueue commit failed/);
+  assert.equal(state.assignments.length, 0);
+  assert.equal(state.roleCalls.length, 0);
+  assert.deepEqual(state.audits.map(event => event.action), ["COMMAND_ROLE_FAILED"]);
+});
+
+for (const failure of ["websiteSyncFailure", "failAssignmentCommit", "ambiguousRoleFailure"]) {
+  test(`durable assignment recovers from ${failure} after a worker restart`, async () => {
+    const state = fixture({ websiteUser: true, [failure]: true });
+    const result = await state.service.assignCommandRole(specialistInput);
+    assert.equal(result.status, "RETRY");
+    assert.equal(state.candidate.roles.cache.has("dire-wolfs"), true);
+    assert.equal(state.assignments[0].status, "RETRY");
+    assert.equal(state.websiteRoles.has("dire-wolfs"), false);
+    assert.equal(state.audits.filter(event => event.action === "COMMAND_ROLE_COMPLETED").length, 0);
+    state.options[failure] = false;
+    state.advance(61_000);
+    await state.createService().reconcileCommandAssignments();
+    assert.equal(state.assignments[0].status, "COMPLETED");
+    assert.equal(state.websiteRoles.has("dire-wolfs"), true);
+    assert.equal(state.roleCalls.length, 1, "recovery must not reapply an already confirmed Discord change");
+    assert.equal(state.audits.filter(event => event.action === "COMMAND_ROLE_COMPLETED").length, 1);
+    await state.createService().reconcileCommandAssignments();
+    assert.equal(state.roleCalls.length, 1);
+  });
+}
+
+test("a failed removal synchronizes the website on retry without removing unrelated roles", async () => {
+  const state = fixture({ websiteUser: true, websiteSyncFailure: true });
+  state.candidate.roles.cache.set("dire-wolfs", state.roleDefinitions.get("dire-wolfs"));
+  state.websiteRoles.add("dire-wolfs");
+  assert.equal((await state.service.assignCommandRole({ ...specialistInput, action: "REMOVE" })).status, "RETRY");
+  assert.equal(state.candidate.roles.cache.has("dire-wolfs"), false);
+  assert.equal(state.websiteRoles.has("dire-wolfs"), true);
+  state.options.websiteSyncFailure = false;
+  state.advance(61_000);
+  await state.service.reconcileCommandAssignments();
+  assert.equal(state.assignments[0].status, "COMPLETED");
+  assert.equal(state.websiteRoles.has("dire-wolfs"), false);
+  assert.equal(state.candidate.roles.cache.has("cosmetic"), true);
+  assert.equal(state.roleCalls.length, 1);
+});
+
+test("a pending assignment prevents conflicting commands for the same member", async () => {
+  const state = fixture({ addFailure: true });
+  await state.service.assignCommandRole(specialistInput);
+  await assert.rejects(state.service.assignCommandRole({ ...specialistInput, actorId: "173989558877159424", commandKey: "locops", roleId: "mining" }), /pending specialist assignment/);
+  assert.equal(state.assignments.length, 1);
+});
+
+test("concurrent workers claim a pending assignment only once", async () => {
+  const state = fixture({ addFailure: true });
+  await state.service.assignCommandRole(specialistInput);
+  state.options.addFailure = false;
+  state.advance(61_000);
+  await Promise.all([state.service.reconcileCommandAssignments(), state.createService().reconcileCommandAssignments()]);
+  assert.equal(state.assignments[0].status, "COMPLETED");
+  assert.equal(state.roleCalls.length, 2, "one failed attempt and one successful retry");
+  assert.equal(state.audits.filter(event => event.action === "COMMAND_ROLE_COMPLETED").length, 1);
+});
+
+test("expired execution leases are recovered after a crash", async () => {
+  const state = fixture({ addFailure: true });
+  await state.service.assignCommandRole(specialistInput);
+  Object.assign(state.assignments[0], { status: "EXECUTING", processingToken: "crashed-worker", processingUntil: new Date("2026-10-22T12:05:00Z") });
+  state.options.addFailure = false;
+  state.advance(61_000);
+  await state.createService().reconcileCommandAssignments();
+  assert.equal(state.roleCalls.length, 1);
+  state.advance(300_000);
+  await state.createService().reconcileCommandAssignments();
+  assert.equal(state.assignments[0].status, "COMPLETED");
+});
+
+for (const change of ["demoted", "departed", "other-command"]) {
+  test(`a pending assignment does not grant roles when authority changes: ${change}`, async () => {
+    const state = fixture({ addFailure: true, websiteUser: true });
+    await state.service.assignCommandRole(specialistInput);
+    state.options.addFailure = false;
+    if (change === "demoted") state.people.get(captainId).roles.cache.delete(PERSONNEL_ROLES.captain);
+    if (change === "departed") state.people.delete(captainId);
+    if (change === "other-command") state.candidate.roles.cache.set("mining", state.roleDefinitions.get("mining"));
+    state.advance(61_000);
+    await state.createService().reconcileCommandAssignments();
+    assert.equal(state.assignments[0].status, "CANCELLED");
+    assert.equal(state.candidate.roles.cache.has("dire-wolfs"), false);
+    assert.equal(state.websiteRoles.has("dire-wolfs"), false);
+    assert.equal(state.roleCalls.length, 1);
+  });
+}
+
+test("the personnel poll runs durable assignment recovery", async () => {
+  const state = fixture({ addFailure: true });
+  await state.service.assignCommandRole(specialistInput);
+  state.options.addFailure = false;
+  state.advance(61_000);
+  await state.createService().poll();
+  assert.equal(state.assignments[0].status, "COMPLETED");
 });
 
 test("other-command Captains, transfers, and privileged specialist roles are refused", async () => {

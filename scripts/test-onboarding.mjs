@@ -243,7 +243,7 @@ test("welcome worker does nothing while onboarding is disabled", async () => {
   }
 });
 
-for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer"]) {
+for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer", "inactive-backlog"]) {
   test(`welcome worker: ${scenario}`, async () => {
     const previous = { ...process.env };
     Object.assign(process.env, { ONBOARDING_ENABLED: "true", GENERAL_CHANNEL_ID: "general", DISCORD_GUILD_ID: "guild", BUYER_ROLE_ID: "buyer" });
@@ -261,16 +261,22 @@ for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer
       } }) },
     };
     const prisma = { onboardingProfile: {
-      findMany: async () => [profile],
+      findMany: async ({ where, take }) => {
+        const profiles = scenario === "inactive-backlog"
+          ? [...Array.from({ length: 10 }, (_, index) => ({ ...profile, userId: `inactive-${index}`, user: { ...profile.user, isActive: false } })), profile]
+          : [profile];
+        return profiles.filter(value => !where.user?.isActive || value.user.isActive).slice(0, take);
+      },
       updateMany: async (query) => { updates.push(query); return { count: scenario === "claimed-elsewhere" ? 0 : 1 }; },
       update: async (query) => { updates.push(query); },
     } };
     try {
       await publishPendingWelcomes(client, prisma);
-      assert.equal(sent.length, scenario === "delivered" ? 1 : 0);
+      const delivered = ["delivered", "inactive-backlog"].includes(scenario);
+      assert.equal(sent.length, delivered ? 1 : 0);
       const completed = updates.find((query) => query.data.welcomeMessageId);
-      assert.equal(Boolean(completed), scenario === "delivered");
-      if (scenario === "delivered") {
+      assert.equal(Boolean(completed), delivered);
+      if (delivered) {
         assert.equal(completed.data.welcomeMessageId, "welcome-message");
         assert.equal(sent[0].content, undefined);
         const card = JSON.stringify(sent[0].embeds[1]);

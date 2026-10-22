@@ -42,7 +42,9 @@ export function createMarketplaceGuestService({ client, prisma, config, now = ()
         return;
       }
       const rolesToRemove = removableRoleIds.filter((roleId) => member.roles.cache.has(roleId));
-      if (rolesToRemove.length) await member.roles.remove(rolesToRemove, "Marketplace buyers skip Visitor and onboarding interest roles");
+      // Arrays replace the entire cached role list in discord.js. Single-role
+      // DELETEs preserve roles granted concurrently by officers or other workers.
+      for (const roleId of rolesToRemove) await member.roles.remove(roleId, "Marketplace buyers skip Visitor and onboarding interest roles");
       if (new Date(current.expiresAt) <= now()) {
         member = await fetchMember(guild, current.discordUserId);
         if (!member) { await retire(current, token); return; }

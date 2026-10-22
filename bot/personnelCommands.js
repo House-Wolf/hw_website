@@ -69,8 +69,8 @@ export function attachPersonnelInteractions(client, service, config) {
       } else if (action === "initialize-commands") {
         await interaction.editReply((await service.initializeCommands(interaction.user.id)).join("\n"));
       } else if (action === "assign-role") {
-        await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: interaction.options.getString("command", true), roleId: interaction.options.getString("role", true), action: interaction.options.getString("action", true) });
-        await interaction.editReply("Specialist assignment confirmed and entered into the command log.");
+        const assignment = await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: interaction.options.getString("command", true), roleId: interaction.options.getString("role", true), action: interaction.options.getString("action", true) });
+        await interaction.editReply(assignment.status === "COMPLETED" ? "Specialist assignment confirmed and entered into the command log." : assignment.status === "CANCELLED" ? "Assignment cancelled because membership or command authority changed. The website has been reconciled with Discord." : "Specialist assignment saved. Discord and website reconciliation is pending and will retry automatically.");
       }
     } catch (error) {
       console.error("Personnel interaction failed:", error.message);

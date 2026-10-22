@@ -144,6 +144,27 @@ model PersonnelCommand {
   @@map("personnel_commands")
 }
 
+model PersonnelRoleAssignment {
+  id              String    @id @default(uuid()) @db.Uuid
+  guildId         String    @map("guild_id")
+  discordId       String    @map("discord_id")
+  actorId         String    @map("actor_id")
+  commandKey      String    @map("command_key")
+  roleId          String    @map("role_id")
+  action          String
+  status          String    @default("PENDING")
+  processingToken String?   @map("processing_token")
+  processingUntil DateTime? @map("processing_until") @db.Timestamptz(6)
+  nextAttemptAt   DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  lastError       String?   @map("last_error")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@index([guildId, status, nextAttemptAt])
+  @@index([guildId, discordId, status])
+  @@map("personnel_role_assignments")
+}
+
 model PersonnelAudit {
   id              String @id @default(uuid()) @db.Uuid
   guildId         String @map("guild_id")

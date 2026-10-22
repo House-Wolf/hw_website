@@ -11,6 +11,7 @@ import { createPersonnelService } from "./personnelService.js";
 import { attachPersonnelInteractions, registerPersonnelCommand } from "./personnelCommands.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 import { validateBotEnvironment } from "./runtime.js";
+import { captureRawBody, createBotServiceAuth, createGithubWebhookAuth } from "./httpSecurity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,41 +40,10 @@ console.log(`   - DISCORD_BOT_CHANNEL_ID: ${process.env.DISCORD_BOT_CHANNEL_ID ?
 console.log(`   - BOT_SERVICE_TOKEN: ${process.env.BOT_SERVICE_TOKEN ? '✅ SET' : '❌ MISSING'}`);
 
 const BUYER_ROLE_ID = process.env.BUYER_ROLE_ID;
-const BOT_SERVICE_TOKEN = process.env.BOT_SERVICE_TOKEN;
-const PROTECTED_BOT_PATHS = new Set([
-  "/create-transaction-thread",
-  "/send-dm",
-  "/send-suspension-dm",
-  "/send-lift-suspension-dm",
-  "/get-member-roles",
-  "/track-marketplace-guest",
-]);
 const app = express();
-app.use(express.json());
+app.use(express.json({ verify: captureRawBody }));
+const serviceAuth = createBotServiceAuth(process.env);
 
-
-app.use((req, res, next) => {
-  if (!PROTECTED_BOT_PATHS.has(req.path)) {
-    return next();
-  }
-
-  if (!BOT_SERVICE_TOKEN) {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(503).json({ error: "Bot service authentication is not configured" });
-    }
-    return next();
-  }
-
-  const authHeader = req.get("authorization") || "";
-  if (authHeader !== `Bearer ${BOT_SERVICE_TOKEN}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  return next();
-});
-
-
-// ✅ Discord.js client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -138,7 +108,7 @@ client.on("guildMemberUpdate", async (_previous, member) => {
 client.login(process.env.DISCORD_BOT_TOKEN);
 
 // ✅ POST /create-transaction-thread — Post marketplace inquiry to channel
-app.post("/create-transaction-thread", async (req, res) => {
+app.post("/create-transaction-thread", serviceAuth, async (req, res) => {
   try {
     const { buyerId, sellerId, buyerName, sellerName, itemTitle, itemPrice, itemImageUrl } = req.body;
 
@@ -331,7 +301,7 @@ app.post("/create-transaction-thread", async (req, res) => {
 });
 
 // ✅ Legacy DM endpoint (kept for backwards compatibility)
-app.post("/send-dm", async (req, res) => {
+app.post("/send-dm", serviceAuth, async (req, res) => {
   try {
     const { sellerId, itemTitle, itemPrice, buyerName } = req.body;
     if (!sellerId) return res.status(400).json({ error: "Missing sellerId" });
@@ -354,7 +324,7 @@ Reply directly here to coordinate.`;
 });
 
 // ✅ POST /send-suspension-dm — Send suspension notification DM
-app.post("/send-suspension-dm", async (req, res) => {
+app.post("/send-suspension-dm", serviceAuth, async (req, res) => {
   try {
     const { discordId, reason, durationDays, endDate, isPermanent } = req.body;
     if (!discordId) return res.status(400).json({ error: "Missing discordId" });
@@ -401,7 +371,7 @@ app.post("/send-suspension-dm", async (req, res) => {
 });
 
 // ✅ POST /send-lift-suspension-dm — Send suspension lifted notification DM
-app.post("/send-lift-suspension-dm", async (req, res) => {
+app.post("/send-lift-suspension-dm", serviceAuth, async (req, res) => {
   try {
     const { discordId, reason } = req.body;
     if (!discordId) return res.status(400).json({ error: "Missing discordId" });
@@ -437,7 +407,7 @@ app.post("/send-lift-suspension-dm", async (req, res) => {
 });
 
 // ✅ POST /get-member-roles — Fetch Discord member roles
-app.post("/get-member-roles", async (req, res) => {
+app.post("/get-member-roles", serviceAuth, async (req, res) => {
   try {
     const { discordUserId, guildId } = req.body;
 
@@ -490,7 +460,7 @@ app.post("/get-member-roles", async (req, res) => {
 });
 
 // ✅ POST /track-marketplace-guest — Track OAuth2-added marketplace guest for auto-removal
-app.post("/track-marketplace-guest", async (req, res) => {
+app.post("/track-marketplace-guest", serviceAuth, async (req, res) => {
   try {
     const { userId, guildId, userTag } = req.body;
 
@@ -511,9 +481,7 @@ app.post("/track-marketplace-guest", async (req, res) => {
 });
 
 // ✅ POST /github-webhook — Receive GitHub webhook events and post to Discord
-// NOTE: This route currently has registration issues - see WEBHOOK_DEBUGGING_SUMMARY.md
-// TODO: Fix route registration before deploying to production
-app.post("/github-webhook", async (req, res) => {
+app.post("/github-webhook", createGithubWebhookAuth(process.env), async (req, res) => {
   try {
     const event = req.headers['x-github-event'];
     const payload = req.body;

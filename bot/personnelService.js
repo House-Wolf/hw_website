@@ -4,6 +4,9 @@ import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromo
 import { promotionAnnouncement, promotionReviewMessage } from "./personnelMessages.js";
 import { checkPublicRsiMembership } from "./rsiMembership.js";
 
+class CommandAssignmentPolicyError extends Error {}
+
+const pendingAssignmentStates = ["PENDING", "EXECUTING", "RETRY"];
 const requestInclude = { member: true, votes: true };
 const activeStates = ["REVIEW", "APPROVED", "EXECUTING", "RETRY"];
 const protectedPermissions = ["Administrator", "ManageRoles", "ManageGuild", "ManageChannels", "ManageWebhooks", "BanMembers", "KickMembers", "ModerateMembers", "MentionEveryone", "ViewAuditLog", "ManageMessages"].map((key) => PermissionsBitField.Flags[key]);
@@ -273,39 +276,98 @@ export function createPersonnelService({ client, prisma, config, now = () => new
       .slice(0, 25).map((role) => ({ name: role.name, value: role.id }));
   }
 
-  async function assignCommandRoleUnderLock({ actorId, discordId, commandKey, roleId, action }, database) {
-    if (!["ADD", "REMOVE"].includes(action)) throw new Error("Invalid assignment action.");
+  async function validateCommandAssignment({ actorId, discordId, commandKey, roleId, action }) {
+    if (!["ADD", "REMOVE"].includes(action)) throw new CommandAssignmentPolicyError("Invalid assignment action.");
     const actor = await liveMember(actorId);
     const member = await liveMember(discordId);
-    const command = await database.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: commandKey } } });
-    if (!command || member.user.bot || !canManageCommand({ actorId, actorRoles: roleIds(actor), command, memberRoles: roleIds(member), roleId }) || roleId === config.buyerRoleId) throw new Error("You may only manage approved specialist roles for members within your own command.");
-    const allCommands = await database.personnelCommand.findMany({ where: { guildId: config.guildId } });
-    if (allCommands.some((other) => other.id !== command.id && (member.roles.cache.has(other.commandRoleId) || other.allowedRoleIds.some((id) => member.roles.cache.has(id)))) && !actor.roles.cache.has(PERSONNEL_ROLES.warlord)) throw new Error("This warrior belongs to another command. Cross-command transfers require the Clan Warlord.");
-    if (allCommands.some((other) => other.commandRoleId === roleId)) throw new Error("Command authority cannot be assigned with specialist controls.");
-    const roles = await preflightRoles([roleId], { specialist: true });
-    await audit("COMMAND_ROLE_ATTEMPT", discordId, { commandKey, roleId, action }, actorId, null, database);
+    const command = await prisma.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: commandKey } } });
+    if (!command || member.user.bot || !canManageCommand({ actorId, actorRoles: roleIds(actor), command, memberRoles: roleIds(member), roleId }) || roleId === config.buyerRoleId) throw new CommandAssignmentPolicyError("You may only manage approved specialist roles for members within your own command.");
+    const allCommands = await prisma.personnelCommand.findMany({ where: { guildId: config.guildId } });
+    if (allCommands.some((other) => other.id !== command.id && (member.roles.cache.has(other.commandRoleId) || other.allowedRoleIds.some((id) => member.roles.cache.has(id)))) && !actor.roles.cache.has(PERSONNEL_ROLES.warlord)) throw new CommandAssignmentPolicyError("This warrior belongs to another command. Cross-command transfers require the Clan Warlord.");
+    if (allCommands.some((other) => other.commandRoleId === roleId)) throw new CommandAssignmentPolicyError("Command authority cannot be assigned with specialist controls.");
+    await preflightRoles([roleId], { specialist: true });
+    return member;
+  }
+
+  async function finishCommandAssignment(assignment, token, cancelledReason = null) {
+    // Mirror the observed Discord state, including after an ambiguous timeout or
+    // a cancelled retry. Discord calls never run inside a database transaction.
+    let member;
+    try { member = await liveMember(assignment.discordId); }
+    catch (error) { if (Number(error.code) !== 10007) throw error; }
+    const roles = await (await guild()).roles.fetch();
+    const present = Boolean(member?.roles.cache.has(assignment.roleId) && roles.has(assignment.roleId));
+    if (!cancelledReason && present !== (assignment.action === "ADD")) throw new Error("Discord has not confirmed the assignment.");
+    return prisma.$transaction(async (transaction) => {
+      const claimed = await transaction.personnelRoleAssignment.updateMany({
+        where: { id: assignment.id, status: "EXECUTING", processingToken: token, processingUntil: { gt: now() } },
+        data: { status: cancelledReason ? "CANCELLED" : "COMPLETED", processingToken: null, processingUntil: null, completedAt: now(), lastError: cancelledReason },
+      });
+      if (!claimed.count) throw new Error("Specialist assignment execution lease expired.");
+      await syncWebsiteRank(transaction, assignment.discordId, null, { add: present ? [assignment.roleId] : [], remove: present ? [] : [assignment.roleId] }, roles);
+      await audit(cancelledReason ? "COMMAND_ROLE_CANCELLED" : "COMMAND_ROLE_COMPLETED", assignment.discordId, { assignmentId: assignment.id, commandKey: assignment.commandKey, roleId: assignment.roleId, action: assignment.action, ...(cancelledReason ? { reason: cancelledReason } : {}) }, assignment.actorId, null, transaction);
+      return { id: assignment.id, status: cancelledReason ? "CANCELLED" : "COMPLETED" };
+    });
+  }
+
+  async function executeCommandAssignment(id) {
+    const token = randomUUID();
+    const claim = await prisma.personnelRoleAssignment.updateMany({
+      where: { id, guildId: config.guildId, status: { in: pendingAssignmentStates }, nextAttemptAt: { lte: now() }, OR: [{ processingUntil: null }, { processingUntil: { lt: now() } }] },
+      data: { status: "EXECUTING", processingToken: token, processingUntil: new Date(now().getTime() + 300_000) },
+    });
+    if (!claim.count) return { id, status: "PENDING" };
+    const assignment = await prisma.personnelRoleAssignment.findUnique({ where: { id } });
     try {
-      if (action === "ADD") await member.roles.add(roleId, `Assigned within ${command.name} by ${actorId}`);
-      else await member.roles.remove(roleId, `Removed within ${command.name} by ${actorId}`);
-      const verified = await liveMember(discordId);
-      if (verified.roles.cache.has(roleId) !== (action === "ADD")) throw new Error("Discord has not confirmed the assignment.");
-      await syncWebsiteRank(database, discordId, null, { add: action === "ADD" ? [roleId] : [], remove: action === "REMOVE" ? [roleId] : [] }, roles);
-      await audit("COMMAND_ROLE_COMPLETED", discordId, { commandKey, roleId, action }, actorId, null, database);
+      if (!assignment || assignment.processingToken !== token) throw new Error("Specialist assignment claim changed.");
+      const member = await liveMember(assignment.discordId);
+      if (member.roles.cache.has(assignment.roleId) !== (assignment.action === "ADD")) {
+        // Recheck authority before every mutation. A retry must not regrant a
+        // role after its Captain loses authority or the target changes command.
+        const authorizedMember = await validateCommandAssignment(assignment);
+        const current = await prisma.personnelRoleAssignment.findUnique({ where: { id } });
+        if (current?.processingToken !== token || current.processingUntil <= now()) throw new Error("Specialist assignment execution lease expired.");
+        if (assignment.action === "ADD") await authorizedMember.roles.add(assignment.roleId, `Specialist assignment ${id} by ${assignment.actorId}`);
+        else await authorizedMember.roles.remove(assignment.roleId, `Specialist assignment ${id} by ${assignment.actorId}`);
+      }
+      return await finishCommandAssignment(assignment, token);
     } catch (error) {
-      throw error;
+      const message = String(error.message).slice(0, 500);
+      if (assignment && (error instanceof CommandAssignmentPolicyError || Number(error.code) === 10007)) {
+        try { return await finishCommandAssignment(assignment, token, message); }
+        catch (syncError) { logger.error(`Cancelled assignment ${id} still needs reconciliation:`, syncError.message); }
+      }
+      await prisma.personnelRoleAssignment.updateMany({ where: { id, processingToken: token }, data: { status: "RETRY", processingToken: null, processingUntil: null, nextAttemptAt: new Date(now().getTime() + 60_000), lastError: message } });
+      logger.error(`Specialist assignment ${id} will retry:`, message);
+      return { id, status: "RETRY" };
     }
   }
 
   async function assignCommandRole(input) {
+    let assignment;
     try {
-      await prisma.$transaction(async (transaction) => {
+      await validateCommandAssignment(input);
+      assignment = await prisma.$transaction(async (transaction) => {
         const lockKey = `personnel-command:${config.guildId}:${input.discordId}`;
         await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
-        await assignCommandRoleUnderLock(input, transaction);
-      }, { maxWait: 5_000, timeout: 30_000 });
+        const pending = await transaction.personnelRoleAssignment.findFirst({ where: { guildId: config.guildId, discordId: input.discordId, status: { in: pendingAssignmentStates } } });
+        if (pending) throw new Error("This member already has a pending specialist assignment. Wait for reconciliation before submitting another change.");
+        const job = await transaction.personnelRoleAssignment.create({ data: { guildId: config.guildId, actorId: input.actorId, discordId: input.discordId, commandKey: input.commandKey, roleId: input.roleId, action: input.action, nextAttemptAt: now() } });
+        await audit("COMMAND_ROLE_QUEUED", input.discordId, { assignmentId: job.id, commandKey: input.commandKey, roleId: input.roleId, action: input.action }, input.actorId, null, transaction);
+        return job;
+      });
     } catch (error) {
       await audit("COMMAND_ROLE_FAILED", input.discordId, { commandKey: input.commandKey, roleId: input.roleId, action: input.action, error: String(error.message).slice(0, 500) }, input.actorId);
       throw error;
+    }
+    return executeCommandAssignment(assignment.id);
+  }
+
+  async function reconcileCommandAssignments() {
+    const assignments = await prisma.personnelRoleAssignment.findMany({ where: { guildId: config.guildId, status: { in: pendingAssignmentStates }, nextAttemptAt: { lte: now() }, OR: [{ processingUntil: null }, { processingUntil: { lt: now() } }] }, take: 50, orderBy: { nextAttemptAt: "asc" } });
+    for (const assignment of assignments) {
+      try { await executeCommandAssignment(assignment.id); }
+      catch (error) { logger.error(`Specialist assignment ${assignment.id} pending:`, error.message); }
     }
   }
 
@@ -349,6 +411,7 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     if (running || !client.isReady()) return;
     running = true;
     try {
+      await reconcileCommandAssignments();
       const pendingMembership = await prisma.personnelMember.findMany({ where: { guildId: config.guildId, applicationAcceptedAt: { not: null }, membershipConfirmedAt: null, rsiHandle: { not: null }, OR: [{ rsiCheckedAt: null }, { rsiCheckedAt: { lt: new Date(now().getTime() - 21_600_000) } }] }, take: 10 });
       if (config.rsiApiKey) for (const candidate of pendingMembership) {
         try {
@@ -392,5 +455,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, recordHistory, initializeCommands, commandRoleChoices, assignCommandRole, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, recordHistory, initializeCommands, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }

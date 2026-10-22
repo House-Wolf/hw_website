@@ -83,6 +83,10 @@ The target must already hold Member and House Wolf. Captains may assign/remove o
 
 ## Execution, recovery, and announcements
 
+Specialist assignments are persisted in `personnel_role_assignments` before any Discord change. Apply `20261022040000_add_personnel_role_assignments` and regenerate Prisma before starting the updated personnel worker. A partial unique index permits only one pending assignment per member across all commands. Preserve this index in future migrations; Prisma does not represent partial indexes in the schema.
+
+Discord calls run outside database transactions. After a fresh membership lookup confirms the role, website synchronization, completion status, and the completion audit commit together. A database failure, ambiguous Discord response, or worker crash leaves a durable job for the minute worker to recover. Jobs use five-minute execution leases and retry after one minute. A retry that finds the desired role already present or absent synchronizes the website without repeating the Discord mutation. Authority and command membership are rechecked before any repeated mutation; revoked authority or a departed member cancels the job after reconciling the observed Discord state. A pending job blocks conflicting assignments for that member. Slash-command replies distinguish confirmed completion, pending recovery, and cancellation.
+
 The worker checks eligibility every minute. Promotion requests are unique per member/source-rank/tenure, so a restart does not reset service time or create a new ballot. Database claims prevent multiple workers from applying the same order. Source and target roles are checked against the recorded tenure; external rank changes stop an old order as `STALE` instead of demoting someone. All required roles must exist below the bot's highest role before any role mutation starts.
 
 Role additions/removals use individual role endpoints and preserve unrelated roles. Target ranks are added before old ranks are removed. Partial failures retry idempotently after one minute. After verified role reconciliation, the database records the effective rank/date, updates website role/rank data, and retires any temporary marketplace guest record. A failed website/database commit leaves execution retryable. No public promotion announcement is sent before confirmed completion.
@@ -92,6 +96,8 @@ Announcements go to `1182947312465625088`, with a House Wolf banner, member avat
 Stored message IDs and deterministic Discord nonces reduce duplicate messages. Discord nonce deduplication is time-limited: a crash after posting but before saving the message ID can still result in a later duplicate. This is not represented as an exactly-once distributed transaction.
 
 ## Activation checklist
+
+Run `pnpm db:status` to inspect pending migrations and `pnpm db:deploy` to apply reviewed migrations. These commands load local environment files with the same precedence as the bot while preserving variables supplied by the deployment platform. `pnpm db:verify:personnel` verifies the assignment queue's database constraints in a transaction that rolls back all verification rows. Run `pnpm test:bot` for the complete bot regression suite.
 
 1. Review/apply the new personnel migration and the pending onboarding/guest-lifecycle migrations through the normal deployment process. `pnpm exec prisma migrate deploy` applies **all** pending migrations, so review that list first.
 2. Regenerate Prisma with `pnpm db:generate`. Windows currently has the generated engine DLL locked by another process; stop/restart the process using that client before regeneration. Do not deploy partially generated artifacts.

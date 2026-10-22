@@ -71,7 +71,7 @@ export async function publishPendingWelcomes(client, prisma) {
   if (!client.isReady() || process.env.ONBOARDING_ENABLED !== "true" || !process.env.GENERAL_CHANNEL_ID || !process.env.DISCORD_GUILD_ID || !process.env.BUYER_ROLE_ID) return;
   const staleBefore = new Date(Date.now() - 5 * 60_000);
   const profiles = await prisma.onboardingProfile.findMany({
-    where: { completedAt: { not: null }, welcomeMessageId: null, OR: [{ welcomeClaimedAt: null }, { welcomeClaimedAt: { lt: staleBefore } }] },
+    where: { user: { isActive: true }, completedAt: { not: null }, welcomeMessageId: null, OR: [{ welcomeClaimedAt: null }, { welcomeClaimedAt: { lt: staleBefore } }] },
     include: { user: { select: { discordId: true, isActive: true } } },
     take: 10,
     orderBy: { completedAt: "asc" },
@@ -79,7 +79,7 @@ export async function publishPendingWelcomes(client, prisma) {
   for (const profile of profiles) {
     if (!profile.user.isActive) continue;
     const claimedAt = new Date();
-    const claim = await prisma.onboardingProfile.updateMany({ where: { userId: profile.userId, welcomeMessageId: null, OR: [{ welcomeClaimedAt: null }, { welcomeClaimedAt: { lt: staleBefore } }] }, data: { welcomeClaimedAt: claimedAt } });
+    const claim = await prisma.onboardingProfile.updateMany({ where: { userId: profile.userId, user: { isActive: true }, welcomeMessageId: null, OR: [{ welcomeClaimedAt: null }, { welcomeClaimedAt: { lt: staleBefore } }] }, data: { welcomeClaimedAt: claimedAt } });
     if (!claim.count) continue;
     try {
       const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
