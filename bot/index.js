@@ -10,7 +10,7 @@ import { createMarketplaceGuestService } from "./marketplaceGuestService.js";
 import { createPersonnelService } from "./personnelService.js";
 import { attachPersonnelInteractions, registerPersonnelCommand } from "./personnelCommands.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
-import { validateBotEnvironment } from "./runtime.js";
+import { createPersonnelStartup, validateBotEnvironment } from "./runtime.js";
 import { captureRawBody, createBotServiceAuth, createGithubWebhookAuth } from "./httpSecurity.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -71,6 +71,7 @@ const personnelConfig = {
   rsiApiKey: process.env.RSI_MEMBERSHIP_API_KEY,
 };
 const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
+const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: registerPersonnelCommand, guildId: personnelConfig.guildId });
 if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
 
 client.once("ready", async () => {
@@ -84,11 +85,7 @@ client.once("ready", async () => {
   // Reschedule pending marketplace guest removals from database
   marketplaceGuests.start();
   if (process.env.PERSONNEL_ENABLED === "true") {
-    try {
-      for (const result of await personnel.ensureCommandsConfigured()) console.log(result);
-      await registerPersonnelCommand(client, process.env.DISCORD_GUILD_ID);
-      personnel.start();
-    } catch (error) { console.error("Personnel setup failed; worker not started:", error.message); }
+    void personnelStartup.start();
   }
 });
 
