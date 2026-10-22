@@ -163,6 +163,24 @@ test("welcome has a separate interest block and restricts mentions", () => {
   assert.equal(message.embeds[1].fields[1].value.includes("@everyone"), false);
   assert.deepEqual(message.allowedMentions, { parse: [], users: ["123"] });
   assert.equal(message.enforceNonce, true);
+  assert.match(message.content, /Star Citizen interests:.*Bunker Running, Space Trucking/);
+  assert.match(message.content, /Other games:/);
+  assert.equal(message.content.includes("@everyone"), false);
+});
+
+test("other-game-only welcome introduces the member without empty Star Citizen text", () => {
+  const message = createWelcomeMessage({ userId: "member", interests: [], otherGame: "DayZ" }, "123", "Wolf @everyone");
+  assert.match(message.content, /Other games:.*DayZ/);
+  assert.equal(message.content.includes("Star Citizen interests"), false);
+  assert.equal(message.content.includes("@everyone"), false);
+  assert.match(message.embeds[1].description, /Wolf/);
+});
+
+test("welcome omits other games when none were listed", () => {
+  const message = createWelcomeMessage({ userId: "member", interests: ["bounty-hunting"], otherGame: null }, "123", "Wolf");
+  assert.match(message.content, /Bounty Hunting/);
+  assert.equal(message.content.includes("Other games:"), false);
+  assert.equal(message.embeds[1].fields.length, 1);
 });
 
 test("welcome banner renders with a safely escaped member name", async () => {
@@ -187,7 +205,7 @@ for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer
     Object.assign(process.env, { ONBOARDING_ENABLED: "true", GENERAL_CHANNEL_ID: "general", DISCORD_GUILD_ID: "guild", BUYER_ROLE_ID: "buyer" });
     const updates = [];
     const sent = [];
-    const profile = { userId: "member", interests: ["bunker-running"], otherGame: null, user: { discordId: "123", isActive: true } };
+    const profile = { userId: "member", interests: ["bunker-running"], otherGame: "DayZ", user: { discordId: "123", isActive: true } };
     const member = { id: "123", displayName: "Wolf", roles: { cache: new Set(scenario === "buyer" ? ["buyer"] : []) }, user: { displayAvatarURL() { throw new Error("Use logo fallback in tests"); } } };
     const client = {
       isReady: () => true,
@@ -208,7 +226,13 @@ for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer
       assert.equal(sent.length, scenario === "delivered" ? 1 : 0);
       const completed = updates.find((query) => query.data.welcomeMessageId);
       assert.equal(Boolean(completed), scenario === "delivered");
-      if (scenario === "delivered") assert.equal(completed.data.welcomeMessageId, "welcome-message");
+      if (scenario === "delivered") {
+        assert.equal(completed.data.welcomeMessageId, "welcome-message");
+        assert.match(sent[0].content, /Wolf/);
+        assert.match(sent[0].content, /Bunker Running/);
+        assert.match(sent[0].content, /DayZ/);
+        assert.equal(sent[0].embeds.length, 2);
+      }
       if (scenario === "send-failure") assert.equal(updates.at(-1).data.welcomeLastError, "Missing channel permission");
       if (scenario === "buyer") assert.match(updates.at(-1).data.welcomeLastError, /Buyer role/);
     } finally {

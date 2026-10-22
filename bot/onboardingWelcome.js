@@ -45,19 +45,28 @@ export async function renderWelcomeBanner(displayName, avatarBytes, options = {}
   return sharp(backgroundPath).resize(1200, 420, { fit: "cover" }).composite([{ input: overlay }, { input: logo, left: 68, top: 48 }, { input: avatar, left: 900, top: 111 }]).png().toBuffer();
 }
 
-export function createWelcomeMessage(profile, discordId) {
+export function createWelcomeMessage(profile, discordId, displayName = "New Dragoon") {
   const interests = profile.interests.map((interest) => interestNames[interest]).filter(Boolean);
   const fields = [];
   if (interests.length) fields.push({ name: "STAR CITIZEN", value: interests.map((interest) => `▸ ${interest}`).join("\n"), inline: true });
   if (profile.otherGame) fields.push({ name: "BEYOND THE ’VERSE", value: `▸ ${escapeMarkdown(profile.otherGame)}`, inline: true });
+  const introduction = [
+    `Attention Dragoons — welcome <@${discordId}> to **House Wolf**!`,
+    "",
+    `**${escapeMarkdown(displayName)}** has joined the pack.`,
+    ...(interests.length ? [`**Star Citizen interests:** ${interests.join(", ")}.`] : []),
+    ...(profile.otherGame ? [`**Other games:** ${escapeMarkdown(profile.otherGame)}.`] : []),
+    "",
+    "Say hello, invite them to your next session, and help our newest member find their crew.",
+  ].join("\n");
   return {
-    content: `Welcome to House Wolf, <@${discordId}>. **Your place in the pack starts here.**`,
+    content: introduction,
     allowedMentions: { parse: [], users: [discordId] },
     nonce: createHash("sha256").update(`onboarding:${profile.userId}`).digest("hex").slice(0, 24),
     enforceNonce: true,
     embeds: [
       { color: 0x470000, image: { url: "attachment://house-wolf-welcome.png" } },
-      { color: 0x114e62, title: "FIND YOUR CREW", description: "A few shared interests. The beginning of a good squad.", fields, footer: { text: "HOUSE WOLF  /  HOME OF THE DRAGOONS" } },
+      { color: 0x114e62, author: { name: "HOUSE WOLF  /  COMMUNITY WELCOME" }, title: "A NEW DRAGOON · THE NEXT CHAPTER", description: `Meet **${escapeMarkdown(displayName)}**. A few shared interests are the beginning of a good squad.`, fields, footer: { text: "STRENGTH. HONOR. BROTHERHOOD.  /  HOME OF THE DRAGOONS" } },
     ],
   };
 }
@@ -89,7 +98,7 @@ export async function publishPendingWelcomes(client, prisma) {
         if (avatarResponse.ok) avatarBytes = Buffer.from(await avatarResponse.arrayBuffer());
       } catch {}
       const banner = await renderWelcomeBanner(member.displayName, avatarBytes);
-      const message = await channel.send({ ...createWelcomeMessage(profile, member.id), files: [{ attachment: banner, name: "house-wolf-welcome.png" }] });
+      const message = await channel.send({ ...createWelcomeMessage(profile, member.id, member.displayName), files: [{ attachment: banner, name: "house-wolf-welcome.png" }] });
       await prisma.onboardingProfile.update({ where: { userId: profile.userId }, data: { welcomeMessageId: message.id, welcomeLastError: null } });
     } catch (error) {
       console.error(`Onboarding welcome pending for ${profile.userId}:`, error.message);
