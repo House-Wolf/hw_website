@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import { randomUUID } from "node:crypto";
 import { createWelcomeMessage, publishPendingWelcomes, renderWelcomeBanner } from "../bot/onboardingWelcome.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 
@@ -23,8 +24,14 @@ const validInput = { interests: ["bunker-running"], otherGameSelected: false, ot
 function createFixture(options = {}) {
   const writes = [];
   const discordCalls = [];
+  const guestCalls = [];
   const saved = options.saved || null;
   const prisma = {
+    marketplaceGuest: {
+      findUnique: async () => options.guest ? { id: 1 } : null,
+      updateMany: async (query) => { guestCalls.push({ action: "claim", query }); return { count: options.guestBusy ? 0 : 1 }; },
+      deleteMany: async (query) => { guestCalls.push({ action: "retire", query }); if (options.cleanupFailure) throw new Error("Database unavailable"); return { count: 1 }; },
+    },
     user: { findUnique: async () => ({ isActive: options.active !== false }) },
     onboardingProfile: {
       findUnique: async () => saved,
@@ -33,6 +40,7 @@ function createFixture(options = {}) {
     },
   };
   const route = loadTypeScript("../app/api/onboarding/route.ts", {
+    "node:crypto": { randomUUID },
     "next/server": { NextResponse: { json: (body, init) => Response.json(body, init) } },
     "@/lib/auth": { auth: async () => options.signedOut ? null : { user: { id: "member-id", discordId: "123456789", isActive: true } } },
     "@/lib/onboarding": onboarding,
@@ -43,13 +51,14 @@ function createFixture(options = {}) {
     process: { env: { ONBOARDING_ENABLED: "true", DISCORD_GUILD_ID: "guild", DISCORD_BOT_TOKEN: "fake-test-token", VISITOR_ROLE_ID: "visitor", BUYER_ROLE_ID: "buyer", GENERAL_CHANNEL_ID: "general" } },
     fetch: async (url, init) => {
       discordCalls.push({ url, method: init.method || "GET" });
+      if (init.method === "DELETE") return new Response(null, { status: options.buyerRemovalFailure ? 403 : 204 });
       if (init.method === "PUT") return new Response(null, { status: options.roleFailure ? 403 : 204 });
       if (options.notMember) return new Response(null, { status: 404 });
-      return Response.json({ roles: options.buyer ? ["buyer"] : [] });
+      return Response.json({ roles: options.buyer ? ["buyer"] : saved ? ["visitor"] : [] });
     },
   });
   const request = { nextUrl: new URL("https://housewolf.test/api/onboarding"), headers: new Headers({ origin: options.foreignOrigin ? "https://other.test" : "https://housewolf.test" }), json: async () => options.input || validInput };
-  return { submit: () => route.POST(request), writes, discordCalls };
+  return { submit: () => route.POST(request), writes, discordCalls, guestCalls };
 }
 
 test("Other game can be the only selection; text is trimmed", () => {
@@ -71,7 +80,6 @@ for (const [name, options, expected] of [
   ["rejects old rules versions", { input: { ...validInput, rulesVersion: "old" } }, 400],
   ["rejects inactive accounts", { active: false }, 403],
   ["requires current guild membership", { notMember: true }, 403],
-  ["buyers never receive Visitor", { buyer: true }, 403],
 ]) {
   test(name, async () => {
     const fixture = createFixture(options);
@@ -81,6 +89,49 @@ for (const [name, options, expected] of [
     assert.equal(fixture.discordCalls.filter((call) => call.method === "PUT").length, 0);
   });
 }
+
+test("regular onboarding converts an existing Buyer and retires guest expiry", async () => {
+  const fixture = createFixture({ buyer: true, guest: true });
+  assert.equal((await fixture.submit()).status, 200);
+  assert.deepEqual(fixture.discordCalls.map(call => call.method), ["GET", "DELETE", "PUT"]);
+  assert.ok(fixture.discordCalls[1].url.endsWith("/roles/buyer"));
+  assert.ok(fixture.discordCalls[2].url.endsWith("/roles/visitor"));
+  assert.ok(fixture.guestCalls.some(call => call.action === "retire"));
+  assert.deepEqual(fixture.writes.map(write => write.action), ["save", "complete"]);
+});
+
+test("an untracked Buyer can choose regular onboarding", async () => {
+  const fixture = createFixture({ buyer: true });
+  assert.equal((await fixture.submit()).status, 200);
+  assert.equal(fixture.discordCalls[1].method, "DELETE");
+});
+
+test("failed Visitor grant after Buyer conversion stays pending for retry", async () => {
+  const fixture = createFixture({ buyer: true, guest: true, roleFailure: true });
+  assert.equal((await fixture.submit()).status, 502);
+  assert.ok(fixture.guestCalls.some(call => call.action === "retire"));
+  assert.deepEqual(fixture.writes.map(write => write.action), ["save"]);
+  assert.equal(fixture.writes[0].query.create.completedAt, null);
+});
+
+for (const [name, options, status] of [
+  ["an active guest expiry lease blocks conversion", { guestBusy: true }, 409],
+  ["Buyer removal must succeed before Visitor is granted", { buyerRemovalFailure: true }, 502],
+  ["guest cleanup failure does not complete onboarding", { cleanupFailure: true }, 500],
+]) {
+  test(name, async () => {
+    const fixture = createFixture({ buyer: true, guest: true, ...options });
+    assert.equal((await fixture.submit()).status, status);
+    assert.equal(fixture.writes.length, 0);
+    assert.equal(fixture.discordCalls.filter(call => call.method === "PUT").length, 0);
+  });
+}
+
+test("a former completed Buyer regains Visitor through regular onboarding", async () => {
+  const fixture = createFixture({ buyer: true, saved: { completedAt: new Date(), rulesVersion: onboarding.ONBOARDING_RULES_VERSION } });
+  assert.equal((await fixture.submit()).status, 200);
+  assert.equal(fixture.discordCalls.at(-1).method, "PUT");
+});
 
 test("failed Visitor assignment keeps a pending record and does not complete", async () => {
   const fixture = createFixture({ roleFailure: true });

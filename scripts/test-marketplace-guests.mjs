@@ -81,6 +81,16 @@ test("expired guests are removed after a worker restart", async () => {
   assert.equal(state.record(), null);
 });
 
+test("a community onboarding lease prevents expiry or role removal", async () => {
+  const state = fixture({ expired: true, roles: [guildId, "buyer", "visitor"] });
+  state.record().processingToken = "onboarding-claim";
+  state.record().processingUntil = new Date(state.now().getTime() + 120_000);
+  await state.service.run();
+  assert.equal(state.calls.kick, 0);
+  assert.deepEqual(state.calls.remove, []);
+  assert.equal(state.record().processingToken, "onboarding-claim");
+});
+
 test("promoted members are preserved even with a stale Buyer role", async () => {
   const state = fixture({ expired: true, roles: [guildId, "buyer", "captain"] });
   await state.service.run();

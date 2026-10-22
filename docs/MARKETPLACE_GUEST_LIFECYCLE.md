@@ -4,6 +4,8 @@ New marketplace users join through Discord OAuth with the Buyer role. The callba
 
 Existing regular members retain their membership roles and are not given Buyer or enrolled in temporary removal. Existing Buyer-only accounts can renew their temporary access. A stored guest who acquires any non-guest role is treated conservatively as a regular member: the worker removes the temporary Buyer role and retires the removal record, preserving all membership roles. No arbitrary role is stripped to force an account into the Buyer path.
 
+Choosing to complete `/onboarding` is a separate, explicit request for community membership, even for an existing Buyer. The completion endpoint uses the worker's processing lease to avoid an expiry race, removes Buyer and its temporary guest record, then grants Visitor. Merely visiting the page does not convert a Buyer; interests and current rules agreement are required. Contact-seller OAuth continues to use the temporary marketplace flow.
+
 ## Required configuration
 
 - Set `DISCORD_GUILD_ID`, `BUYER_ROLE_ID`, and `VISITOR_ROLE_ID` on both website and bot. Buyer and Visitor must be different roles. The worker refuses to run without them.

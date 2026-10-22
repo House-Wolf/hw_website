@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth";
 import { ONBOARDING_RULES_VERSION, validateOnboardingChoices } from "@/lib/onboarding";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Onboarding is not open yet. Please check back or contact a moderator." }, { status: 503, headers });
   }
 
+  let guestClaim: { id: number; token: string } | undefined;
   try {
     const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isActive: true } });
     if (!user?.isActive) {
@@ -48,12 +50,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ code: memberResponse.status === 404 ? "membership_required" : "membership_unavailable", error: memberResponse.status === 404 ? "Connect Discord to join the House Wolf server, then finish onboarding." : "We couldn’t verify your Discord membership. Please try again." }, { status: memberResponse.status === 404 ? 403 : 502, headers });
     }
     const member = await memberResponse.json() as { roles: string[] };
+    // Explicitly completing community onboarding converts temporary buyers.
+    // Use the same lease as the expiry worker before changing their roles.
+    const guest = await prisma.marketplaceGuest.findUnique({ where: { discordUserId_guildId: { discordUserId: session.user.discordId, guildId } } });
+    if (guest) {
+      const token = randomUUID();
+      const now = new Date();
+      const claim = await prisma.marketplaceGuest.updateMany({
+        where: { id: guest.id, OR: [{ processingUntil: null }, { processingUntil: { lt: now } }] },
+        data: { processingToken: token, processingUntil: new Date(now.getTime() + 120_000) },
+      });
+      if (!claim.count) {
+        return NextResponse.json({ error: "Your marketplace access is being updated. Please retry onboarding in a moment." }, { status: 409, headers });
+      }
+      guestClaim = { id: guest.id, token };
+    }
     if (member.roles.includes(buyerRoleId)) {
-      return NextResponse.json({ error: "Marketplace buyers skip onboarding and keep their Buyer role. Contact a moderator if you’d like to join the community." }, { status: 403, headers });
+      const removeBuyer = await fetch(`${memberUrl}/roles/${buyerRoleId}`, {
+        method: "DELETE",
+        headers: { ...authorization, "X-Audit-Log-Reason": "Member chose regular House Wolf onboarding instead of temporary marketplace access" },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!removeBuyer.ok) {
+        return NextResponse.json({ error: "We couldn't switch your Buyer access to community membership. Please retry or contact a moderator." }, { status: 502, headers });
+      }
+    }
+    if (guestClaim) {
+      await prisma.marketplaceGuest.deleteMany({ where: { id: guestClaim.id, processingToken: guestClaim.token } });
     }
     const saved = await prisma.onboardingProfile.findUnique({ where: { userId: session.user.id } });
     const discordUrl = `https://discord.com/channels/${guildId}`;
-    if (saved?.completedAt && saved.rulesVersion === ONBOARDING_RULES_VERSION) {
+    if (saved?.completedAt && saved.rulesVersion === ONBOARDING_RULES_VERSION && member.roles.includes(visitorRoleId) && !member.roles.includes(buyerRoleId)) {
       return NextResponse.json({ success: true, discordUrl }, { headers });
     }
     const data = { interests: choices.interests, otherGame: choices.otherGame || null, rulesVersion: ONBOARDING_RULES_VERSION, rulesAcceptedAt: new Date(), completedAt: null };
@@ -72,5 +99,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Custom onboarding failed", error);
     return NextResponse.json({ error: "We couldn’t finish onboarding. Please try again. Your selections are still available on this page." }, { status: 500, headers });
+  } finally {
+    if (guestClaim) {
+      await prisma.marketplaceGuest.updateMany({
+        where: { id: guestClaim.id, processingToken: guestClaim.token },
+        data: { processingToken: null, processingUntil: null },
+      }).catch(() => console.error("Could not release onboarding marketplace claim; it will expire automatically"));
+    }
   }
 }
