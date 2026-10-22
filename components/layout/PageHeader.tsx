@@ -35,7 +35,7 @@ export default function HeroSection({
 
   backgroundImage,
   backgroundImageOpacity = 0.5,
-  backgroundOverlay = "bg-background-elevated/95",
+  backgroundOverlay = "bg-background-base",
 
   minHeight = "60vh",
 
