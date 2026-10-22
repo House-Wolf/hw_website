@@ -51,7 +51,7 @@ export default function DivisionsPage() {
             alt="House Wolf Divisions"
             fill
             sizes="100vw"
-            className="object-contain object-center"
+            className="object-cover object-top"
           />
           <div aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-transparent via-black/40 to-transparent" />
           <div aria-hidden="true" className="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-background-elevated/70" />
