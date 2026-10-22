@@ -23,11 +23,13 @@ export default auth((req) => {
     "/profile",
     "/settings",
     "/api/contact-seller",
+    "/api/marketplace/contact-seller",
     "/api/marketplace/create",
     "/api/marketplace/delete",
     "/api/marketplace/my-listings",
     "/api/marketplace/update",
     "/api/marketplace/upload",
+    "/api/packtracker",
     "/api/social-links",
     "/api/user",
   ];

@@ -7,7 +7,7 @@ export const metadata = {
     title: "Origins | House Wolf Dragoons",
     description:
       "Explore the history and origins of House Wolf, from the Kamposian Dragoons to Star Citizen.",
-    url: "https://housewolf.co/origins",
+    url: "https://www.housewolf.co/origins",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -28,7 +28,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/origins",
+    canonical: "https://www.housewolf.co/origins",
   },
 };
 

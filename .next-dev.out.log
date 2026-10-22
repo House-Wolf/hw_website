@@ -1,0 +1,310 @@
+
+> house-wolf@0.1.0 dev:next B:\hw_website
+> next dev
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://169.254.83.107:3000
+   - Environments: .env.development.local, .env.local
+   - Experiments (use with caution):
+     · serverActions
+
+ ✓ Starting...
+ ✓ Ready in 620ms
+ GET /manifest.webmanifest 200 in 190ms (compile: 174ms, proxy.ts: 4ms, render: 12ms)
+ GET /api/auth/session 200 in 791ms (compile: 776ms, render: 15ms)
+ GET /api/auth/session 200 in 21ms (compile: 8ms, render: 13ms)
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET / 200 in 2.2s (compile: 1537ms, proxy.ts: 139ms, render: 564ms)
+ GET /sw.js 404 in 348ms (compile: 308ms, proxy.ts: 4ms, render: 37ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 40ms (compile: 32ms, proxy.ts: 5ms, render: 3ms)
+ GET / 200 in 90ms (compile: 5ms, proxy.ts: 5ms, render: 80ms)
+ GET /sw.js 404 in 42ms (compile: 8ms, proxy.ts: 4ms, render: 30ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 19ms (compile: 7ms, proxy.ts: 8ms, render: 5ms)
+ GET /api/auth/session 200 in 27ms (compile: 14ms, render: 13ms)
+ GET /api/auth/session 200 in 7ms (compile: 3ms, render: 5ms)
+ GET / 200 in 168ms (compile: 5ms, proxy.ts: 4ms, render: 160ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 18ms (compile: 8ms, proxy.ts: 6ms, render: 4ms)
+ GET /api/auth/session 200 in 16ms (compile: 9ms, render: 7ms)
+ GET /sw.js 404 in 78ms (compile: 21ms, proxy.ts: 24ms, render: 33ms)
+ GET /api/auth/session 200 in 7ms (compile: 1966µs, render: 5ms)
+ GET / 200 in 165ms (compile: 9ms, proxy.ts: 5ms, render: 151ms)
+ GET /sw.js 404 in 35ms (compile: 6ms, proxy.ts: 3ms, render: 26ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET / 200 in 87ms (compile: 3ms, proxy.ts: 2ms, render: 81ms)
+ GET /manifest.webmanifest 200 in 9ms (compile: 3ms, proxy.ts: 3ms, render: 4ms)
+ GET /api/auth/session 200 in 11ms (compile: 7ms, render: 4ms)
+ GET /api/auth/session 200 in 5ms (compile: 1660µs, render: 3ms)
+ GET /sw.js 404 in 33ms (compile: 6ms, proxy.ts: 2ms, render: 24ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET / 200 in 131ms (compile: 3ms, proxy.ts: 3ms, render: 125ms)
+ GET /api/auth/session 200 in 12ms (compile: 7ms, render: 5ms)
+ GET /api/auth/session 200 in 6ms (compile: 1916µs, render: 4ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 14ms (compile: 5ms, proxy.ts: 5ms, render: 4ms)
+ GET / 200 in 136ms (compile: 4ms, proxy.ts: 3ms, render: 129ms)
+ GET /api/auth/session 200 in 15ms (compile: 10ms, render: 5ms)
+ GET /api/auth/session 200 in 6ms (compile: 1757µs, render: 4ms)
+ GET /sw.js 404 in 34ms (compile: 7ms, proxy.ts: 3ms, render: 24ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET / 200 in 82ms (compile: 3ms, proxy.ts: 3ms, render: 76ms)
+ GET /manifest.webmanifest 200 in 11ms (compile: 4ms, proxy.ts: 4ms, render: 3ms)
+ GET /api/auth/session 200 in 15ms (compile: 9ms, render: 6ms)
+ GET /api/auth/session 200 in 6ms (compile: 1757µs, render: 4ms)
+ GET /auth/signin 200 in 256ms (compile: 233ms, proxy.ts: 3ms, render: 21ms)
+ GET /manifest.webmanifest 200 in 9ms (compile: 2ms, proxy.ts: 3ms, render: 4ms)
+ GET /api/auth/providers 200 in 10ms (compile: 6ms, render: 4ms)
+ GET /api/auth/csrf 200 in 5ms (compile: 1902µs, render: 4ms)
+ POST /api/auth/signin/discord? 200 in 13ms (compile: 1517µs, render: 11ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 9ms (compile: 2ms, proxy.ts: 3ms, render: 4ms)
+ GET / 200 in 96ms (compile: 4ms, proxy.ts: 3ms, render: 89ms)
+ GET /api/auth/session 200 in 11ms (compile: 7ms, render: 4ms)
+ GET /api/auth/session 200 in 6ms (compile: 1698µs, render: 4ms)
+ GET /api/auth/callback/discord?code=2EPy4fjuv5Q0uOtyhJ6gIgQlSxMCU6 200 in 7.5s (compile: 6ms, render: 7.5s)
+ GET /sw.js 404 in 34ms (compile: 6ms, proxy.ts: 3ms, render: 25ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 8ms (compile: 2ms, proxy.ts: 3ms, render: 4ms)
+ GET /api/auth/session 200 in 13ms (compile: 8ms, render: 4ms)
+ GET /api/auth/session 200 in 5ms (compile: 1593µs, render: 4ms)
+ GET / 200 in 417ms (compile: 4ms, proxy.ts: 3ms, render: 410ms)
+ GET /sw.js 404 in 34ms (compile: 6ms, proxy.ts: 5ms, render: 23ms)
+Using cached data for /guilds/1119651167639715962/scheduled-events
+Using cached data for /channels/1182947312465625088/messages?limit=10
+Using cached data for /channels/1443036274268045322/messages?limit=25
+Fetched 2 total events from Discord
+2 upcoming events after filtering
+Resolved featured photos: [
+  {
+    id: '1492196114550489159',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1492196114441572412/RDT_20260408_0045497793761682415256362.jpg?ex=6a9f8bad&is=6a9e3a2d&hm=1dbf1fe1cadef180488f745cdeb62b65315f7427cb72ab4b4e76564fe84174c4&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1462482711225827449',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1462482711003267244/image.png?ex=6a9f8de9&is=6a9e3c69&hm=f6d281ff8b354ae836dc762a282a17876388f34e532854c32ea8c843cf8d0c3f&',
+    alt: 'House Wolf featured photo'
+  },
+  {
+    id: '1443743899897167892',
+    url: 'https://cdn.discordapp.com/attachments/1443036274268045322/1443743899536593016/image.png?ex=6a9ff009&is=6a9e9e89&hm=cd0a88e70eb811c92e56af383fb4d470cba587c2f7052d95fccd71a9e2c027eb&',
+    alt: 'House Wolf featured photo'
+  }
+]
+ GET /manifest.webmanifest 200 in 11ms (compile: 3ms, proxy.ts: 4ms, render: 4ms)
+ GET / 200 in 104ms (compile: 4ms, proxy.ts: 3ms, render: 97ms)
+ GET /api/auth/session 200 in 11ms (compile: 7ms, render: 4ms)
+ GET /api/auth/session 200 in 6ms (compile: 2ms, render: 4ms)
+ GET /sw.js 404 in 35ms (compile: 7ms, proxy.ts: 5ms, render: 23ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

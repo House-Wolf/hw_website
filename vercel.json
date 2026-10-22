@@ -1,3 +1,13 @@
 {
-  "buildCommand": "pnpm run build"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm run build",
+  "daemons": {
+    "discord-bot": {
+      "root": ".",
+      "entrypoint": "Dockerfile.discord",
+      "instances": { "iad1": 1 },
+      "resources": { "requests": { "memory": "1Gi" } },
+      "terminationGracePeriodSeconds": 60
+    }
+  }
 }

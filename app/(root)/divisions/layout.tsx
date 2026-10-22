@@ -9,7 +9,7 @@ export const metadata = {
     title: "Divisions | House Wolf Dragoons",
     description:
       "Discover the four divisions of House Wolf and the specialists who lead them into battle.",
-    url: "https://housewolf.co/divisions",
+    url: "https://www.housewolf.co/divisions",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -30,7 +30,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/divisions",
+    canonical: "https://www.housewolf.co/divisions",
   },
 };
 

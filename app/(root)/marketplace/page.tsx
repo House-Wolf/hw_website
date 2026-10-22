@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import ListingsGrid from "@/app/(root)/marketplace/components/ListingsGrid";
 import MarketplaceHero from "@/app/(root)/marketplace/components/MarketPlaceHero";
 import CategoryBar from "@/app/(root)/marketplace/components/CategoryBar";
@@ -24,7 +25,6 @@ type Listing = {
   price: number;
   category: string;
   createdAt: string;
-  discordId?: string | null; // Seller's Discord ID (flat structure from API)
   imageUrl?: string;
   images?: { imageUrl: string }[];
   sellerUsername?: string | null; // Seller's username (flat structure from API)
@@ -41,6 +41,7 @@ type ContactedInfo = {
 
 export default function MarketplacePage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,7 +53,6 @@ export default function MarketplacePage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const hasShownLoader = useRef(false); // Track if we've already shown the loader
   const [showAdminControls, setShowAdminControls] = useState(false);
-  const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
@@ -128,30 +128,14 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   // SECURE REDIRECT - OAuth2 Flow
   // -------------------------------------------------------------
-  const handleSecureRedirect = async (transactionData: {
-    listingId: string;
-    sellerDiscordId: string;
-    itemTitle: string;
-    itemPrice: number;
-    itemImageUrl: string;
-    sellerUsername: string;
-  }) => {
+  const handleSecureRedirect = async (listingId: string) => {
     try {
-      // Build OAuth URL with ALL transaction data as query params
-      // This data will be encoded in the OAuth state parameter
       const params = new URLSearchParams({
-        listingId: transactionData.listingId,
-        sellerDiscordId: transactionData.sellerDiscordId,
-        itemTitle: transactionData.itemTitle,
-        itemPrice: String(transactionData.itemPrice),
-        itemImageUrl: transactionData.itemImageUrl,
-        sellerUsername: transactionData.sellerUsername,
+        listingId,
       });
 
       const oauthUrl = `/api/marketplace/oauth?${params.toString()}`;
 
-      console.log("🔐 Initiating OAuth2 flow for:", transactionData.itemTitle);
-      console.log("🔐 Transaction data:", transactionData);
       window.location.href = oauthUrl; // Use location.href instead of window.open for OAuth2
     } catch (e) {
       console.error("OAuth2 redirect failed:", e);
@@ -164,27 +148,13 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   async function handleContactSeller(
     listingId: string,
-    discordId: string | null | undefined,
-    title: string,
-    price: number,
-    imageUrl: string,
-    sellerUsername: string
+    title: string
   ) {
-    // Build transaction data object (used for both OAuth and regular flow)
-    const transactionData = {
-      listingId,
-      sellerDiscordId: discordId || "",
-      itemTitle: title,
-      itemPrice: price,
-      itemImageUrl: imageUrl,
-      sellerUsername,
-    };
-
     // For unauthenticated users: use OAuth flow
     if (status === "unauthenticated" || !session?.user) {
       // Redirect to OAuth flow to join server with Buyer role
       // Transaction data is passed via URL params (not localStorage)
-      await handleSecureRedirect(transactionData);
+      await handleSecureRedirect(listingId);
       return;
     }
 
@@ -197,11 +167,7 @@ export default function MarketplacePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sellerDiscordId: discordId,
-          itemTitle: title,
-          itemPrice: price,
-          itemImageUrl: imageUrl,
-          sellerUsername,
+          listingId,
         }),
       });
 
@@ -214,7 +180,7 @@ export default function MarketplacePage() {
       if (data.method === "invite_required") {
         // User is not in Discord server - use OAuth flow instead of traditional invite
         // Redirect to OAuth flow to join server with Buyer role (bypasses onboarding)
-        await handleSecureRedirect(transactionData);
+        await handleSecureRedirect(listingId);
         return;
       }
 
@@ -243,9 +209,12 @@ export default function MarketplacePage() {
   // -------------------------------------------------------------
   // ADMIN HANDLERS
   // -------------------------------------------------------------
-  const handleEditListing = useCallback((listing: Listing) => {
-    setEditingListing(listing);
-  }, []);
+  const handleEditListing = useCallback(
+    (listing: { id: string }) => {
+      router.push(`/dashboard/marketplace?edit=${encodeURIComponent(listing.id)}`);
+    },
+    [router]
+  );
 
   const handleDeleteListing = useCallback(async (id: string) => {
     try {
@@ -345,15 +314,7 @@ export default function MarketplacePage() {
               showAdminControls ? (
                 <AdminControls
                   item={item}
-                  onEdit={(item) =>
-                    handleEditListing({
-                      id: item.id,
-                      title: item.title,
-                      price: 0, // Provide default or placeholder values
-                      category: "",
-                      createdAt: "",
-                    })
-                  }
+                  onEdit={handleEditListing}
                   onDelete={handleDeleteListing}
                 />
               ) : null

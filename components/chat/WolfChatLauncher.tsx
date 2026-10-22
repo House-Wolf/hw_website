@@ -8,7 +8,7 @@ import WolfChatWindow from "@/components/chat/WolfChatWindow";
 export default function WolfChatLauncher() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isInvitePage = pathname?.startsWith("/invite/");
+  const isInvitePage = pathname?.startsWith("/invite/") || pathname === "/onboarding";
 
   // Auto-open once per session
   useEffect(() => {

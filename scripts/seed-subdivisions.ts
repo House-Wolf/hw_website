@@ -62,7 +62,6 @@ async function seedSubdivisions() {
   console.log("Starting subdivision seed...\n");
 
   try {
-    let createdCount = 0;
     let updatedCount = 0;
 
     for (const divisionDef of DIVISION_DEFINITIONS) {

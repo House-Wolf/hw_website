@@ -1,6 +1,8 @@
 import LeadershipPageTemplate from "@/components/divisions/LeadershipPageTemplate";
 import { getLeadershipRoster } from "@/lib/divisions/getLeadershipRoster";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeadershipPage() {
   const roster = await getLeadershipRoster();
 

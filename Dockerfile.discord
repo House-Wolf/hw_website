@@ -1,0 +1,16 @@
+FROM node:24-bookworm-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+RUN npm install --global pnpm@10.23.0
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+COPY prisma/schema.prisma ./prisma/schema.prisma
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build pnpm exec prisma generate
+COPY bot ./bot
+COPY lib/personnel ./lib/personnel
+COPY lib/marketplace/guestRecords.js ./lib/marketplace/guestRecords.js
+COPY public/images/global/Websitebgnew.png public/images/global/HWiconnew.png ./public/images/global/
+ENV NODE_ENV=production
+ENV BOT_HTTP_ENABLED=false
+USER node
+CMD ["node", "bot/index.js"]

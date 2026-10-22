@@ -189,7 +189,7 @@ async function migrateProfile(oldProfile: OldProfile): Promise<void> {
 
   try {
     // Get or create user
-    let user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: oldProfile.userId }
     });
 

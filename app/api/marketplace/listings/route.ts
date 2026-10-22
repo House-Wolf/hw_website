@@ -17,7 +17,6 @@ interface Listing {
       quantity: number;
       category: string;
       category_slug: string;
-      discord_id: string;
       seller_username: string;
       image_url: string | null;
       created_at: string;
@@ -107,7 +106,6 @@ export async function GET(request: NextRequest) {
         l.created_at,
         c.name AS category,
         c.slug AS category_slug,
-        u.discord_id,
         COALESCE(u.discord_display_name, u.discord_username) AS seller_username,
         i.image_url
       FROM marketplace_listings l
@@ -142,7 +140,6 @@ export async function GET(request: NextRequest) {
       quantity: listing.quantity,
       category: listing.category,
       categorySlug: listing.category_slug,
-      discordId: listing.discord_id,
       imageUrl: listing.image_url || null,
       sellerUsername: listing.seller_username,
       createdAt: new Date(listing.created_at).toISOString(),

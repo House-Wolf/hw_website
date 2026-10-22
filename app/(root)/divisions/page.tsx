@@ -8,7 +8,7 @@ export const metadata = {
   description:
     "Explore the elite divisions of House Wolf — ARCOPS, LOCOPS, SPECOPS, and TACOPS.",
   alternates: {
-    canonical: "https://housewolf.co/divisions",
+    canonical: "https://www.housewolf.co/divisions",
   },
 };
 

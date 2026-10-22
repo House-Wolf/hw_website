@@ -38,8 +38,124 @@ model User {
   socialLinks               SocialLink[]
   roles                     UserRole[]
   themePreference           String?                           @default("night") @map("theme_preference")
+  packTrackerProfile        PackTrackerProfile?
+  onboardingProfile         OnboardingProfile?
 
   @@map("users")
+}
+
+model OnboardingProfile {
+  userId          String    @id @map("user_id") @db.Uuid
+  interests       String[]
+  otherGame       String?   @map("other_game")
+  rulesVersion    String    @map("rules_version")
+  rulesAcceptedAt DateTime  @map("rules_accepted_at") @db.Timestamptz(6)
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz(6)
+  welcomeMessageId String?  @map("welcome_message_id")
+  welcomeClaimedAt DateTime? @map("welcome_claimed_at") @db.Timestamptz(6)
+  welcomeLastError String?  @map("welcome_last_error")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_profiles")
+  @@index([completedAt, welcomeMessageId])
+}
+
+model PersonnelMember {
+  id                    String   @id @default(uuid()) @db.Uuid
+  guildId               String   @map("guild_id")
+  discordId             String   @map("discord_id")
+  rsiHandle             String?  @map("rsi_handle")
+  applicationAcceptedAt DateTime? @map("application_accepted_at") @db.Timestamptz(6)
+  membershipConfirmedAt DateTime? @map("membership_confirmed_at") @db.Timestamptz(6)
+  membershipVerifiedBy  String?  @map("membership_verified_by")
+  membershipEvidence    String?  @map("membership_evidence")
+  rsiCheckedAt          DateTime? @map("rsi_checked_at") @db.Timestamptz(6)
+  currentRankRoleId     String?  @map("current_rank_role_id")
+  rankSince             DateTime? @map("rank_since") @db.Timestamptz(6)
+  rankSource            String?  @map("rank_source")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  promotions            PromotionRequest[]
+
+  @@unique([guildId, discordId])
+  @@unique([guildId, rsiHandle])
+  @@map("personnel_members")
+}
+
+model PromotionRequest {
+  id                    String @id @default(uuid()) @db.Uuid
+  memberId              String @map("member_id") @db.Uuid
+  sourceRankRoleId      String @map("source_rank_role_id")
+  targetRankRoleId      String @map("target_rank_role_id")
+  rankSince             DateTime @map("rank_since") @db.Timestamptz(6)
+  eligibleAt            DateTime @map("eligible_at") @db.Timestamptz(6)
+  approvalsRequired     Int @map("approvals_required")
+  status                String @default("REVIEW")
+  thresholdAt           DateTime? @map("threshold_at") @db.Timestamptz(6)
+  executeAfter          DateTime? @map("execute_after") @db.Timestamptz(6)
+  vetoedBy              String? @map("vetoed_by")
+  nextReviewReminderAt   DateTime? @map("next_review_reminder_at") @db.Timestamptz(6)
+  lastReviewReminderAt   DateTime? @map("last_review_reminder_at") @db.Timestamptz(6)
+  completedAt           DateTime? @map("completed_at") @db.Timestamptz(6)
+  officerMessageId      String? @map("officer_message_id")
+  announcementMessageId String? @map("announcement_message_id")
+  processingToken       String? @map("processing_token")
+  processingUntil       DateTime? @map("processing_until") @db.Timestamptz(6)
+  lastError             String? @map("last_error")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  member                PersonnelMember @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  votes                 PromotionVote[]
+
+  @@unique([memberId, sourceRankRoleId, rankSince])
+  @@index([status, executeAfter])
+  @@index([status, nextReviewReminderAt])
+  @@map("promotion_requests")
+}
+
+model PromotionVote {
+  requestId       String @map("request_id") @db.Uuid
+  voterDiscordId  String @map("voter_discord_id")
+  decision        String
+  isVeto          Boolean @default(false) @map("is_veto")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  request         PromotionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, voterDiscordId])
+  @@map("promotion_votes")
+}
+
+model PersonnelCommand {
+  id                String @id @default(uuid()) @db.Uuid
+  guildId           String @map("guild_id")
+  key               String
+  name              String
+  commandRoleId     String @map("command_role_id")
+  allowedRoleIds    String[] @default([]) @map("allowed_role_ids")
+  captainDiscordIds String[] @default([]) @map("captain_discord_ids")
+  updatedBy         String @map("updated_by")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([guildId, key])
+  @@map("personnel_commands")
+}
+
+model PersonnelAudit {
+  id              String @id @default(uuid()) @db.Uuid
+  guildId         String @map("guild_id")
+  actorDiscordId  String? @map("actor_discord_id")
+  memberDiscordId String @map("member_discord_id")
+  requestId       String? @map("request_id") @db.Uuid
+  action          String
+  details         Json
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([guildId, memberDiscordId, createdAt])
+  @@map("personnel_audits")
 }
 
 model Account {
@@ -334,24 +450,628 @@ model MarketplaceListingAuditLog {
 }
 
 model MarketplaceGuest {
-  id            Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  discordUserId String   @map("discord_user_id")
-  discordTag    String?  @map("discord_tag")
-  guildId       String   @map("guild_id")
+  discordUserId String  @map("discord_user_id")
+  discordTag    String? @map("discord_tag")
+  guildId       String  @map("guild_id")
 
-  joinedAt      DateTime @map("joined_at") @db.Timestamptz(6)
-  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
-  warningAt     DateTime @map("warning_at") @db.Timestamptz(6)
+  joinedAt  DateTime @map("joined_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  warningAt DateTime @map("warning_at") @db.Timestamptz(6)
+  warningSentAt DateTime? @map("warning_sent_at") @db.Timestamptz(6)
+  warningAttemptedAt DateTime? @map("warning_attempted_at") @db.Timestamptz(6)
+  warningUnavailable Boolean @default(false) @map("warning_unavailable")
+  nextCheckAt DateTime @default(now()) @map("next_check_at") @db.Timestamptz(6)
+  processingUntil DateTime? @map("processing_until") @db.Timestamptz(6)
+  processingToken String? @map("processing_token")
+  lastError String? @map("last_error")
 
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([discordUserId, guildId])
   @@map("marketplace_guests")
+  @@index([guildId, nextCheckAt])
 }
 
+model PackTrackerProfile {
+  id                                String                                  @id @default(uuid()) @db.Uuid
+  userId                            String?                                 @unique @map("user_id") @db.Uuid
+  discordId                         String                                  @unique @map("discord_id")
+  username                          String
+  discriminator                     String                                  @default("")
+  discordDisplayName                String?                                 @map("discord_display_name")
+  discordRank                       String?                                 @map("discord_rank")
+  discordDivision                   String?                                 @map("discord_division")
+  discordAvatarUrl                  String?                                 @map("discord_avatar_url")
+  showcaseImageUrl                  String?                                 @map("showcase_image_url")
+  showcaseEyebrow                   String?                                 @map("showcase_eyebrow")
+  showcaseTagline                   String?                                 @map("showcase_tagline")
+  showcaseBio                       String?                                 @map("showcase_bio")
+  isOnline                          Boolean                                 @default(false) @map("is_online")
+  lastSeenAt                        DateTime                                @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  acknowledgedClaimCounts           Json                                    @default("{}") @map("acknowledged_claim_counts")
+  createdAt                         DateTime                                @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin                         DateTime                                @default(now()) @map("last_login") @db.Timestamptz(6)
+  user                              User?                                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assistanceCreated                 PackTrackerAssistanceRequest[]          @relation("PackTrackerAssistanceCreatedBy")
+  assistanceAssigned                PackTrackerAssistanceRequest[]          @relation("PackTrackerAssistanceAssignedTo")
+  craftingRequested                 PackTrackerCraftingRequest[]            @relation("PackTrackerCraftingRequestedBy")
+  craftingAssigned                  PackTrackerCraftingRequest[]            @relation("PackTrackerCraftingAssignedTo")
+  procurementRequested              PackTrackerMaterialProcurementRequest[] @relation("PackTrackerProcurementRequestedBy")
+  procurementAssigned               PackTrackerMaterialProcurementRequest[] @relation("PackTrackerProcurementAssignedTo")
+  blueprintOwnerships               PackTrackerMemberBlueprintOwnership[]   @relation("PackTrackerBlueprintOwnedBy")
+  verifiedBlueprintOwnerships       PackTrackerMemberBlueprintOwnership[]   @relation("PackTrackerBlueprintVerifiedBy")
+  comments                          PackTrackerRequestComment[]
+  claims                            PackTrackerRequestClaim[]
+  medalAwards                       PackTrackerMedalAward[]
+  medalNominations                  PackTrackerMedalNomination[]            @relation("PackTrackerMedalNominee")
+  submittedMedalNominations         PackTrackerMedalNomination[]            @relation("PackTrackerMedalNominator")
+  reviewedMedalNominations          PackTrackerMedalNomination[]            @relation("PackTrackerMedalReviewer")
+  adminRoleAssignments              PackTrackerMemberRoleAssignment[]       @relation("PackTrackerMemberRoleProfile")
+  assignedAdminRoleAssignments      PackTrackerMemberRoleAssignment[]       @relation("PackTrackerMemberRoleAssignedBy")
+  adminAuditLogs                    PackTrackerAdminAuditLog[]
+  discordIntegrationSettingsUpdated PackTrackerDiscordIntegrationSetting[]
 
+  @@index([username])
+  @@map("packtracker_profiles")
+}
+
+model PackTrackerRequestTicket {
+  id                    Int       @id @default(autoincrement())
+  title                 String
+  description           String?
+  kind                  Int       @default(0)
+  priority              Int       @default(1)
+  status                Int       @default(0)
+  createdByUserId       String    @map("created_by_user_id")
+  createdByDisplayName  String    @map("created_by_display_name")
+  assignedToUserId      String?   @map("assigned_to_user_id")
+  assignedToDisplayName String?   @map("assigned_to_display_name")
+  completedByUserId     String?   @map("completed_by_user_id")
+  dueAt                 DateTime? @map("due_at") @db.Timestamptz(6)
+  skillObjective        String    @default("") @map("skill_objective")
+  gameBuild             String    @default("") @map("game_build")
+  playerHandle          String    @default("") @map("player_handle")
+  timeZone              String    @default("") @map("time_zone")
+  hasMic                Boolean   @default(false) @map("has_mic")
+  platformSpecs         String    @default("") @map("platform_specs")
+  availability          String    @default("")
+  currentBaseline       String    @default("") @map("current_baseline")
+  assetsShips           String    @default("") @map("assets_ships")
+  urgency               String    @default("")
+  groupPreference       String    @default("") @map("group_preference")
+  successCriteria       String    @default("") @map("success_criteria")
+  recordingPermission   String    @default("") @map("recording_permission")
+  isPinned              Boolean   @default(false) @map("is_pinned")
+  materialName          String?   @map("material_name")
+  quantityNeeded        Int?      @map("quantity_needed")
+  meetingLocation       String?   @map("meeting_location")
+  rewardOffered         String?   @map("reward_offered")
+  maxClaims             Int       @default(1) @map("max_claims")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt           DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@index([kind, status])
+  @@index([createdByUserId])
+  @@map("packtracker_request_tickets")
+}
+
+model PackTrackerGuideRequest {
+  id                 String    @id @default(uuid()) @db.Uuid
+  threadId           BigInt    @unique @map("thread_id")
+  title              String
+  requester          String
+  status             String    @default("Scheduled")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  assignedToUserId   BigInt?   @map("assigned_to_user_id")
+  assignedToUsername String?   @map("assigned_to_username")
+  assignedAt         DateTime? @map("assigned_at") @db.Timestamptz(6)
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("packtracker_guide_requests")
+}
+
+model PackTrackerAssistanceRequest {
+  id                  String              @id @default(uuid()) @db.Uuid
+  kind                Int                 @default(0)
+  title               String
+  description         String?
+  priority            Int                 @default(1)
+  status              Int                 @default(0)
+  isPinned            Boolean             @default(false) @map("is_pinned")
+  createdByProfileId  String              @map("created_by_profile_id") @db.Uuid
+  assignedToProfileId String?             @map("assigned_to_profile_id") @db.Uuid
+  materialName        String?             @map("material_name")
+  quantityNeeded      Int?                @map("quantity_needed")
+  meetingLocation     String?             @map("meeting_location")
+  rewardOffered       String?             @map("reward_offered")
+  maxClaims           Int                 @default(1) @map("max_claims")
+  dueAt               DateTime?           @map("due_at") @db.Timestamptz(6)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt         DateTime?           @map("completed_at") @db.Timestamptz(6)
+  createdByProfile    PackTrackerProfile  @relation("PackTrackerAssistanceCreatedBy", fields: [createdByProfileId], references: [id], onDelete: Restrict)
+  assignedToProfile   PackTrackerProfile? @relation("PackTrackerAssistanceAssignedTo", fields: [assignedToProfileId], references: [id], onDelete: SetNull)
+
+  @@index([status, priority])
+  @@index([createdByProfileId])
+  @@index([assignedToProfileId])
+  @@map("packtracker_assistance_requests")
+}
+
+model PackTrackerBlueprint {
+  id                  String                                @id @default(uuid()) @db.Uuid
+  slug                String                                @unique
+  blueprintName       String                                @map("blueprint_name")
+  craftedItemName     String                                @map("crafted_item_name")
+  category            String
+  description         String?
+  isInGameAvailable   Boolean                               @default(true) @map("is_in_game_available")
+  acquisitionSummary  String?                               @map("acquisition_summary")
+  acquisitionLocation String?                               @map("acquisition_location")
+  acquisitionMethod   String?                               @map("acquisition_method")
+  sourceVersion       String?                               @map("source_version")
+  dataConfidence      String                                @default("Imported") @map("data_confidence")
+  notes               String?
+  wikiUuid            String?                               @map("wiki_uuid")
+  wikiLastSyncedAt    String?                               @map("wiki_last_synced_at")
+  ownerCount          Int                                   @default(0) @map("owner_count")
+  createdAt           DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  recipe              PackTrackerBlueprintRecipe?
+  ownerships          PackTrackerMemberBlueprintOwnership[]
+  craftingRequests    PackTrackerCraftingRequest[]
+
+  @@index([wikiUuid])
+  @@index([category])
+  @@map("packtracker_blueprints")
+}
+
+model PackTrackerMaterial {
+  id                  String                                  @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String                                  @unique
+  materialType        String                                  @map("material_type")
+  tier                String
+  sourceType          Int                                     @default(0) @map("source_type")
+  isRawOre            Boolean                                 @default(false) @map("is_raw_ore")
+  isRefinedMaterial   Boolean                                 @default(false) @map("is_refined_material")
+  isCraftedComponent  Boolean                                 @default(false) @map("is_crafted_component")
+  notes               String?
+  wikiUuid            String?                                 @map("wiki_uuid")
+  category            String?
+  createdAt           DateTime                                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  recipeMaterials     PackTrackerBlueprintRecipeMaterial[]
+  sources             PackTrackerMaterialSource[]
+  procurementRequests PackTrackerMaterialProcurementRequest[]
+  inventoryItem       PackTrackerOrgInventoryItem?
+
+  @@index([wikiUuid])
+  @@index([category])
+  @@map("packtracker_materials")
+}
+
+model PackTrackerBlueprintRecipe {
+  id                  String                               @id @default(uuid()) @db.Uuid
+  blueprintId         String                               @unique @map("blueprint_id") @db.Uuid
+  outputQuantity      Int                                  @default(1) @map("output_quantity")
+  craftingStationType String?                              @map("crafting_station_type")
+  timeToCraftSeconds  Int?                                 @map("time_to_craft_seconds")
+  notes               String?
+  blueprint           PackTrackerBlueprint                 @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  materials           PackTrackerBlueprintRecipeMaterial[]
+
+  @@map("packtracker_blueprint_recipes")
+}
+
+model PackTrackerBlueprintRecipeMaterial {
+  id                      String                     @id @default(uuid()) @db.Uuid
+  blueprintRecipeId       String                     @map("blueprint_recipe_id") @db.Uuid
+  materialId              String                     @map("material_id") @db.Uuid
+  quantityRequired        Decimal                    @map("quantity_required") @db.Decimal(18, 2)
+  unit                    String                     @default("SCU")
+  isOptional              Boolean                    @default(false) @map("is_optional")
+  isIntermediateCraftable Boolean                    @default(false) @map("is_intermediate_craftable")
+  notes                   String?
+  blueprintRecipe         PackTrackerBlueprintRecipe @relation(fields: [blueprintRecipeId], references: [id], onDelete: Cascade)
+  material                PackTrackerMaterial        @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([materialId])
+  @@map("packtracker_blueprint_recipe_materials")
+}
+
+model PackTrackerMaterialSource {
+  id            String              @id @default(uuid()) @db.Uuid
+  materialId    String              @map("material_id") @db.Uuid
+  sourceMethod  Int                 @default(0) @map("source_method")
+  location      String?
+  sourceVersion String?             @map("source_version")
+  confidence    String              @default("Imported")
+  notes         String?
+  material      PackTrackerMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+  @@map("packtracker_material_sources")
+}
+
+model PackTrackerMemberBlueprintOwnership {
+  id                  String               @id @default(uuid()) @db.Uuid
+  blueprintId         String               @map("blueprint_id") @db.Uuid
+  memberProfileId     String               @map("member_profile_id") @db.Uuid
+  ownershipStatus     Int                  @default(0) @map("ownership_status")
+  interestType        Int                  @default(0) @map("interest_type")
+  verifiedByProfileId String?              @map("verified_by_profile_id") @db.Uuid
+  verifiedAt          DateTime?            @map("verified_at") @db.Timestamptz(6)
+  availabilityStatus  String               @default("Available") @map("availability_status")
+  notes               String?
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  blueprint           PackTrackerBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  memberProfile       PackTrackerProfile   @relation("PackTrackerBlueprintOwnedBy", fields: [memberProfileId], references: [id], onDelete: Restrict)
+  verifiedByProfile   PackTrackerProfile?  @relation("PackTrackerBlueprintVerifiedBy", fields: [verifiedByProfileId], references: [id], onDelete: Restrict)
+
+  @@unique([blueprintId, memberProfileId])
+  @@index([memberProfileId])
+  @@map("packtracker_member_blueprint_ownerships")
+}
+
+model PackTrackerCraftingRequest {
+  id                           String                                  @id @default(uuid()) @db.Uuid
+  blueprintId                  String                                  @map("blueprint_id") @db.Uuid
+  requesterProfileId           String                                  @map("requester_profile_id") @db.Uuid
+  assignedCrafterProfileId     String?                                 @map("assigned_crafter_profile_id") @db.Uuid
+  quantityRequested            Int                                     @default(1) @map("quantity_requested")
+  minimumQuality               Int                                     @default(1) @map("minimum_quality")
+  refusalReason                String?                                 @map("refusal_reason")
+  priority                     Int                                     @default(1)
+  status                       Int                                     @default(0)
+  isPinned                     Boolean                                 @default(false) @map("is_pinned")
+  maxClaims                    Int                                     @default(1) @map("max_claims")
+  itemName                     String?                                 @map("item_name")
+  deliveryLocation             String?                                 @map("delivery_location")
+  rewardOffered                String?                                 @map("reward_offered")
+  requiredBy                   DateTime?                               @map("required_by") @db.Timestamptz(6)
+  notes                        String?
+  materialSupplyMode           Int                                     @default(2) @map("material_supply_mode")
+  requesterTimeZoneDisplayName String?                                 @map("requester_time_zone_display_name")
+  requesterUtcOffsetMinutes    Int?                                    @map("requester_utc_offset_minutes")
+  createdAt                    DateTime                                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime                                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt                  DateTime?                               @map("completed_at") @db.Timestamptz(6)
+  blueprint                    PackTrackerBlueprint                    @relation(fields: [blueprintId], references: [id], onDelete: Restrict)
+  requesterProfile             PackTrackerProfile                      @relation("PackTrackerCraftingRequestedBy", fields: [requesterProfileId], references: [id], onDelete: Restrict)
+  assignedCrafterProfile       PackTrackerProfile?                     @relation("PackTrackerCraftingAssignedTo", fields: [assignedCrafterProfileId], references: [id], onDelete: Restrict)
+  procurementRequests          PackTrackerMaterialProcurementRequest[]
+
+  @@index([status, priority])
+  @@index([requesterProfileId])
+  @@index([assignedCrafterProfileId])
+  @@map("packtracker_crafting_requests")
+}
+
+model PackTrackerMaterialProcurementRequest {
+  id                      String                      @id @default(uuid()) @db.Uuid
+  linkedCraftingRequestId String?                     @map("linked_crafting_request_id") @db.Uuid
+  materialId              String                      @map("material_id") @db.Uuid
+  requesterProfileId      String?                     @map("requester_profile_id") @db.Uuid
+  assignedToProfileId     String?                     @map("assigned_to_profile_id") @db.Uuid
+  quantityRequested       Decimal                     @default(0) @map("quantity_requested") @db.Decimal(18, 2)
+  quantityDelivered       Decimal                     @default(0) @map("quantity_delivered") @db.Decimal(18, 2)
+  minimumQuality          Int                         @default(1) @map("minimum_quality")
+  preferredForm           Int                         @default(0) @map("preferred_form")
+  priority                Int                         @default(1)
+  status                  Int                         @default(0)
+  isPinned                Boolean                     @default(false) @map("is_pinned")
+  maxClaims               Int                         @default(1) @map("max_claims")
+  deliveryLocation        String?                     @map("delivery_location")
+  rewardOffered           String?                     @map("reward_offered")
+  notes                   String?
+  createdAt               DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt             DateTime?                   @map("completed_at") @db.Timestamptz(6)
+  linkedCraftingRequest   PackTrackerCraftingRequest? @relation(fields: [linkedCraftingRequestId], references: [id], onDelete: SetNull)
+  material                PackTrackerMaterial         @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  requesterProfile        PackTrackerProfile?         @relation("PackTrackerProcurementRequestedBy", fields: [requesterProfileId], references: [id], onDelete: Restrict)
+  assignedToProfile       PackTrackerProfile?         @relation("PackTrackerProcurementAssignedTo", fields: [assignedToProfileId], references: [id], onDelete: Restrict)
+
+  @@index([status, priority])
+  @@index([materialId])
+  @@index([requesterProfileId])
+  @@index([assignedToProfileId])
+  @@map("packtracker_material_procurement_requests")
+}
+
+model PackTrackerOrgInventoryItem {
+  id               String              @id @default(uuid()) @db.Uuid
+  materialId       String              @unique @map("material_id") @db.Uuid
+  quantityOnHand   Decimal             @default(0) @map("quantity_on_hand") @db.Decimal(18, 2)
+  quantityReserved Decimal             @default(0) @map("quantity_reserved") @db.Decimal(18, 2)
+  storageLocation  String?             @map("storage_location")
+  updatedAt        DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  material         PackTrackerMaterial @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@map("packtracker_org_inventory_items")
+}
+
+model PackTrackerRequestComment {
+  id              String             @id @default(uuid()) @db.Uuid
+  requestId       String             @map("request_id") @db.Uuid
+  authorProfileId String             @map("author_profile_id") @db.Uuid
+  content         String
+  isLiveChat      Boolean            @default(false) @map("is_live_chat")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  isDeleted       Boolean            @default(false) @map("is_deleted")
+  editedAt        DateTime?          @map("edited_at") @db.Timestamptz(6)
+  authorProfile   PackTrackerProfile @relation(fields: [authorProfileId], references: [id], onDelete: Restrict)
+
+  @@index([requestId])
+  @@index([authorProfileId])
+  @@map("packtracker_request_comments")
+}
+
+model PackTrackerRequestClaim {
+  id          String             @id @default(uuid()) @db.Uuid
+  requestType String             @map("request_type")
+  requestId   String             @map("request_id") @db.Uuid
+  profileId   String             @map("profile_id") @db.Uuid
+  claimedAt   DateTime           @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  profile     PackTrackerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, requestType, profileId])
+  @@index([profileId])
+  @@map("packtracker_request_claims")
+}
+
+model PackTrackerLobbyChatMessage {
+  id                String    @id
+  channel           String
+  sender            String
+  senderDisplayName String    @map("sender_display_name")
+  content           String
+  sentAt            DateTime  @default(now()) @map("sent_at") @db.Timestamptz(6)
+  senderDiscordId   String    @map("sender_discord_id")
+  avatarUrl         String?   @map("avatar_url")
+  senderRole        String?   @map("sender_role")
+  isDeleted         Boolean   @default(false) @map("is_deleted")
+  editedAt          DateTime? @map("edited_at") @db.Timestamptz(6)
+
+  @@index([channel])
+  @@index([sentAt])
+  @@map("packtracker_lobby_chat_messages")
+}
+
+model PackTrackerCommodity {
+  id              Int                         @id
+  parentId        Int?                        @map("parent_id")
+  name            String
+  code            String
+  slug            String
+  kind            String?
+  weightScu       Int?                        @map("weight_scu")
+  roi             Decimal?                    @map("roi") @db.Decimal(18, 2)
+  priceBuy        Decimal?                    @map("price_buy") @db.Decimal(18, 2)
+  priceSell       Decimal?                    @map("price_sell") @db.Decimal(18, 2)
+  isAvailable     Boolean                     @default(false) @map("is_available")
+  isAvailableLive Boolean                     @default(false) @map("is_available_live")
+  isVisible       Boolean                     @default(false) @map("is_visible")
+  isExtractable   Boolean                     @default(false) @map("is_extractable")
+  isMineral       Boolean                     @default(false) @map("is_mineral")
+  isRaw           Boolean                     @default(false) @map("is_raw")
+  isPure          Boolean                     @default(false) @map("is_pure")
+  isRefined       Boolean                     @default(false) @map("is_refined")
+  isRefinable     Boolean                     @default(false) @map("is_refinable")
+  isHarvestable   Boolean                     @default(false) @map("is_harvestable")
+  isBuyable       Boolean                     @default(false) @map("is_buyable")
+  isSellable      Boolean                     @default(false) @map("is_sellable")
+  isTemporary     Boolean                     @default(false) @map("is_temporary")
+  isIllegal       Boolean                     @default(false) @map("is_illegal")
+  isVolatileQt    Boolean                     @default(false) @map("is_volatile_qt")
+  isVolatileTime  Boolean                     @default(false) @map("is_volatile_time")
+  isInert         Boolean                     @default(false) @map("is_inert")
+  isExplosive     Boolean                     @default(false) @map("is_explosive")
+  isBuggy         Boolean                     @default(false) @map("is_buggy")
+  isFuel          Boolean                     @default(false) @map("is_fuel")
+  wiki            String?
+  dateAdded       DateTime                    @map("date_added") @db.Timestamptz(6)
+  dateModified    DateTime                    @map("date_modified") @db.Timestamptz(6)
+  prices          PackTrackerCommodityPrice[]
+
+  @@index([code])
+  @@index([slug])
+  @@map("packtracker_commodities")
+}
+
+model PackTrackerCommodityPrice {
+  id              Int                  @id
+  commodityId     Int                  @map("commodity_id")
+  terminalId      Int                  @map("terminal_id")
+  terminalName    String?              @map("terminal_name")
+  terminalCode    String?              @map("terminal_code")
+  terminalSlug    String?              @map("terminal_slug")
+  priceBuy        Decimal              @default(0) @map("price_buy") @db.Decimal(18, 2)
+  priceBuyAvg     Decimal              @default(0) @map("price_buy_avg") @db.Decimal(18, 2)
+  priceSell       Decimal              @default(0) @map("price_sell") @db.Decimal(18, 2)
+  priceSellAvg    Decimal              @default(0) @map("price_sell_avg") @db.Decimal(18, 2)
+  scuBuy          Decimal              @default(0) @map("scu_buy") @db.Decimal(18, 2)
+  scuBuyAvg       Decimal              @default(0) @map("scu_buy_avg") @db.Decimal(18, 2)
+  scuSellStock    Decimal              @default(0) @map("scu_sell_stock") @db.Decimal(18, 2)
+  scuSellStockAvg Decimal              @default(0) @map("scu_sell_stock_avg") @db.Decimal(18, 2)
+  scuSell         Decimal              @default(0) @map("scu_sell") @db.Decimal(18, 2)
+  scuSellAvg      Decimal              @default(0) @map("scu_sell_avg") @db.Decimal(18, 2)
+  statusBuy       Int?                 @map("status_buy")
+  statusSell      Int?                 @map("status_sell")
+  dateAdded       DateTime             @map("date_added") @db.Timestamptz(6)
+  dateModified    DateTime             @map("date_modified") @db.Timestamptz(6)
+  commodity       PackTrackerCommodity @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+
+  @@index([commodityId, terminalId])
+  @@map("packtracker_commodity_prices")
+}
+
+model PackTrackerMedalDefinition {
+  id             String                       @id @default(uuid()) @db.Uuid
+  name           String                       @unique
+  description    String
+  imagePath      String?                      @map("image_path")
+  publicImageUrl String?                      @map("public_image_url")
+  sourceSystem   String                       @default("wolf_raid") @map("source_system")
+  displayOrder   Int                          @default(0) @map("display_order")
+  awardType      String                       @default("Medal") @map("award_type")
+  createdAt      DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  awards         PackTrackerMedalAward[]
+  nominations    PackTrackerMedalNomination[]
+
+  @@map("packtracker_medal_definitions")
+}
+
+model PackTrackerMedalAward {
+  id                String                     @id @default(uuid()) @db.Uuid
+  medalDefinitionId String                     @map("medal_definition_id") @db.Uuid
+  profileId         String?                    @map("profile_id") @db.Uuid
+  recipientName     String                     @map("recipient_name")
+  awardedAt         DateTime?                  @map("awarded_at") @db.Timestamptz(6)
+  importedAt        DateTime                   @default(now()) @map("imported_at") @db.Timestamptz(6)
+  sourceSystem      String                     @default("wolf_raid") @map("source_system")
+  citation          String?
+  awardedBy         String?                    @map("awarded_by")
+  awardType         String                     @default("Medal") @map("award_type")
+  medalDefinition   PackTrackerMedalDefinition @relation(fields: [medalDefinitionId], references: [id], onDelete: Cascade)
+  profile           PackTrackerProfile?        @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([medalDefinitionId, recipientName])
+  @@index([profileId])
+  @@map("packtracker_medal_awards")
+}
+
+model PackTrackerMedalNomination {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  medalDefinitionId   String                     @map("medal_definition_id") @db.Uuid
+  nomineeProfileId    String?                    @map("nominee_profile_id") @db.Uuid
+  nomineeName         String                     @map("nominee_name")
+  nominatorProfileId  String?                    @map("nominator_profile_id") @db.Uuid
+  nominatorName       String                     @map("nominator_name")
+  citation            String
+  status              Int                        @default(0)
+  submittedAt         DateTime                   @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt          DateTime?                  @map("reviewed_at") @db.Timestamptz(6)
+  reviewedByProfileId String?                    @map("reviewed_by_profile_id") @db.Uuid
+  reviewedByName      String?                    @map("reviewed_by_name")
+  reviewNotes         String?                    @map("review_notes")
+  medalDefinition     PackTrackerMedalDefinition @relation(fields: [medalDefinitionId], references: [id], onDelete: Restrict)
+  nomineeProfile      PackTrackerProfile?        @relation("PackTrackerMedalNominee", fields: [nomineeProfileId], references: [id], onDelete: SetNull)
+  nominatorProfile    PackTrackerProfile?        @relation("PackTrackerMedalNominator", fields: [nominatorProfileId], references: [id], onDelete: SetNull)
+  reviewedByProfile   PackTrackerProfile?        @relation("PackTrackerMedalReviewer", fields: [reviewedByProfileId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([submittedAt])
+  @@map("packtracker_medal_nominations")
+}
+
+model PackTrackerAdminRole {
+  id                    String                                 @id @default(uuid()) @db.Uuid
+  name                  String                                 @unique
+  tier                  Int                                    @default(0)
+  isSystemRole          Boolean                                @default(true) @map("is_system_role")
+  createdAt             DateTime                               @default(now()) @map("created_at") @db.Timestamptz(6)
+  permissionAssignments PackTrackerAdminPermissionAssignment[]
+  memberAssignments     PackTrackerMemberRoleAssignment[]
+
+  @@map("packtracker_admin_roles")
+}
+
+model PackTrackerAdminPermissionAssignment {
+  id            String               @id @default(uuid()) @db.Uuid
+  adminRoleId   String               @map("admin_role_id") @db.Uuid
+  permissionKey String               @map("permission_key")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminRole     PackTrackerAdminRole @relation(fields: [adminRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([adminRoleId, permissionKey])
+  @@map("packtracker_admin_permission_assignments")
+}
+
+model PackTrackerMemberRoleAssignment {
+  id                  String               @id @default(uuid()) @db.Uuid
+  profileId           String               @map("profile_id") @db.Uuid
+  adminRoleId         String               @map("admin_role_id") @db.Uuid
+  assignedByProfileId String               @map("assigned_by_profile_id") @db.Uuid
+  assignedAt          DateTime             @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  revokedAt           DateTime?            @map("revoked_at") @db.Timestamptz(6)
+  notes               String?
+  profile             PackTrackerProfile   @relation("PackTrackerMemberRoleProfile", fields: [profileId], references: [id], onDelete: Restrict)
+  adminRole           PackTrackerAdminRole @relation(fields: [adminRoleId], references: [id], onDelete: Restrict)
+  assignedByProfile   PackTrackerProfile   @relation("PackTrackerMemberRoleAssignedBy", fields: [assignedByProfileId], references: [id], onDelete: Restrict)
+
+  @@index([profileId])
+  @@index([adminRoleId])
+  @@index([assignedByProfileId])
+  @@map("packtracker_member_role_assignments")
+}
+
+model PackTrackerAdminAuditLog {
+  id             String              @id @default(uuid()) @db.Uuid
+  actorProfileId String?             @map("actor_profile_id") @db.Uuid
+  action         String
+  targetType     String              @map("target_type")
+  targetId       String              @map("target_id")
+  summary        String
+  beforeJson     String?             @map("before_json")
+  afterJson      String?             @map("after_json")
+  severity       String              @default("Info")
+  correlationId  String?             @map("correlation_id")
+  exception      String?
+  machineName    String?             @map("machine_name")
+  environment    String?
+  occurredAt     DateTime            @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorProfile   PackTrackerProfile? @relation(fields: [actorProfileId], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt])
+  @@index([actorProfileId, occurredAt])
+  @@index([targetType, targetId])
+  @@map("packtracker_admin_audit_logs")
+}
+
+model PackTrackerDiscordIntegrationSetting {
+  id                          String              @id @default(uuid()) @db.Uuid
+  operationsEnabled           Boolean             @default(false) @map("operations_enabled")
+  medalAnnouncementsEnabled   Boolean             @default(false) @map("medal_announcements_enabled")
+  recruitingPostsEnabled      Boolean             @default(false) @map("recruiting_posts_enabled")
+  operationsChannelId         String?             @map("operations_channel_id")
+  medalAnnouncementsChannelId String?             @map("medal_announcements_channel_id")
+  recruitingPostsChannelId    String?             @map("recruiting_posts_channel_id")
+  updatedByProfileId          String?             @map("updated_by_profile_id") @db.Uuid
+  updatedAt                   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByProfile            PackTrackerProfile? @relation(fields: [updatedByProfileId], references: [id], onDelete: Restrict)
+
+  @@map("packtracker_discord_integration_settings")
+}
+
+model PackTrackerSyncMetadata {
+  id               String    @id @default(uuid()) @db.Uuid
+  taskName         String    @unique @map("task_name")
+  lastStartedAt    DateTime? @map("last_started_at") @db.Timestamptz(6)
+  lastCompletedAt  DateTime? @map("last_completed_at") @db.Timestamptz(6)
+  isSuccess        Boolean   @default(false) @map("is_success")
+  lastErrorMessage String?   @map("last_error_message")
+  itemsProcessed   Int       @default(0) @map("items_processed")
+
+  @@map("packtracker_sync_metadata")
+}
+
+model PackTrackerDistributedLock {
+  lockKey   String   @id @map("lock_key")
+  lockedBy  String   @map("locked_by")
+  lockedAt  DateTime @default(now()) @map("locked_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@map("packtracker_distributed_locks")
+}
 
 model AuditLog {
   id         Int      @id @default(autoincrement())

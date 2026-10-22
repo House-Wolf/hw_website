@@ -12,9 +12,9 @@ import {
   ExternalLink,
   Globe,
   IdCard,
+  PackageSearch,
   Shield,
   Swords,
-  Users,
 } from "lucide-react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { RANK_PRIORITY } from "@/lib/role-constants";
@@ -59,6 +59,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Command Center", icon: Home, href: "/dashboard" },
+    { name: "PackTracker", icon: PackageSearch, href: "/dashboard/packtracker" },
     { name: "Marketplace", icon: Store, href: "/dashboard/marketplace" },
     { name: "Mercenary Bio", icon: IdCard, href: "/dashboard/profile" },
     { name: "Settings", icon: Settings, href: "/dashboard/settings" },
@@ -202,7 +203,10 @@ export default function DashboardLayout({
           {/* Dashboard Pages */}
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active =
+              item.href === "/dashboard"
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.name}
@@ -330,6 +334,8 @@ export default function DashboardLayout({
             >
               {pathname === "/dashboard/marketplace"
                 ? "Marketplace Management"
+                : pathname.startsWith("/dashboard/packtracker")
+                ? "PackTracker"
                 : pathname === "/dashboard/profile"
                 ? "Mercenary Bio"
                 : pathname === "/dashboard/settings"

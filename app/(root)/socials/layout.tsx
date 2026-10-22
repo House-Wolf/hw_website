@@ -7,7 +7,7 @@ export const metadata = {
     title: "Community & Socials | House Wolf Dragoons",
     description:
       "Join the House Wolf community across Discord, YouTube, and social media. Connect with fellow mercenaries.",
-    url: "https://housewolf.co/socials",
+    url: "https://www.housewolf.co/socials",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -28,7 +28,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/socials",
+    canonical: "https://www.housewolf.co/socials",
   },
 };
 

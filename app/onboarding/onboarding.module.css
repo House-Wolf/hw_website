@@ -1,0 +1,101 @@
+.experience { min-height: 100dvh; isolation: isolate; position: relative; background: #070b0e; color: #edf0f1; padding: 0 40px 22px; font-family: Arial, Helvetica, sans-serif; }
+.backdrop { position: absolute; inset: 0; z-index: -1; opacity: .65; background: radial-gradient(ellipse at 5% 45%, #47000055, transparent 55%), radial-gradient(ellipse at 95% 0%, #114e6233, transparent 55%), linear-gradient(#070b0e55, #070b0ef0), url('/images/global/Websitebgnew.png') center / cover; }
+.topbar { max-width: 1400px; margin: auto; height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #ffffff0c; }
+.brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 16px; font-weight: 800; letter-spacing: .16em; }
+.brand small { display: block; font: 9px monospace; letter-spacing: .19em; color: #81909b; margin-top: 6px; }
+.topline, .exit, .pageFooter { color: #8997a2; font: 10px monospace; letter-spacing: .12em; }
+.topline { display: flex; align-items: center; gap: 9px; }
+.topline > span, .liveDot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #6ea7b6; box-shadow: 0 0 10px #6ea7b644; }
+.exit { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.exit:hover { color: white; }
+.shell { max-width: 1210px; margin: 46px auto; display: grid; grid-template-columns: 320px minmax(0, 1fr); border: 1px solid #ffffff14; border-radius: 12px; overflow: hidden; box-shadow: 0 30px 100px #0008; }
+.sidebar { position: relative; display: flex; flex-direction: column; padding: 36px 30px 26px; background: radial-gradient(ellipse at 50% 25%, #47000033, transparent 70%), linear-gradient(145deg, #101719ee, #0b1014fa); border-right: 1px solid #ffffff12; }
+.eyebrow, .motto, .kicker, .sectionMeta, .gameHeading, .cardCategory, .ruleLabel, .footerNote { font-family: monospace; font-size: 9px; letter-spacing: .13em; }
+.eyebrow { color: #7c8b94; font-size: 8px; display: block; text-align: center; }
+.insignia { margin: 36px auto 18px; position: relative; }
+.insignia::before { content: ''; position: absolute; inset: -15px; border: 1px solid #ffffff08; border-radius: 50%; }
+.insignia img { object-fit: contain; filter: drop-shadow(0 0 32px #73000066); }
+.motto { color: #a56a6a; letter-spacing: .12em; font-size: 8px; text-align: center; }
+.sidebar h2 { font-size: 44px; line-height: 1.06; letter-spacing: -.045em; font-weight: 700; margin: 20px 0 16px; }
+.sidebar h2 em { font-style: normal; color: #c6a4a1; }
+.intro { color: #97a1a8; font-size: 13px; line-height: 1.85; max-width: 240px; margin: 0; }
+.steps { padding: 28px 0; margin: 14px 0 0; list-style: none; display: grid; gap: 23px; }
+.steps li { display: flex; gap: 13px; align-items: center; color: #77848e; font-size: 12px; }
+.steps li > span { height: 32px; width: 32px; display: grid; place-items: center; flex-shrink: 0; border: 1px solid #ffffff16; border-radius: 50%; font: 10px monospace; }
+.steps small { display: block; color: #82909b; font-size: 10px; margin-top: 5px; }
+.steps .currentStep { color: #fff; }
+.currentStep > span { background: #47000066; border-color: #96504e88 !important; color: #edbbb5; }
+.steps .finishedStep { color: #a0bbc3; }
+.finishedStep > span { border-color: #47778666 !important; color: #8fc4c6; }
+.sidebarFooter { border-top: 1px solid #ffffff10; margin-top: auto; padding-top: 25px; display: flex; align-items: center; gap: 12px; color: #75919b; font-size: 10px; line-height: 1.7; }
+.sidebarFooter strong { color: #9aa8b1; font-weight: 400; }
+.panel { background: linear-gradient(135deg, #10191efb, #0b1116fd); min-width: 0; display: flex; flex-direction: column; }
+.progressTrack { height: 2px; background: #ffffff08; }
+.progressTrack > span { display: block; height: 100%; background: linear-gradient(90deg, #722a2a, #c4776c); transition: width .4s ease; }
+.panelContent { padding: 30px 38px 16px; flex: 1; }
+.sectionMeta { display: flex; justify-content: space-between; gap: 15px; color: #82939e; font-size: 8px; margin-bottom: 34px; }
+.sectionMeta > span:last-child { display: flex; align-items: center; gap: 6px; }
+.headingRow { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.kicker { color: #b07a74; font-size: 9px; }
+.headingRow h1, .completion h1 { font-size: clamp(28px, 3vw, 39px); line-height: 1.15; letter-spacing: -.045em; margin: 12px 0 0; font-weight: 700; }
+.headingRow h1:focus, .completion h1:focus { outline: none; }
+.mobileBreak { display: none; }
+.headingIcon { color: #547681; flex-shrink: 0; }
+.subtitle { font-size: 13px; color: #98a6af; line-height: 1.7; margin: 14px 0 29px; }
+.gameHeading { display: flex; justify-content: space-between; align-items: center; color: #b7c4cb; margin-bottom: 13px; font-size: 10px; }
+.gameHeading > span { display: flex; align-items: center; gap: 9px; }
+.gameHeading small { font-size: 8px; color: #8c9aa4; }
+.interestGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.interestCard { background: linear-gradient(120deg, #1a252b88, #111a20); padding: 19px; border: 1px solid #ffffff12; border-radius: 7px; text-align: left; display: flex; flex-direction: column; cursor: pointer; color: #edf0f1; position: relative; transition: border-color .2s, background .2s, transform .2s; }
+.interestCard:hover { border-color: #6596a477; transform: translateY(-2px); background: #19282e; }
+.interestCard:focus-visible, .primaryButton:focus-visible, .exit:focus-visible, .backButton:focus-visible, .brand:focus-visible, .dashboardLink:focus-visible { outline: 2px solid #9ed4dd; outline-offset: 4px; }
+.interestCard.selected { border-color: #a35c55; background: linear-gradient(130deg, #54292766, #192127); box-shadow: inset 0 0 24px #742b2110; }
+.cardTop { display: flex; align-items: center; justify-content: space-between; color: #81acba; margin-bottom: 20px; }
+.selected .cardTop { color: #d7a59b; }
+.checkBox { width: 17px; height: 17px; border: 1px solid #ffffff27; border-radius: 4px; display: grid; place-items: center; }
+.selected .checkBox { background: #b0685d; border-color: #b0685d; color: white; }
+.cardCategory { color: #82959e; font-size: 7px; letter-spacing: .09em; margin-bottom: 7px; }
+.interestCard strong { font-size: 16px; line-height: 1.4; font-weight: 600; }
+.cardDescription { font-size: 11px; line-height: 1.75; color: #a0aeb6; margin-top: 7px; }
+.otherCard { border-style: dashed; }
+.otherField { margin-top: 18px; padding: 17px; border: 1px solid #48677566; border-radius: 6px; background: #0a1319; }
+.otherField label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+.otherField input { width: 100%; background: #ffffff05; border: 1px solid #ffffff22; border-radius: 4px; color: #fff; padding: 12px; font-size: 12px; }
+.otherField input:focus-visible { outline: 2px solid #81acba; outline-offset: 2px; }
+.otherField > span { display: block; font-size: 10px; line-height: 1.7; margin-top: 10px; color: #95a6ae; }
+.selectionHint { color: #91a5af; font-size: 10px; line-height: 1.7; min-height: 17px; margin: 17px 0 9px; display: flex; align-items: center; gap: 7px; }
+.panelFooter { padding: 23px 38px; border-top: 1px solid #ffffff0c; display: flex; justify-content: space-between; align-items: center; gap: 15px; background: #080e1222; }
+.footerNote { color: #7d909b; font-size: 8px; }
+.primaryButton { display: inline-flex; align-items: center; justify-content: center; gap: 20px; padding: 14px 22px; border: 1px solid #a04c4388; background: linear-gradient(120deg, #782d2b, #571e20); box-shadow: 0 5px 20px #47000022; color: #fff; border-radius: 5px; font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; min-height: 46px; }
+.primaryButton:hover:not(:disabled) { background: #8c3934; }
+.primaryButton:disabled { opacity: .45; cursor: not-allowed; }
+.backButton { display: flex; align-items: center; gap: 10px; background: none; border: none; color: #abb8c0; font-size: 12px; padding: 12px 0; cursor: pointer; }
+.rules { margin: 24px 0; border: 1px solid #ffffff12; border-radius: 7px; overflow: hidden; }
+.rule { display: flex; gap: 18px; padding: 22px; background: #ffffff02; }
+.rule + .rule { border-top: 1px solid #ffffff0d; }
+.ruleNumber { color: #ac726b; font: 12px monospace; padding-top: 3px; }
+.ruleLabel { color: #859ca9; font-size: 7px; }
+.rule h2 { font-size: 16px; font-weight: 600; margin: 6px 0 8px; }
+.rule p { font-size: 12px; line-height: 1.8; color: #a9b4bc; margin: 0; }
+.acceptance { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 18px; border: 1px solid #ffffff18; border-radius: 6px; background: #ffffff03; }
+.acceptance input { accent-color: #ad655a; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+.acceptance input:focus-visible { outline: 2px solid #9ed4dd; outline-offset: 3px; }
+.acceptance strong { font-size: 12px; font-weight: 500; line-height: 1.7; display: block; }
+.acceptance small { color: #93a3ae; font-size: 10px; display: block; line-height: 1.8; margin-top: 4px; }
+.accepted { border-color: #a65c5477; background: #54272722; }
+.signInNote { display: flex; align-items: center; gap: 7px; font-size: 10px; line-height: 1.7; color: #98aab6; margin-top: 16px; }
+.error { color: #ffb6aa; border: 1px solid #b3584d66; background: #47000044; font-size: 12px; line-height: 1.8; padding: 14px; border-radius: 6px; margin: 15px 0; }
+.completion { padding: 65px 0 80px; text-align: center; }
+.completionIcon { width: 104px; height: 104px; margin: 0 auto 32px; display: grid; place-items: center; color: #a3d2cc; background: radial-gradient(#114e6244, transparent); border: 1px solid #638d9844; border-radius: 50%; box-shadow: 0 0 0 12px #114e6211; }
+.completion h1 { font-size: 50px; margin-top: 16px; }
+.completion p { color: #9fadb6; font-size: 13px; line-height: 1.9; margin: 25px 0 35px; }
+.dashboardLink { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; color: #a0b3bc; margin-top: 22px; }
+.pageFooter { display: flex; justify-content: space-between; max-width: 1210px; margin: 0 auto; font-size: 8px; color: #8997a2; }
+.pageFooter > span > span { color: #96514b; padding: 0 10px; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (min-width: 1500px) { .shell { margin-top: 65px; } }
+@media (max-width: 1050px) { .experience { padding: 0 24px 22px; } .shell { grid-template-columns: 250px minmax(0, 1fr); } .sidebar { padding: 30px 22px; } .panelContent { padding: 26px 26px 16px; } .panelFooter { padding: 22px 26px; } .sectionMeta > span:last-child { display: none; } .topline { display: none; } .sidebar h2 { font-size: 38px; } .interestCard { padding: 16px; } }
+@media (max-width: 760px) { .experience { padding: 0 16px 20px; } .topbar { height: 80px; } .brand { font-size: 13px; gap: 8px; } .brand small { font-size: 7px; } .exit { font-size: 9px; letter-spacing: 0; } .shell { display: block; margin: 24px auto; } .sidebar { padding: 22px; border-right: 0; border-bottom: 1px solid #ffffff12; } .eyebrow { display: none; } .insignia, .motto, .sidebar h2, .intro, .sidebarFooter { display: none; } .steps { grid-template-columns: 1fr 1fr; margin: 0; padding: 0; gap: 12px; } .steps li { font-size: 11px; gap: 9px; } .steps small { font-size: 9px; } .sectionMeta { margin-bottom: 26px; } .panelContent { padding: 24px 22px 14px; } .headingRow h1 { font-size: 32px; } .headingIcon { width: 32px; } .subtitle { font-size: 12px; margin-bottom: 26px; } .panelFooter { padding: 20px 22px; } .pageFooter { font-size: 7px; letter-spacing: .06em; } .cardCategory { font-size: 7px; } .interestCard strong { font-size: 15px; } .rule { padding: 20px 16px; } .completion { padding: 50px 0; } }
+@media (max-width: 420px) { .panelContent { padding: 22px 16px 12px; } .interestGrid { gap: 9px; } .interestCard { padding: 14px 12px; } .cardDescription { font-size: 10px; } .cardCategory { font-size: 6px; } .gameHeading small { font-size: 7px; } .mobileBreak { display: block; } .footerNote { font-size: 7px; } .primaryButton { gap: 10px; padding: 13px 16px; } .panelFooter { padding: 18px 16px; } .pageFooter > span:last-child { display: none; } }
+@media (prefers-reduced-motion: reduce) { .experience *, .experience *::before { animation: none !important; transition: none !important; transform: none !important; } }

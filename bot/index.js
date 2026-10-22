@@ -4,14 +4,27 @@ import { Client, GatewayIntentBits, Partials, EmbedBuilder } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { welcomeOnboardingMember } from "./onboarding.js";
+import { startOnboardingWelcomes } from "./onboardingWelcome.js";
+import { createMarketplaceGuestService } from "./marketplaceGuestService.js";
+import { createPersonnelService } from "./personnelService.js";
+import { attachPersonnelInteractions, registerPersonnelCommand } from "./personnelCommands.js";
+import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
+import { validateBotEnvironment } from "./runtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load .env from project root
-dotenv.config({ path: join(__dirname, '..', '.env') });
+dotenv.config({ path: [
+  join(__dirname, '..', `.env.${process.env.NODE_ENV || "development"}.local`),
+  join(__dirname, '..', '.env.local'),
+  join(__dirname, '..', `.env.${process.env.NODE_ENV || "development"}`),
+  join(__dirname, '..', '.env'),
+] });
 
 // Initialize Prisma client
+validateBotEnvironment(process.env);
 const prisma = new PrismaClient();
 
 // Verify critical env vars are loaded
@@ -23,34 +36,42 @@ console.log(`   - DISCORD_INVITE_URL: ${process.env.DISCORD_INVITE_URL ? '✅ SE
 console.log(`   - MARKETPLACE_GUEST_ROLE: ${process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest (default)'}`);
 console.log(`   - BUYER_ROLE_ID: ${process.env.BUYER_ROLE_ID ? '✅ SET' : '❌ MISSING'}`);
 console.log(`   - DISCORD_BOT_CHANNEL_ID: ${process.env.DISCORD_BOT_CHANNEL_ID ? '✅ SET' : '❌ MISSING'}`);
+console.log(`   - BOT_SERVICE_TOKEN: ${process.env.BOT_SERVICE_TOKEN ? '✅ SET' : '❌ MISSING'}`);
 
-const MARKETPLACE_GUEST_ROLE_NAME = process.env.MARKETPLACE_GUEST_ROLE || 'Marketplace Guest';
 const BUYER_ROLE_ID = process.env.BUYER_ROLE_ID;
+const BOT_SERVICE_TOKEN = process.env.BOT_SERVICE_TOKEN;
+const PROTECTED_BOT_PATHS = new Set([
+  "/create-transaction-thread",
+  "/send-dm",
+  "/send-suspension-dm",
+  "/send-lift-suspension-dm",
+  "/get-member-roles",
+  "/track-marketplace-guest",
+]);
 const app = express();
 app.use(express.json());
 
-/**
- * Helper function to get the marketplace guest role from a guild
- * Prefers role ID lookup (more reliable), falls back to name search
- */
-function getMarketplaceGuestRole(guild) {
-  let role = null;
 
-  if (BUYER_ROLE_ID) {
-    role = guild.roles.cache.get(BUYER_ROLE_ID);
-    if (role) {
-      console.log(`🔍 Found role by ID: ${BUYER_ROLE_ID} (${role.name})`);
-      return role;
+app.use((req, res, next) => {
+  if (!PROTECTED_BOT_PATHS.has(req.path)) {
+    return next();
+  }
+
+  if (!BOT_SERVICE_TOKEN) {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(503).json({ error: "Bot service authentication is not configured" });
     }
+    return next();
   }
 
-  role = guild.roles.cache.find(r => r.name === MARKETPLACE_GUEST_ROLE_NAME);
-  if (role) {
-    console.log(`🔍 Found role by name: "${MARKETPLACE_GUEST_ROLE_NAME}"`);
+  const authHeader = req.get("authorization") || "";
+  if (authHeader !== `Bearer ${BOT_SERVICE_TOKEN}`) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
-  return role;
-}
+  return next();
+});
+
 
 // ✅ Discord.js client
 const client = new Client({
@@ -63,7 +84,27 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message],
 });
 
+const marketplaceGuests = createMarketplaceGuestService({
+  client,
+  prisma,
+  config: {
+    guildId: process.env.DISCORD_GUILD_ID,
+    buyerRoleId: BUYER_ROLE_ID,
+    visitorRoleId: process.env.VISITOR_ROLE_ID || PERSONNEL_ROLES.visitor,
+    onboardingRoleIds: (process.env.MARKETPLACE_ONBOARDING_ROLE_IDS || "").split(",").map((roleId) => roleId.trim()).filter(Boolean),
+  },
+});
+
+const personnelConfig = {
+  guildId: process.env.DISCORD_GUILD_ID,
+  buyerRoleId: BUYER_ROLE_ID,
+  rsiApiKey: process.env.RSI_MEMBERSHIP_API_KEY,
+};
+const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
+if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
+
 client.once("ready", async () => {
+  startOnboardingWelcomes(client, prisma);
   console.log(`🤖 Bot logged in as ${client.user.tag}`);
   console.log(`🔧 DISCORD_INVITE_URL configured: ${process.env.DISCORD_INVITE_URL ? 'YES ✅' : 'NO ❌'}`);
   if (process.env.DISCORD_INVITE_URL) {
@@ -71,373 +112,27 @@ client.once("ready", async () => {
   }
 
   // Reschedule pending marketplace guest removals from database
-  await rescheduleMarketplaceGuestTimers();
+  marketplaceGuests.start();
+  if (process.env.PERSONNEL_ENABLED === "true") {
+    try {
+      await registerPersonnelCommand(client, process.env.DISCORD_GUILD_ID);
+      personnel.start();
+    } catch (error) { console.error("Personnel setup failed; worker not started:", error.message); }
+  }
 });
 
-// Track marketplace buyers who need the guest role
-const pendingMarketplaceBuyers = new Set();
-
-// Track marketplace guests with their join timestamp for auto-removal
-const marketplaceGuestTimestamps = new Map(); // userId -> { timestamp, timeoutId, guildId }
-
-// 7 days in milliseconds
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-// 6 days in milliseconds (for warning)
-const SIX_DAYS_MS = 6 * 24 * 60 * 60 * 1000;
-
-// Function to reschedule timers from database on bot startup
-async function rescheduleMarketplaceGuestTimers() {
-  console.log('🔄 Rescheduling marketplace guest timers from database...');
-
+client.on("guildMemberAdd", async (member) => {
   try {
-    // Get all active marketplace guests
-    const guests = await prisma.marketplaceGuest.findMany();
-    console.log(`📊 Found ${guests.length} marketplace guests in database`);
-
-    const now = Date.now();
-    let rescheduled = 0;
-    let expired = 0;
-    let warned = 0;
-
-    for (const guest of guests) {
-      const expiresAt = new Date(guest.expiresAt).getTime();
-      const warningAt = new Date(guest.warningAt).getTime();
-      const timeUntilExpiry = expiresAt - now;
-      const timeUntilWarning = warningAt - now;
-
-      // If already expired, remove them immediately
-      if (timeUntilExpiry <= 0) {
-        console.log(`⏰ Guest ${guest.discordUserId} already expired, processing removal...`);
-
-        try {
-          const guild = await client.guilds.fetch(guest.guildId);
-          const member = await guild.members.fetch(guest.discordUserId).catch(() => null);
-
-          if (member) {
-            // Send farewell DM
-            try {
-              const farewellEmbed = new EmbedBuilder()
-                .setColor(0xef4444)
-                .setTitle("👋 Marketplace Access Expired")
-                .setDescription(`Your 7-day marketplace guest access has expired while the bot was offline.`)
-                .addFields(
-                  { name: "✅ What happened?", value: "You've been removed from the House Wolf Discord server as your temporary marketplace access has ended.", inline: false },
-                  { name: "🔄 Need access again?", value: "You can rejoin anytime by contacting another seller on our marketplace!", inline: false }
-                )
-                .setFooter({ text: "House Wolf - Home of the Dragoons" });
-
-              await member.send({ embeds: [farewellEmbed] }).catch(() => {});
-            } catch {}
-
-            await member.kick("Marketplace guest access expired after 7 days");
-            console.log(`✅ Removed expired guest ${guest.discordUserId}`);
-          }
-
-          // Delete from database
-          await prisma.marketplaceGuest.delete({
-            where: { discordUserId: guest.discordUserId }
-          });
-          expired++;
-        } catch (error) {
-          console.error(`❌ Error processing expired guest ${guest.discordUserId}:`, error.message);
-        }
-        continue;
-      }
-
-      // If warning time passed but not yet expired, send warning now
-      if (timeUntilWarning <= 0 && timeUntilExpiry > 0) {
-        console.log(`⚠️ Guest ${guest.discordUserId} missed warning, sending now...`);
-
-        try {
-          const guild = await client.guilds.fetch(guest.guildId);
-          const member = await guild.members.fetch(guest.discordUserId).catch(() => null);
-
-          if (member) {
-            const warningEmbed = new EmbedBuilder()
-              .setColor(0xfbbf24)
-              .setTitle("⚠️ Marketplace Access Expiring Soon")
-              .setDescription(`Your marketplace guest access will expire soon!`)
-              .addFields(
-                { name: "📅 Expires", value: `<t:${Math.floor(expiresAt / 1000)}:R>`, inline: false },
-                { name: "💡 What happens?", value: "• You'll be removed from the server\n• Your access to marketplace threads will end\n• Complete any pending transactions before this time", inline: false }
-              )
-              .setFooter({ text: "This is an automated reminder from House Wolf Marketplace." });
-
-            await member.send({ embeds: [warningEmbed] }).catch(() => {});
-          }
-          warned++;
-        } catch (error) {
-          console.error(`❌ Error sending missed warning to ${guest.discordUserId}:`, error.message);
-        }
-      }
-
-      // Schedule future warning (if not yet sent)
-      if (timeUntilWarning > 0) {
-        setTimeout(async () => {
-          try {
-            const guild = await client.guilds.fetch(guest.guildId);
-            const member = await guild.members.fetch(guest.discordUserId).catch(() => null);
-
-            if (member) {
-              const warningEmbed = new EmbedBuilder()
-                .setColor(0xfbbf24)
-                .setTitle("⚠️ Marketplace Access Expiring Soon")
-                .setDescription(`Your marketplace guest access will expire in **24 hours**.`)
-                .addFields(
-                  { name: "📅 Expires", value: `<t:${Math.floor(expiresAt / 1000)}:R>`, inline: false },
-                  { name: "💡 What happens?", value: "• You'll be removed from the server\n• Your access to marketplace threads will end\n• Complete any pending transactions before this time", inline: false }
-                )
-                .setFooter({ text: "This is an automated reminder from House Wolf Marketplace." });
-
-              await member.send({ embeds: [warningEmbed] }).catch(() => {});
-            }
-          } catch (error) {
-            console.error(`Error sending warning:`, error);
-          }
-        }, timeUntilWarning);
-      }
-
-      // Schedule removal
-      setTimeout(async () => {
-        try {
-          const guild = await client.guilds.fetch(guest.guildId);
-          const member = await guild.members.fetch(guest.discordUserId).catch(() => null);
-
-          if (member) {
-            // Send farewell DM
-            try {
-              const farewellEmbed = new EmbedBuilder()
-                .setColor(0xef4444)
-                .setTitle("👋 Marketplace Access Expired")
-                .setDescription(`Your 7-day marketplace guest access has expired.`)
-                .addFields(
-                  { name: "✅ What happened?", value: "You've been removed from the House Wolf Discord server as your temporary marketplace access has ended.", inline: false },
-                  { name: "🔄 Need access again?", value: "You can rejoin anytime by contacting another seller on our marketplace!", inline: false }
-                )
-                .setFooter({ text: "House Wolf - Home of the Dragoons" });
-
-              await member.send({ embeds: [farewellEmbed] }).catch(() => {});
-            } catch {}
-
-            await member.kick("Marketplace guest access expired after 7 days");
-            console.log(`✅ Removed ${guest.discordUserId} (scheduled from db)`);
-          }
-
-          // Delete from database
-          await prisma.marketplaceGuest.delete({
-            where: { discordUserId: guest.discordUserId }
-          });
-          marketplaceGuestTimestamps.delete(guest.discordUserId);
-        } catch (error) {
-          console.error(`Error removing marketplace guest:`, error);
-        }
-      }, timeUntilExpiry);
-
-      // Track in memory
-      marketplaceGuestTimestamps.set(guest.discordUserId, {
-        timestamp: new Date(guest.joinedAt).getTime(),
-        guildId: guest.guildId
-      });
-
-      rescheduled++;
-      console.log(`⏰ Rescheduled timers for ${guest.discordUserId} (expires in ${Math.round(timeUntilExpiry / 1000 / 60 / 60)} hours)`);
-    }
-
-    console.log(`✅ Timer rescheduling complete:`);
-    console.log(`   - ${rescheduled} guests rescheduled`);
-    console.log(`   - ${expired} expired guests removed`);
-    console.log(`   - ${warned} missed warnings sent`);
+    const tracked = await marketplaceGuests.reconcileMember(member);
+    if (!tracked && !member.roles.cache.has(BUYER_ROLE_ID)) await welcomeOnboardingMember(member);
   } catch (error) {
-    console.error('❌ Error rescheduling marketplace guest timers:', error);
+    console.error("Failed to reconcile joining member:", error.message);
   }
-}
+});
 
-// Function to schedule marketplace guest removal
-async function scheduleMarketplaceGuestRemoval(userId, guildId, userTag) {
-  console.log(`⏰ Scheduling auto-removal for user ${userId} in 7 days`);
-
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + SEVEN_DAYS_MS);
-  const warningAt = new Date(now.getTime() + SIX_DAYS_MS);
-
-  // Save to database for persistence across bot restarts
-  try {
-    await prisma.marketplaceGuest.upsert({
-      where: { discordUserId: userId },
-      create: {
-        discordUserId: userId,
-        discordTag: userTag,
-        guildId: guildId,
-        joinedAt: now,
-        expiresAt: expiresAt,
-        warningAt: warningAt
-      },
-      update: {
-        expiresAt: expiresAt,
-        warningAt: warningAt,
-        joinedAt: now
-      }
-    });
-    console.log(`💾 Saved marketplace guest ${userId} to database (expires: ${expiresAt.toISOString()})`);
-  } catch (dbError) {
-    console.error(`❌ Failed to save marketplace guest to database:`, dbError);
-  }
-
-  // Schedule 6-day warning
-  const warningTimeoutId = setTimeout(async () => {
-    try {
-      const guild = await client.guilds.fetch(guildId);
-      const member = await guild.members.fetch(userId).catch(() => null);
-
-      if (member) {
-        const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
-
-        if (marketplaceGuestRole && member.roles.cache.has(marketplaceGuestRole.id)) {
-          console.log(`⚠️ Sending 24-hour warning to ${member.user.tag}`);
-
-          try {
-            const warningEmbed = new EmbedBuilder()
-              .setColor(0xfbbf24) // Amber
-              .setTitle("⚠️ Marketplace Access Expiring Soon")
-              .setDescription(`Your marketplace guest access will expire in **24 hours**.`)
-              .addFields(
-                { name: "📅 Expires", value: "<t:" + Math.floor((Date.now() + 24 * 60 * 60 * 1000) / 1000) + ":R>", inline: false },
-                { name: "💡 What happens?", value: "• You'll be removed from the server\n• Your access to marketplace threads will end\n• Complete any pending transactions before this time", inline: false },
-                { name: "🔄 Need more time?", value: "Contact the seller or a server moderator if you need extended access.", inline: false }
-              )
-              .setFooter({ text: "This is an automated reminder from House Wolf Marketplace." });
-
-            await member.send({ embeds: [warningEmbed] });
-          } catch {
-            console.log(`⚠️ Could not send warning DM to ${member.user.tag}`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error sending 24h warning:", error);
-    }
-  }, SIX_DAYS_MS);
-
-  // Schedule 7-day removal
-  const removalTimeoutId = setTimeout(async () => {
-    try {
-      const guild = await client.guilds.fetch(guildId);
-      const member = await guild.members.fetch(userId).catch(() => null);
-
-      if (member) {
-        const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
-
-        if (marketplaceGuestRole && member.roles.cache.has(marketplaceGuestRole.id)) {
-          console.log(`🚫 Removing ${member.user.tag} - 7 days expired`);
-
-          // Send farewell DM before kicking
-          try {
-            const farewellEmbed = new EmbedBuilder()
-              .setColor(0xef4444) // Red
-              .setTitle("👋 Marketplace Access Expired")
-              .setDescription(`Your 7-day marketplace guest access has expired.`)
-              .addFields(
-                { name: "✅ What happened?", value: "You've been removed from the House Wolf Discord server as your temporary marketplace access has ended.", inline: false },
-                { name: "🔄 Need access again?", value: "You can rejoin anytime by contacting another seller on our marketplace!", inline: false },
-                { name: "🙏 Thank you!", value: "Thanks for using House Wolf Marketplace. Fly safe, citizen!", inline: false }
-              )
-              .setFooter({ text: "House Wolf - Home of the Dragoons" });
-
-            await member.send({ embeds: [farewellEmbed] });
-          } catch {
-            console.log(`⚠️ Could not send farewell DM to ${member.user.tag}`);
-          }
-
-          // Wait a moment for DM to send, then kick
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          await member.kick("Marketplace guest access expired after 7 days");
-          console.log(`✅ Removed ${member.user.tag} from server (7-day expiry)`);
-        }
-      }
-
-      // Clean up tracking from memory and database
-      marketplaceGuestTimestamps.delete(userId);
-
-      try {
-        await prisma.marketplaceGuest.delete({
-          where: { discordUserId: userId }
-        });
-        console.log(`💾 Removed marketplace guest ${userId} from database`);
-      } catch (dbError) {
-        console.error(`❌ Failed to remove marketplace guest from database:`, dbError);
-      }
-    } catch (error) {
-      console.error("Error removing marketplace guest:", error);
-    }
-  }, SEVEN_DAYS_MS);
-
-  // Clear any existing timeouts for this user to prevent duplicates
-  const existing = marketplaceGuestTimestamps.get(userId);
-  if (existing) {
-    console.log(`⚠️ Clearing existing timers for ${userId} to prevent duplicates`);
-    if (existing.warningTimeoutId) clearTimeout(existing.warningTimeoutId);
-    if (existing.removalTimeoutId) clearTimeout(existing.removalTimeoutId);
-  }
-
-  // Store both timeout IDs
-  marketplaceGuestTimestamps.set(userId, {
-    timestamp: Date.now(),
-    warningTimeoutId,
-    removalTimeoutId,
-    guildId
-  });
-}
-
-// Auto-assign Marketplace Guest role when someone joins
-client.on('guildMemberAdd', async (member) => {
-  console.log(`👋 New member joined: ${member.user.tag} (${member.id})`);
-
-  // Check if this user is a pending marketplace buyer
-  if (pendingMarketplaceBuyers.has(member.id)) {
-    console.log(`🛒 User ${member.user.tag} is a marketplace buyer, assigning guest role...`);
-
-    const marketplaceGuestRole = getMarketplaceGuestRole(member.guild);
-
-    if (marketplaceGuestRole) {
-      try {
-        await member.roles.add(marketplaceGuestRole);
-        console.log(`✅ Assigned ${marketplaceGuestRole.name} role to ${member.user.tag}`);
-
-        // Remove from pending set
-        pendingMarketplaceBuyers.delete(member.id);
-
-        // Schedule automatic removal after 7 days
-        scheduleMarketplaceGuestRemoval(member.id, member.guild.id, member.user.tag);
-
-        // Send welcome DM with 7-day warning
-        try {
-          const expiryTimestamp = Math.floor((Date.now() + SEVEN_DAYS_MS) / 1000);
-          const welcomeEmbed = new EmbedBuilder()
-            .setColor(0x10b981)
-            .setTitle("🎉 Welcome to House Wolf!")
-            .setDescription(`You've been granted **temporary** access to the marketplace transactions channel.`)
-            .addFields(
-              { name: "📱 What's Next?", value: "You can now view and participate in the marketplace transaction thread for your inquiry.", inline: false },
-              { name: "⚠️ IMPORTANT: 7-Day Limit", value: `This is a **temporary guest role** that will automatically expire in 7 days.\n\n**Expires:** <t:${expiryTimestamp}:R> (<t:${expiryTimestamp}:F>)`, inline: false },
-              { name: "🚫 What happens after 7 days?", value: "• You'll receive a 24-hour warning before removal\n• You'll be automatically removed from the server\n• Complete your transaction before the expiry date", inline: false },
-              { name: "🔄 Need access again?", value: "You can always rejoin by contacting another seller!", inline: false }
-            )
-            .setFooter({ text: "This is a limited 7-day access role for marketplace transactions only." });
-
-          await member.send({ embeds: [welcomeEmbed] });
-        } catch {
-          console.log("⚠️ Could not send welcome DM to new member");
-        }
-      } catch (roleError) {
-        console.error(`❌ Failed to assign Buyer role to ${member.user.tag}:`, roleError.message);
-      }
-    } else {
-      console.error(`❌ Buyer role not found! Please ensure:`);
-      console.error(`   - BUYER_ROLE_ID (${BUYER_ROLE_ID || 'NOT SET'}) points to valid role ID`);
-      console.error(`   - OR a role named "${MARKETPLACE_GUEST_ROLE_NAME}" exists in Discord server`);
-    }
-  }
+client.on("guildMemberUpdate", async (_previous, member) => {
+  try { await marketplaceGuests.reconcileMember(member); }
+  catch (error) { console.error("Failed to reconcile marketplace roles:", error.message); }
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
@@ -799,14 +494,14 @@ app.post("/track-marketplace-guest", async (req, res) => {
   try {
     const { userId, guildId, userTag } = req.body;
 
-    if (!userId || !guildId || !userTag) {
+    if (typeof userId !== "string" || !/^\d{17,20}$/.test(userId) || typeof guildId !== "string" || guildId !== process.env.DISCORD_GUILD_ID || typeof userTag !== "string" || !userTag || userTag.length > 100) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     console.log(`📝 Tracking marketplace guest ${userTag} (${userId}) for auto-removal`);
 
     // Schedule the 7-day removal
-    await scheduleMarketplaceGuestRemoval(userId, guildId, userTag);
+    await marketplaceGuests.track({ userId, guildId, userTag });
 
     res.json({ success: true, message: "Guest tracked for auto-removal" });
   } catch (err) {
@@ -1023,6 +718,10 @@ app.post("/github-webhook", async (req, res) => {
 });
 
 const port = process.env.PORT || 4000;
-app.listen(port, () =>
-  console.log(`✅ Bot service running on http://localhost:${port}`)
-);
+if (process.env.BOT_HTTP_ENABLED !== "false") {
+  app.listen(port, () =>
+    console.log(`✅ Bot service running on http://localhost:${port}`)
+  );
+} else {
+  console.log("Discord background worker started without inbound HTTP. Website-to-bot HTTP endpoints require a separate transport.");
+}

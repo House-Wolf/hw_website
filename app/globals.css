@@ -119,6 +119,7 @@
 /* Tailwind Theme Integration */
 @theme inline {
   --color-background: var(--background-base);
+  --color-background-base: var(--background-base);
   --color-background-soft: var(--background-soft);
   --color-background-elevated: var(--background-elevated);
   --color-background-card: var(--background-card);
@@ -126,12 +127,38 @@
   --color-foreground: var(--text-primary);
   --color-foreground-muted: var(--text-secondary);
 
+  --color-crimson: var(--hw-dark-crimson);
+  --color-crimson-dark: #2A0000;
+  --color-crimson-light: #6B0000;
+  --color-crimson-lighter: #8A0000;
+  --color-steel: var(--hw-steel-teal);
+  --color-steel-dark: #0D3A4A;
+  --color-steel-light: #1A6B8A;
+  --color-night-deep: var(--hw-deep-night);
+  --color-night-midnight: var(--hw-midnight);
+  --color-obsidian: var(--hw-obsidian);
+  --color-shadow: var(--hw-shadow);
+  --color-accent: var(--accent-primary);
+  --color-accent-hover: var(--accent-primary-hover);
   --color-accent-main: var(--accent-primary);
+  --color-accent-primary-hover: var(--accent-primary-hover);
   --color-accent-secondary: var(--accent-secondary);
+  --color-accent-secondary-hover: var(--accent-secondary-hover);
 
   --color-border: var(--border-default);
+  --color-border-default: var(--border-default);
   --color-border-soft: var(--border-subtle);
   --color-border-strong: var(--border-strong);
+  --color-border-base: var(--border-default);
+  --color-border-crimson: var(--border-crimson);
+  --color-border-steel: var(--border-teal);
+
+  --shadow-crimson: 0 0 20px rgba(71, 0, 0, 0.4);
+  --shadow-steel: 0 0 20px rgba(17, 78, 98, 0.3);
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);

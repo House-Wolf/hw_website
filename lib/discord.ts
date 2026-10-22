@@ -3,12 +3,12 @@ import { normalizeDiscordMentions } from "./discord/formatMentions";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 // In-memory cache to prevent rate limit issues
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 600000; // 10 minutes in milliseconds
 const STALE_CACHE_TTL = 3600000; // 1 hour - acceptable for stale data during errors/rate limits
 
 // Request deduplication: track in-flight requests to prevent simultaneous calls
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<unknown | null>>();
 
 interface DiscordMessage {
   id: string;
@@ -74,7 +74,7 @@ interface FeaturedVideo {
  * @returns The JSON response from the Discord API or null if an error occurs
  * @author House Wolf Dev Team
  */
-async function fetchDiscord(endpoint: string) {
+async function fetchDiscord<T>(endpoint: string): Promise<T | null> {
   const token = process.env.DISCORD_BOT_TOKEN;
 
   if (!token) {
@@ -88,14 +88,14 @@ async function fetchDiscord(endpoint: string) {
 
   if (cached && now - cached.timestamp < CACHE_TTL) {
     console.log(`Using cached data for ${endpoint}`);
-    return cached.data;
+    return cached.data as T;
   }
 
   // Request deduplication: if there's already a pending request, return it
   const existingRequest = pendingRequests.get(endpoint);
   if (existingRequest) {
     console.log(`Deduplicating request for ${endpoint}`);
-    return existingRequest;
+    return existingRequest as Promise<T | null>;
   }
 
   // Create new request and track it
@@ -115,7 +115,7 @@ async function fetchDiscord(endpoint: string) {
             console.log(`Returning stale cached data for ${endpoint} (age: ${Math.floor((now - cached.timestamp) / 1000)}s)`);
             // Extend the cache timestamp to prevent immediate retries during rate limit
             cache.set(endpoint, { data: cached.data, timestamp: now });
-            return cached.data;
+            return cached.data as T;
           }
         } else {
           console.error(`Discord API error: ${response.status} for ${endpoint}`);
@@ -128,7 +128,7 @@ async function fetchDiscord(endpoint: string) {
       // Store in cache
       cache.set(endpoint, { data, timestamp: now });
 
-      return data;
+      return data as T;
     } catch (error) {
       console.error("Failed to fetch from Discord:", error);
       // Return stale cache if available during error (accept older data)
@@ -136,7 +136,7 @@ async function fetchDiscord(endpoint: string) {
         console.log(`Returning stale cached data for ${endpoint} due to error (age: ${Math.floor((now - cached.timestamp) / 1000)}s)`);
         // Extend the cache timestamp to prevent immediate retries during errors
         cache.set(endpoint, { data: cached.data, timestamp: now });
-        return cached.data;
+        return cached.data as T;
       }
       return null;
     } finally {
@@ -164,7 +164,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     return [];
   }
 
-  const events: DiscordEvent[] | null = await fetchDiscord(
+  const events = await fetchDiscord<DiscordEvent[]>(
     `/guilds/${guildId}/scheduled-events`
   );
 
@@ -221,7 +221,7 @@ export async function getAnnouncements(): Promise<Announcement[]> {
   const channelId = process.env.DISCORD_ANNOUNCEMENTS_CHANNEL_ID;
   if (!channelId) return [];
 
-  const messages: DiscordMessage[] | null = await fetchDiscord(
+  const messages = await fetchDiscord<DiscordMessage[]>(
     `/channels/${channelId}/messages?limit=10`
   );
 
@@ -295,7 +295,9 @@ export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
     return [];
   }
 
-  const raw = await fetchDiscord(`/channels/${channelId}/messages?limit=25`);
+  const raw = await fetchDiscord<DiscordMessage[]>(
+    `/channels/${channelId}/messages?limit=25`
+  );
 
   if (!raw || !Array.isArray(raw)) {
     console.warn("No messages returned for featured photos:", raw);
@@ -352,6 +354,10 @@ export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
  */
 export async function getFeaturedVideo(): Promise<FeaturedVideo> {
   try {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is not configured");
+    }
+
     // First, try to fetch from database
     const { prisma } = await import("./prisma");
 
@@ -372,7 +378,9 @@ export async function getFeaturedVideo(): Promise<FeaturedVideo> {
       };
     }
   } catch (error) {
-    console.error("Error fetching featured video from database:", error);
+    if (process.env.DATABASE_URL) {
+      console.error("Error fetching featured video from database:", error);
+    }
   }
 
   // Fallback to environment variables if database fetch fails or no active video

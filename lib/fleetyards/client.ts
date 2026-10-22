@@ -1,4 +1,8 @@
-import { HouseWolfFleetPayload } from "./types";
+import {
+  FleetStatItem,
+  FleetYardsVehicle,
+  HouseWolfFleetPayload,
+} from "./types";
 
 const FLEETYARDS_BASE_URL = "https://api.fleetyards.net/v1";
 
@@ -18,35 +22,37 @@ async function getJson(path: string) {
   return res.json();
 }
 
-function normalizeArray(data: any): any[] {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.vehicles)) return data.vehicles;
-  if (Array.isArray(data?.results)) return data.results;
-  if (Array.isArray(data?.models)) return data.models;
-
-  if (data && typeof data === "object") {
-    return Object.entries(data).map(([key, value]) => ({
-      name: key,
-      label: key,
-      count: typeof value === "number" ? value : 0,
-      value,
-    }));
-  }
-
-  return [];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
 }
 
-async function getAllVehiclePages(path: string): Promise<any[]> {
+function normalizeArray<T extends object>(data: unknown): T[] {
+  if (Array.isArray(data)) return data;
+  if (!isRecord(data)) return [];
+
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.vehicles)) return data.vehicles;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.models)) return data.models;
+
+  return Object.entries(data).map(([key, value]) => ({
+    name: key,
+    label: key,
+    count: typeof value === "number" ? value : 0,
+    value,
+  })) as unknown as T[];
+}
+
+async function getAllVehiclePages(path: string): Promise<FleetYardsVehicle[]> {
   const perPage = 25;
   const maxPages = 50;
   let page = 1;
-  let allItems: any[] = [];
+  let allItems: FleetYardsVehicle[] = [];
 
   while (page <= maxPages) {
     const data = await getJson(`${path}?page=${page}&per_page=${perPage}`);
-    const items = normalizeArray(data);
+    const items = normalizeArray<FleetYardsVehicle>(data);
 
     console.log(`FleetYards vehicles page ${page}:`, items.length);
 
@@ -84,10 +90,10 @@ export async function getPublicFleetData(
   return {
     fleetSlug,
     vehicles,
-    modelCounts: normalizeArray(modelCountsRaw),
-    manufacturers: normalizeArray(manufacturersRaw),
-    classifications: normalizeArray(classificationsRaw),
-    sizes: normalizeArray(sizesRaw),
-    productionStatuses: normalizeArray(productionStatusesRaw),
+    modelCounts: normalizeArray<FleetStatItem>(modelCountsRaw),
+    manufacturers: normalizeArray<FleetStatItem>(manufacturersRaw),
+    classifications: normalizeArray<FleetStatItem>(classificationsRaw),
+    sizes: normalizeArray<FleetStatItem>(sizesRaw),
+    productionStatuses: normalizeArray<FleetStatItem>(productionStatusesRaw),
   };
 }

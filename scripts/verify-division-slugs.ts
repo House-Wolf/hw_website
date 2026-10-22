@@ -3,7 +3,7 @@
  * Safe to run on production - only updates if mismatches are found
  */
 
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -35,6 +35,17 @@ const EXPECTED_DIVISIONS = [
   },
 ];
 
+type ExpectedDivision = (typeof EXPECTED_DIVISIONS)[number];
+type DivisionWithProfileCount = Prisma.DivisionGetPayload<{
+  include: {
+    _count: {
+      select: {
+        mercenaryProfiles: true;
+      };
+    };
+  };
+}>;
+
 async function verifyDivisionSlugs(dryRun = true) {
   console.log("🔍 Checking division slugs...\n");
   console.log(`Mode: ${dryRun ? "DRY RUN (no changes will be made)" : "LIVE (will update database)"}\n`);
@@ -54,17 +65,22 @@ async function verifyDivisionSlugs(dryRun = true) {
     console.log(`📊 Found ${divisions.length} divisions in database\n`);
 
     const issues: Array<{
-      current: any;
-      expected: any;
+      current: DivisionWithProfileCount | null;
+      expected: ExpectedDivision;
       action: string;
     }> = [];
 
     // Check for wrong slug: arccops -> arcops
     const arccops = divisions.find((d) => d.slug === "arccops");
     if (arccops) {
+      const expectedArcops = EXPECTED_DIVISIONS.find((d) => d.slug === "arcops");
+      if (!expectedArcops) {
+        throw new Error("Expected ARCOPS division definition is missing");
+      }
+
       issues.push({
         current: arccops,
-        expected: EXPECTED_DIVISIONS.find((d) => d.slug === "arcops"),
+        expected: expectedArcops,
         action: "UPDATE_SLUG",
       });
       console.log("❌ Found incorrect slug: 'arccops' should be 'arcops'");

@@ -7,7 +7,7 @@ export const metadata = {
     title: "Marketplace | House Wolf Dragoons",
     description:
       "Trade weapons, armor, and gear with the House Wolf community. Secure Discord-based transactions.",
-    url: "https://housewolf.co/marketplace",
+    url: "https://www.housewolf.co/marketplace",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -28,7 +28,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/marketplace",
+    canonical: "https://www.housewolf.co/marketplace",
   },
 };
 

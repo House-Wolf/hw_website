@@ -3,35 +3,13 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-/**
- * FREE + simple in-memory limiter (works great in local dev / single node)
- * Note: On serverless multi-instance, per-instance limits apply.
- */
-type Bucket = { count: number; resetAt: number };
-const buckets = new Map<string, Bucket>();
-const WINDOW_MS = 60_000; // 1 min
-const MAX_REQ_PER_WINDOW = 12;
-
-function getClientIp(req: Request) {
-  const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0].trim();
-  return "local";
-}
-
-function rateLimit(ip: string) {
-  const now = Date.now();
-  const b = buckets.get(ip);
-  if (!b || now > b.resetAt) {
-    buckets.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { ok: true, remaining: MAX_REQ_PER_WINDOW - 1, resetAt: now + WINDOW_MS };
-  }
-  if (b.count >= MAX_REQ_PER_WINDOW) {
-    return { ok: false, remaining: 0, resetAt: b.resetAt };
-  }
-  b.count += 1;
-  return { ok: true, remaining: MAX_REQ_PER_WINDOW - b.count, resetAt: b.resetAt };
-}
+import {
+  createRateLimitHeaders,
+  getClientIp,
+  getRateLimitIdentifier,
+  rateLimit,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 /**
  * Action protocol the UI can execute safely
@@ -103,28 +81,50 @@ function safeJsonParse(text: string): { reply: string; action: WolfAction } | nu
 }
 
 export async function POST(req: Request) {
+  const identifier = getRateLimitIdentifier(undefined, getClientIp(req.headers));
+  const lim = await rateLimit(identifier, RATE_LIMITS.CHAT);
+  const rateLimitHeaders = createRateLimitHeaders(lim);
+
+  if (!lim.success) {
+    return NextResponse.json(
+      {
+        error: "Rate limited",
+        resetAt: lim.reset,
+      },
+      { status: 429, headers: rateLimitHeaders }
+    );
+  }
+
   try {
     if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "AI unavailable" }, { status: 503 });
+      return NextResponse.json(
+        { error: "AI unavailable" },
+        { status: 503, headers: rateLimitHeaders }
+      );
     }
 
-    const ip = getClientIp(req);
-    const lim = rateLimit(ip);
-
-    if (!lim.ok) {
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > 8_192) {
       return NextResponse.json(
-        {
-          error: "Rate limited",
-          resetAt: lim.resetAt,
-        },
-        { status: 429 }
+        { error: "Message is too large." },
+        { status: 413, headers: rateLimitHeaders }
       );
     }
 
     const { message, userName } = await req.json();
 
     if (!message || typeof message !== "string") {
-      return NextResponse.json({ error: "Invalid message" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid message" },
+        { status: 400, headers: rateLimitHeaders }
+      );
+    }
+
+    if (message.length > 1_000) {
+      return NextResponse.json(
+        { error: "Message must be 1,000 characters or less." },
+        { status: 400, headers: rateLimitHeaders }
+      );
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -146,15 +146,21 @@ export async function POST(req: Request) {
 
     // If AI fails to follow JSON, fall back safely
     if (!parsed) {
-      return NextResponse.json({
-        reply: raw.slice(0, 600),
-        action: { type: "none" } as WolfAction,
-      });
+      return NextResponse.json(
+        {
+          reply: raw.slice(0, 600),
+          action: { type: "none" } as WolfAction,
+        },
+        { headers: rateLimitHeaders }
+      );
     }
 
-    return NextResponse.json(parsed);
+    return NextResponse.json(parsed, { headers: rateLimitHeaders });
   } catch (err) {
     console.error("🐺 Wolf Chat AI error:", err);
-    return NextResponse.json({ error: "Command channel disrupted" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Command channel disrupted" },
+      { status: 500, headers: rateLimitHeaders }
+    );
   }
 }

@@ -7,7 +7,7 @@ export const metadata = {
     title: "The Dragoon Code | House Wolf Dragoons",
     description:
       "Explore the warrior code of the Dragoons and the traditions House Wolf carries forward.",
-    url: "https://housewolf.co/code",
+    url: "https://www.housewolf.co/code",
     images: [
       {
         url: "/images/global/social-card.png",
@@ -28,7 +28,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://housewolf.co/code",
+    canonical: "https://www.housewolf.co/code",
   },
 };
 

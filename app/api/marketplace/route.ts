@@ -37,7 +37,6 @@ export async function GET(req: NextRequest) {
         },
         seller: {
           select: {
-            discordId: true,
             discordUsername: true,
             discordDisplayName: true,
           },
@@ -61,7 +60,6 @@ export async function GET(req: NextRequest) {
       price: parseFloat(listing.price.toString()),
       category: listing.category.name,
       categorySlug: listing.category.slug,
-      discordId: listing.seller.discordId,
       imageUrl: listing.images[0]?.imageUrl || null,
       sellerUsername: listing.seller.discordDisplayName || listing.seller.discordUsername,
     }));

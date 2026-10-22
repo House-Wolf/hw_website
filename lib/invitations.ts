@@ -136,7 +136,7 @@ export function buildSpectrumTransmission(invitation: HouseWolfInvitation): stri
   return [
     `House Wolf Command has issued a formal invitation under reference ${invitation.reference}.`,
     `RSI Handle: ${invitation.rsiHandle}`,
-    `Secure transmission: https://housewolf.co/invite/${invitation.code}`,
+    `Secure transmission: https://www.housewolf.co/invite/${invitation.code}`,
     "Review the packet, accept the call through RSI, and report to command through Discord when ready.",
     "Hunt as One.",
   ].join("\n");

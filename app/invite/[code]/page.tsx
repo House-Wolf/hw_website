@@ -25,7 +25,7 @@ export async function generateMetadata({
   const invitation = getInvitation(code);
 
   return {
-    metadataBase: new URL("https://housewolf.co"),
+    metadataBase: new URL("https://www.housewolf.co"),
     title: `${invitation.reference} | House Wolf Invitation`,
     description: `Formal House Wolf invitation issued to ${invitation.rsiHandle}.`,
     robots: {
@@ -37,12 +37,12 @@ export async function generateMetadata({
       },
     },
     alternates: {
-      canonical: `https://housewolf.co/invite/${invitation.code}`,
+      canonical: `https://www.housewolf.co/invite/${invitation.code}`,
     },
     openGraph: {
       title: "Invitation to the Pack",
       description: `House Wolf Command invitation for ${invitation.rsiHandle}.`,
-      url: `https://housewolf.co/invite/${invitation.code}`,
+      url: `https://www.housewolf.co/invite/${invitation.code}`,
       siteName: "House Wolf",
       images: [
         {

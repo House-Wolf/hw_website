@@ -1,19 +1,49 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import {
+  createRateLimitHeaders,
+  getClientIp,
+  getRateLimitIdentifier,
+  rateLimit,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  const identifier = getRateLimitIdentifier(undefined, getClientIp(req.headers));
+  const rateLimitResult = await rateLimit(identifier, RATE_LIMITS.CHAT);
+  const rateLimitHeaders = createRateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders }
+    );
+  }
+
   try {
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > 8_192) {
+      return NextResponse.json(
+        { error: "Message is too large." },
+        { status: 413, headers: rateLimitHeaders }
+      );
+    }
+
     const body = await req.json();
     const userMessage = body.prompt || body.message;
 
-    if (!userMessage) {
+    if (!userMessage || typeof userMessage !== "string") {
       return NextResponse.json(
         { error: "No message provided" },
-        { status: 400 }
+        { status: 400, headers: rateLimitHeaders }
+      );
+    }
+
+    if (userMessage.length > 1_000) {
+      return NextResponse.json(
+        { error: "Message must be 1,000 characters or less." },
+        { status: 400, headers: rateLimitHeaders }
       );
     }
 
@@ -22,9 +52,13 @@ export async function POST(req: Request) {
       console.error("GROQ_API_KEY is not configured");
       return NextResponse.json(
         { error: "Wolf Command offline. Try again shortly." },
-        { status: 500 }
+        { status: 500, headers: rateLimitHeaders }
       );
     }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile", // Updated to latest model
@@ -47,14 +81,20 @@ export async function POST(req: Request) {
 
     if (!responseText) {
       console.error("Groq returned empty response");
-      return NextResponse.json({
-        text: "Command unclear. Try again.",
-      });
+      return NextResponse.json(
+        {
+          text: "Command unclear. Try again.",
+        },
+        { headers: rateLimitHeaders }
+      );
     }
 
-    return NextResponse.json({
-      text: responseText,
-    });
+    return NextResponse.json(
+      {
+        text: responseText,
+      },
+      { headers: rateLimitHeaders }
+    );
   } catch (error) {
     console.error("Groq API Error:", error);
 
@@ -66,7 +106,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { error: "Wolf Command offline. Try again shortly." },
-      { status: 500 }
+      { status: 500, headers: rateLimitHeaders }
     );
   }
 }

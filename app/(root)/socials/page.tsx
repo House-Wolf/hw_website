@@ -5,6 +5,8 @@ import { SocialsCard } from "./component/SocialsCard";
 import StreamerCard, { SocialLink } from "./component/StreamerCard";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 /**
  * @component SOCIAL_PLATFORMS
  * @description Constant configuration for official House Wolf social channels.

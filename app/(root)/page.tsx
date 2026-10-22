@@ -16,7 +16,7 @@ import { JSX } from "react";
  * @author House Wolf Dev Team
  */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://housewolf.co"), // ✅ NEW: Fix OG/Twitter image resolution
+  metadataBase: new URL("https://www.housewolf.co"), // ✅ NEW: Fix OG/Twitter image resolution
 
   title: "House Wolf - Elite Star Citizen Mercenary Organization",
   description:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "House Wolf - Elite Star Citizen Mercenary Organization",
     description:
       "Join House Wolf, a premier Star Citizen mercenary organization with specialized divisions and an active marketplace.",
-    url: "https://housewolf.co",
+    url: "https://www.housewolf.co",
     siteName: "House Wolf",
     images: [
       {
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://housewolf.co",
+    canonical: "https://www.housewolf.co",
   },
 }
 

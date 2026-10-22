@@ -12,6 +12,35 @@ export interface WikiItem {
   price?: number | null;
 }
 
+interface StarCitizenWikiPrice {
+  price_buy?: number | null;
+}
+
+interface StarCitizenWikiShop {
+  price_buy?: number | null;
+  pivot?: {
+    price_buy?: number | null;
+  } | null;
+}
+
+interface StarCitizenWikiApiItem {
+  uuid?: string | null;
+  name: string;
+  description?: {
+    en_EN?: string | null;
+    de_DE?: string | null;
+  } | null;
+  images?: Array<{
+    original_url?: string | null;
+  }> | null;
+  uex_prices?: StarCitizenWikiPrice[] | null;
+  shops?: StarCitizenWikiShop[] | null;
+}
+
+interface StarCitizenWikiApiResponse {
+  data?: StarCitizenWikiApiItem[];
+}
+
 /**
  * Search for an item on StarCitizen.tools wiki
  * @param query - Search query (item name)
@@ -32,7 +61,7 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
     );
 
     if (apiRes.ok) {
-      const apiJson = await apiRes.json();
+      const apiJson = (await apiRes.json()) as StarCitizenWikiApiResponse;
       const items = apiJson?.data || [];
 
       if (items.length > 0) {
@@ -43,8 +72,8 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
         for (const item of items) {
           if (item.uex_prices && Array.isArray(item.uex_prices)) {
             const buyPrices = item.uex_prices
-              .map((p: any) => p.price_buy)
-              .filter((p: any) => p > 0);
+              .map((p) => p.price_buy)
+              .filter((p): p is number => typeof p === "number" && p > 0);
             if (buyPrices.length > 0) {
               minPrice = Math.min(...buyPrices);
               selectedItem = item;
@@ -55,8 +84,8 @@ export async function searchWiki(query: string): Promise<WikiItem | null> {
           // Also check shops if uex_prices is empty
           if (!minPrice && item.shops && Array.isArray(item.shops)) {
              const shopPrices = item.shops
-               .map((s: any) => s.pivot?.price_buy || s.price_buy)
-               .filter((p: any) => p > 0);
+               .map((s) => s.pivot?.price_buy || s.price_buy)
+               .filter((p): p is number => typeof p === "number" && p > 0);
              if (shopPrices.length > 0) {
                minPrice = Math.min(...shopPrices);
                selectedItem = item;
