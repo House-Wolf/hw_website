@@ -89,6 +89,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+      // Validate Discord's callback issuer instead of Auth.js's fallback issuer.
+      issuer: "https://discord.com",
       authorization: {
         params: {
           scope: "identify email guilds guilds.members.read",
