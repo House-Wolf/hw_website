@@ -77,6 +77,8 @@ The full Discord specialist names include their command prefix, e.g. `LOCOPS - M
 
 `/personnel assign-role command:LOCOPS member:<member> role:<LOCOPS - Mining> action:Assign`
 
+The role input uses autocomplete scoped to the selected command's exact specialist names and initialized role IDs. It hides unrelated server roles, Command authority roles, managed roles, roles above the bot, and roles with administrative/moderation powers. Choose the command first, then type in the role field. Missing command mappings return no suggestions; initialize the command mappings after applying the personnel migration. Restarting the enabled personnel bot updates the slash command schema.
+
 The target must already hold Member and House Wolf. Captains may assign/remove only the stored specialist allowlist, never Visitor, Buyer, membership, rank, officer, or Command authority roles. Roles carrying administrative/moderation powers are refused even if accidentally allowlisted. Captains cannot transfer a member from a different command; that requires the Clan Warlord. Unassigned organization members can be assigned into the Captain's command. Target-member advisory locks serialize concurrent assignments so two Captains cannot race a cross-command restriction. Assignments, failures, actor IDs, and roles are audited. Corresponding website role records are updated; existing JWT sessions may still require signing in again to refresh cached permissions.
 
 ## Execution, recovery, and announcements

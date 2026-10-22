@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { PermissionsBitField } from "discord.js";
 import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, formatVerseDate, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS } from "../lib/personnel/policy.js";
 import { createPersonnelService } from "../bot/personnelService.js";
-import { personnelCommandDefinition } from "../bot/personnelCommands.js";
+import { attachPersonnelInteractions, personnelCommandDefinition } from "../bot/personnelCommands.js";
 import { promotionReviewMessage } from "../bot/personnelMessages.js";
 import { checkPublicRsiMembership } from "../bot/rsiMembership.js";
 
@@ -205,6 +205,8 @@ function fixture(options = {}) {
   const sent = [];
   const roleDefinitions = new Map([...Object.values(PERSONNEL_ROLES), "buyer", "dire-wolfs", "mining", "tacops-command", "locops-command", "cosmetic"].map((id) => [id, { id, name: SERVICE_RANKS.find((rank) => rank.roleId === id)?.name || id, editable: true, managed: false, position: 1, color: 0, permissions: new PermissionsBitField(options.privilegedRole === id ? PermissionsBitField.Flags.Administrator : 0n) }]));
   if (options.uneditable) roleDefinitions.get(targetRank).editable = false;
+  roleDefinitions.get("dire-wolfs").name = "TACOPS - Dire Wolfs";
+  roleDefinitions.get("mining").name = "LOCOPS - Mining";
   const people = new Map();
   function person(id, roles) {
     const cache = new Map(roles.map((roleId) => [roleId, roleDefinitions.get(roleId)]));
@@ -265,7 +267,7 @@ function fixture(options = {}) {
   const client = { isReady: () => true, guilds: { fetch: async () => server }, channels: { fetch: async () => destination } };
   const service = createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer" }, now: () => clock, logger: { error() {} } });
   const vote = (actorId, decision = "APPROVE", overrides = {}) => service.castVote({ requestId, actorId, decision, messageId: "review-message", channelId: PERSONNEL_CHANNELS.officers, ...overrides });
-  return { options, service, prisma, member, request, votes, audits, roleCalls, candidate, people, sent, vote, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
+  return { options, service, prisma, member, request, votes, audits, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
 }
 
 test("approval threshold finalizes and applies only the specified rank changes", async () => {
@@ -423,6 +425,49 @@ test("slash command schema is valid and offers scoped Captain assignment", () =>
   const definition = personnelCommandDefinition();
   assert.equal(definition.name, "personnel");
   assert.ok(definition.options.find((option) => option.name === "assign-role"));
+  const role = definition.options.find(option => option.name === "assign-role").options.find(option => option.name === "role");
+  assert.equal(role.type, 3);
+  assert.equal(role.autocomplete, true);
+});
+
+test("role suggestions contain only approved roles in the selected command", async () => {
+  const state = fixture();
+  assert.deepEqual(await state.service.commandRoleChoices("tacops"), [{ name: "TACOPS - Dire Wolfs", value: "dire-wolfs" }]);
+  assert.deepEqual(await state.service.commandRoleChoices("locops"), [{ name: "LOCOPS - Mining", value: "mining" }]);
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "MINING"), []);
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "dire"), [{ name: "TACOPS - Dire Wolfs", value: "dire-wolfs" }]);
+  assert.deepEqual(await state.service.commandRoleChoices("unknown"), []);
+});
+
+test("role suggestions exclude administrative, managed, and uneditable roles", async () => {
+  const state = fixture({ privilegedRole: "dire-wolfs" });
+  assert.deepEqual(await state.service.commandRoleChoices("tacops"), []);
+  const role = state.roleDefinitions.get("mining");
+  role.managed = true;
+  assert.deepEqual(await state.service.commandRoleChoices("locops"), []);
+  role.managed = false;
+  role.editable = false;
+  assert.deepEqual(await state.service.commandRoleChoices("locops"), []);
+});
+
+test("autocomplete handles command roles without deferring a normal reply", async () => {
+  let handler;
+  const responses = [];
+  const choices = [{ name: "LOCOPS - Mining", value: "mining" }];
+  const service = { commandRoleChoices: async (commandKey, search) => {
+    assert.equal(commandKey, "locops"); assert.equal(search, "min"); return choices;
+  } };
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, service, { guildId });
+  const interaction = {
+    isAutocomplete: () => true, commandName: "personnel", guildId,
+    options: { getSubcommand: () => "assign-role", getFocused: named => named ? { name: "role", value: "min" } : "min", getString: () => "locops" },
+    respond: async value => responses.push(value),
+  };
+  await handler(interaction);
+  assert.deepEqual(responses, [choices]);
+  interaction.guildId = "another-server";
+  await handler(interaction);
+  assert.deepEqual(responses.at(-1), []);
 });
 
 test("RSI membership is never inferred from an unconfigured API", async () => {

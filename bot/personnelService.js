@@ -256,6 +256,23 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return results;
   }
 
+  async function commandRoleChoices(commandKey, search = "") {
+    const definition = COMMAND_DEFINITIONS.find((item) => item.key === commandKey);
+    if (!definition) return [];
+    const command = await prisma.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: commandKey } } });
+    if (!command) return [];
+    const roles = await (await guild()).roles.fetch();
+    const query = search.trim().toLowerCase();
+    return [...roles.values()]
+      .filter((role) => definition.roles.includes(role.name) && command.allowedRoleIds.includes(role.id)
+        && role.id !== command.commandRoleId && role.id !== config.buyerRoleId
+        && !Object.values(PERSONNEL_ROLES).includes(role.id) && !role.managed && role.editable
+        && !protectedPermissions.some((permission) => role.permissions.has(permission))
+        && role.name.toLowerCase().includes(query))
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .slice(0, 25).map((role) => ({ name: role.name, value: role.id }));
+  }
+
   async function assignCommandRoleUnderLock({ actorId, discordId, commandKey, roleId, action }, database) {
     if (!["ADD", "REMOVE"].includes(action)) throw new Error("Invalid assignment action.");
     const actor = await liveMember(actorId);
@@ -375,5 +392,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, recordHistory, initializeCommands, assignCommandRole, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, recordHistory, initializeCommands, commandRoleChoices, assignCommandRole, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }

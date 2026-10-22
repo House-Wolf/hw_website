@@ -17,7 +17,7 @@ export function personnelCommandDefinition() {
   command.addSubcommand((subcommand) => subcommand.setName("assign-role").setDescription("Captain: assign or remove a specialist role within your own command")
     .addStringOption((option) => option.setName("command").setDescription("Your command").setRequired(true).addChoices(...COMMAND_DEFINITIONS.map((definition) => ({ name: definition.name, value: definition.key }))))
     .addUserOption((option) => option.setName("member").setDescription("House Wolf member").setRequired(true))
-    .addRoleOption((option) => option.setName("role").setDescription("An approved specialist role in your command").setRequired(true))
+    .addStringOption((option) => option.setName("role").setDescription("An approved specialist role in your command").setRequired(true).setAutocomplete(true))
     .addStringOption((option) => option.setName("action").setDescription("Add or remove this specialist role").setRequired(true).addChoices({ name: "Assign", value: "ADD" }, { name: "Remove", value: "REMOVE" })));
   return command.toJSON();
 }
@@ -32,6 +32,20 @@ export async function registerPersonnelCommand(client, guildId) {
 
 export function attachPersonnelInteractions(client, service, config) {
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isAutocomplete() && interaction.commandName === "personnel") {
+      try {
+        if (interaction.guildId !== config.guildId || interaction.options.getSubcommand() !== "assign-role" || interaction.options.getFocused(true).name !== "role") {
+          await interaction.respond([]);
+          return;
+        }
+        const choices = await service.commandRoleChoices(interaction.options.getString("command"), interaction.options.getFocused());
+        await interaction.respond(choices);
+      } catch (error) {
+        console.error("Personnel role suggestions failed:", error.message);
+        try { await interaction.respond([]); } catch {}
+      }
+      return;
+    }
     const promotionButton = interaction.isButton() && interaction.customId.startsWith("hw:promotion:");
     const personnelCommand = interaction.isChatInputCommand() && interaction.commandName === "personnel";
     if (!promotionButton && !personnelCommand) return;
@@ -55,7 +69,7 @@ export function attachPersonnelInteractions(client, service, config) {
       } else if (action === "initialize-commands") {
         await interaction.editReply((await service.initializeCommands(interaction.user.id)).join("\n"));
       } else if (action === "assign-role") {
-        await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: interaction.options.getString("command", true), roleId: interaction.options.getRole("role", true).id, action: interaction.options.getString("action", true) });
+        await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: interaction.options.getString("command", true), roleId: interaction.options.getString("role", true), action: interaction.options.getString("action", true) });
         await interaction.editReply("Specialist assignment confirmed and entered into the command log.");
       }
     } catch (error) {
