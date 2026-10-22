@@ -112,7 +112,7 @@ export default function OriginsPage(): JSX.Element {
             <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">03 / The pack today</p>
             <h2 id="legacy-heading" className="mb-3 text-2xl font-bold text-white sm:text-3xl">Our legacy continues</h2>
             <p className="text-base leading-relaxed text-foreground-muted">
-              House Wolf carries the Dragoon legacy forward—honoring tradition while forging a new path among the stars.
+              House Wolf carries the Dragoon legacy forward—honoring tradition while forging its own future in the ’Verse.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
