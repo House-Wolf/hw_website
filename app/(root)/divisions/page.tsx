@@ -50,9 +50,11 @@ export default function DivisionsPage() {
             src="/images/divisions/HWdivisionsandunits.png"
             alt="House Wolf Divisions"
             fill
-            className="object-center opacity-90"
+            sizes="100vw"
+            className="object-contain object-center"
           />
-          <div className="absolute inset-0 bg-background-elevated/95" />
+          <div aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-transparent via-black/40 to-transparent" />
+          <div aria-hidden="true" className="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-background-elevated/70" />
         </div>
 
         {/* Divider */}
@@ -67,10 +69,10 @@ export default function DivisionsPage() {
             height={120}
             className="mx-auto drop-shadow-[0_0_30px_rgba(17,78,98,0.8)]"
           />
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-wider uppercase font-mono">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-wider uppercase font-mono drop-shadow-lg">
             Our Divisions
           </h1>
-          <p className="text-xl md:text-2xl text-foreground-muted italic">
+          <p className="text-xl md:text-2xl text-white/90 italic drop-shadow-lg">
             Elite units forged in honor, bound by the Dragoon Code
           </p>
         </div>
