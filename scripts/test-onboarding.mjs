@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import sharp from "sharp";
 import { randomUUID } from "node:crypto";
 import { createWelcomeMessage, publishPendingWelcomes, renderWelcomeBanner } from "../bot/onboardingWelcome.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
@@ -19,7 +20,21 @@ function loadTypeScript(path, dependencies = {}, environment = {}) {
 }
 
 const onboarding = loadTypeScript("../lib/onboarding.ts");
+const { readOnboardingResume } = loadTypeScript("../lib/onboardingResume.ts", { "./onboarding": onboarding });
 const validInput = { interests: ["bunker-running"], otherGameSelected: false, otherGame: "", rulesAccepted: true, rulesVersion: onboarding.ONBOARDING_RULES_VERSION };
+
+test("a recent accepted onboarding draft survives the Discord round trip", () => {
+  const now = Date.now();
+  const resume = readOnboardingResume(JSON.stringify({ ...validInput, rulesAcceptedAt: now - 60_000 }), now);
+  assert.deepEqual(Array.from(resume.interests), validInput.interests);
+});
+
+test("a callback URL alone, expired agreement, or changed rules cannot complete onboarding", () => {
+  const now = Date.now();
+  for (const raw of [null, "bad json", "{}", JSON.stringify({ ...validInput, rulesAcceptedAt: now, rulesAccepted: false }), JSON.stringify({ ...validInput, rulesAcceptedAt: now, rulesVersion: "old" }), JSON.stringify({ ...validInput, rulesAcceptedAt: now - 31 * 60_000 }), JSON.stringify({ ...validInput, rulesAcceptedAt: now + 1 }), JSON.stringify({ ...validInput, rulesAcceptedAt: String(now) })]) {
+    assert.equal(readOnboardingResume(raw, now), null);
+  }
+});
 
 function createFixture(options = {}) {
   const writes = [];
@@ -163,29 +178,33 @@ test("welcome has a separate interest block and restricts mentions", () => {
   assert.equal(message.embeds[1].fields[1].value.includes("@everyone"), false);
   assert.deepEqual(message.allowedMentions, { parse: [], users: ["123"] });
   assert.equal(message.enforceNonce, true);
-  assert.match(message.content, /Star Citizen interests:.*Bunker Running, Space Trucking/);
-  assert.match(message.content, /Other games:/);
-  assert.equal(message.content.includes("@everyone"), false);
+  assert.equal(message.content, undefined);
+  assert.match(message.embeds[1].fields.at(-1).value, /Say hello, invite them/);
+  assert.equal(message.embeds[1].fields.at(-1).inline, false);
+  assert.equal(message.embeds[1].footer.text, "This is the Way!");
 });
 
 test("other-game-only welcome introduces the member without empty Star Citizen text", () => {
   const message = createWelcomeMessage({ userId: "member", interests: [], otherGame: "DayZ" }, "123", "Wolf @everyone");
-  assert.match(message.content, /Other games:.*DayZ/);
-  assert.equal(message.content.includes("Star Citizen interests"), false);
-  assert.equal(message.content.includes("@everyone"), false);
+  assert.match(message.embeds[1].fields[0].value, /DayZ/);
+  assert.equal(message.embeds[1].fields.some(field => field.name === "STAR CITIZEN"), false);
+  assert.equal(JSON.stringify(message.embeds).includes("@everyone"), false);
   assert.match(message.embeds[1].description, /Wolf/);
 });
 
 test("welcome omits other games when none were listed", () => {
   const message = createWelcomeMessage({ userId: "member", interests: ["bounty-hunting"], otherGame: null }, "123", "Wolf");
-  assert.match(message.content, /Bounty Hunting/);
-  assert.equal(message.content.includes("Other games:"), false);
-  assert.equal(message.embeds[1].fields.length, 1);
+  assert.match(message.embeds[1].fields[0].value, /Bounty Hunting/);
+  assert.equal(message.embeds[1].fields.some(field => field.name === "BEYOND THE ’VERSE"), false);
+  assert.equal(message.embeds[1].fields.length, 2);
 });
 
 test("welcome banner renders with a safely escaped member name", async () => {
   const banner = await renderWelcomeBanner('<Wolf & "Pack">');
   assert.equal(banner.subarray(1, 4).toString(), "PNG");
+  assert.equal((await sharp(banner).metadata()).height, 420);
+  const larger = await renderWelcomeBanner("Wolf", undefined, { large: true, footer: "This is the Way!" });
+  assert.equal((await sharp(larger).metadata()).height, 520);
 });
 
 test("welcome worker does nothing while onboarding is disabled", async () => {
@@ -228,9 +247,11 @@ for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer
       assert.equal(Boolean(completed), scenario === "delivered");
       if (scenario === "delivered") {
         assert.equal(completed.data.welcomeMessageId, "welcome-message");
-        assert.match(sent[0].content, /Wolf/);
-        assert.match(sent[0].content, /Bunker Running/);
-        assert.match(sent[0].content, /DayZ/);
+        assert.equal(sent[0].content, undefined);
+        const card = JSON.stringify(sent[0].embeds[1]);
+        assert.match(card, /Wolf/);
+        assert.match(card, /Bunker Running/);
+        assert.match(card, /DayZ/);
         assert.equal(sent[0].embeds.length, 2);
       }
       if (scenario === "send-failure") assert.equal(updates.at(-1).data.welcomeLastError, "Missing channel permission");

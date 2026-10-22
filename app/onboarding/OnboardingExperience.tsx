@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, ChevronRight, Crosshair, Gamepad2, Gem, LoaderCircle, LockKeyhole, Pickaxe, Radar, ShieldCheck, Truck } from "lucide-react";
 import { ONBOARDING_INTERESTS, ONBOARDING_RULES, ONBOARDING_RULES_VERSION, validateOnboardingChoices } from "@/lib/onboarding";
+import { ONBOARDING_RESUME_KEY, readOnboardingResume } from "@/lib/onboardingResume";
 import styles from "./onboarding.module.css";
 
 const icons = { crosshair: Crosshair, truck: Truck, radar: Radar, pickaxe: Pickaxe, gem: Gem };
@@ -21,6 +22,8 @@ export default function OnboardingExperience() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [needsJoin, setNeedsJoin] = useState(false);
+  const [resumePending, setResumePending] = useState(false);
+  const resumeStarted = useRef(false);
   const [discordUrl, setDiscordUrl] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
   const hasMoved = useRef(false);
@@ -43,6 +46,18 @@ export default function OnboardingExperience() {
         setOtherGameSelected(draft.otherGameSelected);
         if (params.get("connected") === "1" || joinFailed) setStep("rules");
       }
+      if (params.get("connected") === "1" && !joinFailed) {
+        const resume = readOnboardingResume(sessionStorage.getItem(ONBOARDING_RESUME_KEY));
+        sessionStorage.removeItem(ONBOARDING_RESUME_KEY);
+        if (resume) {
+          setInterests(resume.interests);
+          setOtherGame(resume.otherGame);
+          setOtherGameSelected(resume.otherGameSelected);
+          setAccepted(true);
+          setStep("rules");
+          setResumePending(true);
+        }
+      }
     } catch {}
   }, []);
 
@@ -51,17 +66,20 @@ export default function OnboardingExperience() {
     hasMoved.current = true;
   }, [step]);
 
-  function saveDraft() {
+  const saveDraft = useCallback(() => {
     try { localStorage.setItem(draftKey, JSON.stringify({ interests, otherGame, otherGameSelected })); } catch {}
-  }
+  }, [interests, otherGame, otherGameSelected]);
 
-  async function finish() {
+  const finish = useCallback(async () => {
     if (!accepted || !ready || saving || status === "loading") return;
     saveDraft();
     if (!session?.user || needsJoin) {
       setSaving(true);
       setError("");
       try {
+        try {
+          sessionStorage.setItem(ONBOARDING_RESUME_KEY, JSON.stringify({ interests, otherGame, otherGameSelected, rulesAccepted: true, rulesVersion: ONBOARDING_RULES_VERSION, rulesAcceptedAt: Date.now() }));
+        } catch {}
         await signIn("discord", { redirectTo: "/onboarding?connected=1" }, {
           scope: "identify email guilds guilds.members.read guilds.join",
         });
@@ -91,7 +109,20 @@ export default function OnboardingExperience() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [accepted, ready, saving, status, saveDraft, session, needsJoin, interests, otherGame, otherGameSelected]);
+
+  useEffect(() => {
+    if (!resumePending || status !== "authenticated" || !accepted || !ready || saving || resumeStarted.current) return;
+    resumeStarted.current = true;
+    setResumePending(false);
+    void finish();
+  }, [resumePending, status, accepted, ready, saving, finish]);
+
+  useEffect(() => {
+    if (step !== "complete" || !discordUrl) return;
+    const redirect = window.setTimeout(() => window.location.assign(discordUrl), 1500);
+    return () => window.clearTimeout(redirect);
+  }, [step, discordUrl]);
 
   return (
     <main className={styles.experience}>
@@ -155,10 +186,10 @@ export default function OnboardingExperience() {
               <p className={styles.subtitle}>A mercenary’s word is their bond. Read the House Wolf code and pledge to stand by your fellow Dragoons, on and off the battlefield.</p>
               <div className={styles.rules}>{ONBOARDING_RULES.map((rule, index) => <article className={styles.rule} key={rule.label}><span className={styles.ruleNumber}>0{index + 1}</span><div><span className={styles.ruleLabel}>{rule.label}</span><h2>{rule.title}</h2><p>{rule.text}</p></div></article>)}</div>
               <label className={`${styles.acceptance} ${accepted ? styles.accepted : ""}`}><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} /><span><strong>I’ve read the rules. I’m ready to stand with the pack.</strong><small>I agree to follow these rules while taking part in House Wolf.</small></span></label>
-              {(!session?.user || needsJoin) && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to join the House Wolf server and return here to finish. Already a member? You can use the same button. Your interests stay saved on this device.</p>}
+              {(!session?.user || needsJoin) && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to join House Wolf. After authorization, onboarding will finish and open Discord automatically. Already a member? You can use the same button. Your interests stay saved on this device.</p>}
             </>}
 
-            {step === "complete" && <div className={styles.completion}><div className={styles.completionIcon}><ShieldCheck size={46} strokeWidth={1.3} /></div><span className={styles.kicker}>YOUR NEXT CHAPTER</span><h1 ref={heading} tabIndex={-1}>Welcome to<br />House Wolf.</h1><p>Your Visitor role is ready. Your interests are saved.<br />Watch general chat for your welcome to the pack.</p><a className={styles.primaryButton} href={discordUrl}>Return to Discord <ArrowRight size={17} /></a><Link href="/dashboard" className={styles.dashboardLink}>Explore your dashboard <ChevronRight size={14} /></Link></div>}
+            {step === "complete" && <div className={styles.completion}><div className={styles.completionIcon}><ShieldCheck size={46} strokeWidth={1.3} /></div><span className={styles.kicker}>YOUR NEXT CHAPTER</span><h1 ref={heading} tabIndex={-1}>Welcome to<br />House Wolf.</h1><p>Your Visitor role is ready. Your interests are saved.<br />Opening Discord? Watch general chat for your welcome to the pack.</p><a className={styles.primaryButton} href={discordUrl}>Return to Discord <ArrowRight size={17} /></a><Link href="/dashboard" className={styles.dashboardLink}>Explore your dashboard <ChevronRight size={14} /></Link></div>}
 
             {error && <div className={styles.error} role="alert">{error}</div>}
           </div>
