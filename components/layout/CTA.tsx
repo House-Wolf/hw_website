@@ -37,7 +37,7 @@ export default function EpicCTA() {
 
       {/* Content */}
       <div className="relative z-20 container mx-auto px-4 py-24 md:py-32">
-        <div className="max-w-5xl mx-auto text-center space-y-12">
+        <div className="max-w-5xl mx-auto text-center space-y-8 sm:space-y-10">
 
           {/* Icon Row */}
           <div className="flex justify-center items-center gap-8 mb-8">
@@ -105,42 +105,35 @@ export default function EpicCTA() {
           </div>
 
           {/* Values are supporting text; the actions sit below. */}
-          <ul aria-label="House Wolf values" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-8 text-xs font-mono uppercase tracking-[0.18em] text-white/90 drop-shadow-md sm:text-sm">
+          <ul aria-label="House Wolf values" className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-5 gap-y-3 border-y border-white/15 bg-black/65 px-5 py-4 text-xs font-mono font-medium uppercase tracking-[0.15em] text-white sm:text-sm">
             {["Elite operations", "Brotherhood", "Legacy"].map((value, index) => (
-              <li key={value} className="flex items-center gap-6">
-                {index > 0 && <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/50" />}
+              <li key={value} className="flex items-center gap-5">
+                {index > 0 && <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/80" />}
                 {value}
               </li>
             ))}
           </ul>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-6 pt-12">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
             <Link
               href="/onboarding"
               prefetch={false}
-              className="group relative px-12 py-5 bg-linear-to-r from-crimson to-crimson-light text-foreground text-lg font-bold uppercase tracking-widest rounded-md overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(220,38,38,0.6)] border-2 border-crimson-light"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-md border border-white/15 bg-crimson px-7 py-3 text-base font-semibold text-white transition-colors hover:bg-crimson-light focus-visible:outline-white sm:w-auto"
             >
-              <span className="relative z-10 flex items-center gap-3">
-                Join the Dragoons
-                <ChevronRight className="group-hover:translate-x-2 transition-transform" size={24} />
-              </span>
-              <div className="absolute inset-0 bg-linear-to-r from-crimson-light to-crimson opacity-0 group-hover:opacity-100 transition-opacity" />
+              Join the Dragoons <ChevronRight size={18} aria-hidden="true" />
             </Link>
 
             <Link
               href="/origins"
-              className="group px-12 py-5 bg-transparent border-2 border-steel-light text-foreground text-lg font-bold uppercase tracking-widest rounded-md transition-all duration-300 hover:bg-steel-light/10 hover:scale-105 hover:shadow-[0_0_40px_rgba(220,38,38,0.6)]"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-md border border-white/25 bg-black/50 px-7 py-3 text-base font-semibold text-white transition-colors hover:bg-black/70 focus-visible:outline-white sm:w-auto"
             >
-              <span className="flex items-center gap-3">
-                Learn Our History
-                <ChevronRight className="group-hover:translate-x-2 transition-transform" size={24} />
-              </span>
+              Learn our history <ChevronRight size={18} aria-hidden="true" />
             </Link>
           </div>
 
           {/* Bottom Tagline */}
-          <div className="pt-16">
+          <div className="pt-4">
             <p className="text-sm md:text-base text-foreground/60 font-mono tracking-[0.3em] uppercase">
               This is the Way
             </p>
