@@ -1,10 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 import { PermissionsBitField } from "discord.js";
-import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
+import { addCalendarMonths, canLeadCommand, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
 import { promotionAnnouncement, promotionReviewMessage } from "./personnelMessages.js";
 import { checkPublicRsiMembership, discordRsiHandleCandidates } from "./rsiMembership.js";
 
 class CommandAssignmentPolicyError extends Error {}
+
+export async function acquireCommandAssignmentLock(transaction, guildId, discordId) {
+  const lockKey = `personnel-command:${guildId}:${discordId}`;
+  // The lock function returns void. Project an integer so Prisma can decode the
+  // result without weakening the transaction-level per-member lock.
+  await transaction.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+}
 
 const pendingAssignmentStates = ["PENDING", "EXECUTING", "RETRY"];
 const requestInclude = { member: true, votes: true };
@@ -292,11 +299,15 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return results;
   }
 
-  async function commandRoleChoices(commandKey, search = "") {
+  async function commandRoleChoices(commandKey, search = "", actorId = null) {
     const definition = COMMAND_DEFINITIONS.find((item) => item.key === commandKey);
     if (!definition) return [];
     const command = await prisma.personnelCommand.findUnique({ where: { guildId_key: { guildId: config.guildId, key: commandKey } } });
     if (!command) return [];
+    if (actorId) {
+      const actor = await liveMember(actorId);
+      if (!canLeadCommand({ actorId, actorRoles: roleIds(actor), command })) return [];
+    }
     const roles = await (await guild()).roles.fetch();
     const query = search.trim().toLowerCase();
     return [...roles.values()]
@@ -381,8 +392,7 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     try {
       await validateCommandAssignment(input);
       assignment = await prisma.$transaction(async (transaction) => {
-        const lockKey = `personnel-command:${config.guildId}:${input.discordId}`;
-        await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+        await acquireCommandAssignmentLock(transaction, config.guildId, input.discordId);
         const pending = await transaction.personnelRoleAssignment.findFirst({ where: { guildId: config.guildId, discordId: input.discordId, status: { in: pendingAssignmentStates } } });
         if (pending) throw new Error("This member already has a pending specialist assignment. Wait for reconciliation before submitting another change.");
         const job = await transaction.personnelRoleAssignment.create({ data: { guildId: config.guildId, actorId: input.actorId, discordId: input.discordId, commandKey: input.commandKey, roleId: input.roleId, action: input.action, nextAttemptAt: now() } });

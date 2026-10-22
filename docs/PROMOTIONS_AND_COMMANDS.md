@@ -79,9 +79,22 @@ The supplied screenshot defines these families:
 
 The full Discord specialist names include their command prefix, e.g. `LOCOPS - Mining`. The enabled personnel bot automatically initializes missing command mappings at startup by resolving **unique exact role names** into actual IDs. The former `/personnel initialize-commands` subcommand has been removed. Missing/duplicate names are reported and skipped. No IDs are invented. Named Captain bindings come from `COMMAND_DEFINITIONS` in `lib/personnel/policy.js`; a named owner still needs live Captain rank. For commands without named owners, live Captain **plus the corresponding Command role** is required. Once named owners are configured, an unrelated Captain cannot bypass that owner list just by possessing the Command role. Existing mappings and Captain bindings are preserved across restarts. `pnpm bot:configure-commands` initializes missing mappings, verifies every division's choices against live Discord roles, and updates the personnel slash-command definition without assigning any member roles.
 
-`/personnel assign-role command:LOCOPS member:<member> role:<LOCOPS - Mining> action:Assign`
+Use the command for your division; no division dropdown is needed:
 
-The role input uses autocomplete scoped to the selected command's exact specialist names and initialized role IDs. It hides unrelated server roles, Command authority roles, managed roles, roles above the bot, and roles with administrative/moderation powers. Choose the command first, then type in the role field. Mappings are initialized automatically after applying the personnel migration. The bot must have Manage Roles and its highest role must sit above all selectable specialist roles; otherwise those roles remain unavailable and the startup diagnostics identify the hierarchy problem. Restarting the enabled personnel bot updates the slash command schema.
+```text
+/locops member:<member> role:<LOCOPS - Mining> action:Assign
+/specops member:<member> role:<SPECOPS - Medic> action:Assign
+/tacops member:<member> role:<TACOPS - Howlers> action:Assign
+/arcops member:<member> role:<ARCOPS - Wayfinders> action:Assign
+```
+
+Choose `Remove` for the action to remove a specialist role. Discord slash-command names are lowercase. `/personnel` retains application acceptance and service-history commands; `/personnel assign-role` is removed from the registered schema. Cached legacy interactions are still validated during the transition.
+
+The role input uses autocomplete scoped to the command's exact specialist names and initialized role IDs, after checking the actor's live Captain rank and command ownership. Other-command Captains and unauthorized members receive no suggestions and cannot execute assignments. The Clan Warlord retains authority across all divisions. Discord may still list other division command names unless their visibility is restricted through the server's application-command permissions.
+
+Autocomplete hides unrelated server roles, Command authority roles, managed roles, roles above the bot, and roles with administrative/moderation powers. Type in the role field after selecting the division command. Mappings are initialized automatically after applying the personnel migration. The bot must have Manage Roles and its highest role must sit above all selectable specialist roles; otherwise those roles remain unavailable and the startup diagnostics identify the hierarchy problem. Restarting the enabled personnel bot updates all five slash commands. `node scripts/configure-personnel-commands.mjs --verify-only` checks live mappings and choices without changing command registrations. Deploy the updated interaction handler before registering the new commands; registering them against an old running bot will not activate their handlers.
+
+No additional database migration is needed for the division commands or the assignment-lock fix. `node scripts/verify-personnel-assignment-lock.mjs` verifies the production lock helper against the configured PostgreSQL database using synthetic identifiers, including mutual exclusion and lock release after commit/rollback, without changing member records or Discord roles.
 
 The target must already hold Member and House Wolf. Captains may assign/remove only the stored specialist allowlist, never Visitor, Buyer, membership, rank, officer, or Command authority roles. Roles carrying administrative/moderation powers are refused even if accidentally allowlisted. Captains cannot transfer a member from a different command; that requires the Clan Warlord. Unassigned organization members can be assigned into the Captain's command. Target-member advisory locks serialize concurrent assignments so two Captains cannot race a cross-command restriction. Assignments, failures, actor IDs, and roles are audited. Corresponding website role records are updated; existing JWT sessions may still require signing in again to refresh cached permissions.
 
@@ -110,7 +123,7 @@ Run `pnpm db:status` to inspect pending migrations and `pnpm db:deploy` to apply
 3. Confirm `DISCORD_GUILD_ID` and `BUYER_ROLE_ID`. Visitor defaults to the supplied `1193387275510370374`; an explicit `VISITOR_ROLE_ID` override must point to that intended role.
 4. The bot needs Manage Roles, View Channels, Send Messages, Embed Links, and Attach Files in the two configured channels. Its highest role must be above every rank/membership role it will change. Slash commands must be available to the installed application.
 5. Optionally configure the unofficial membership API key. Do not put RSI credentials or cookies in that setting.
-6. Set `PERSONNEL_ENABLED=true` and restart the bot. Only then does it register/update the guild's `/personnel` command and start the worker. Other application commands are preserved.
+6. Set `PERSONNEL_ENABLED=true` and restart the bot. Only then does it register/update the guild's `/personnel`, `/locops`, `/specops`, `/tacops`, and `/arcops` commands and start the worker. Other application commands are preserved.
 7. Confirm startup logs report all four division mappings as configured, or run `pnpm bot:configure-commands` to verify them. Then have the Clan Warlord import verified existing service dates. Test using a controlled test member and confirm actual Discord permissions before relying on automation.
 
 Automated checks: `node --test scripts/test-personnel.mjs scripts/test-marketplace-guests.mjs scripts/test-onboarding.mjs`. Tests mock Discord/database operations and do not register commands, post to live channels, or change real member roles.

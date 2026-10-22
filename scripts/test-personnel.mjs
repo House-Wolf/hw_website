@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PermissionsBitField } from "discord.js";
+import { Collection, PermissionsBitField } from "discord.js";
 import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, formatVerseDate, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS } from "../lib/personnel/policy.js";
 import { createPersonnelService } from "../bot/personnelService.js";
-import { attachPersonnelInteractions, personnelCommandDefinition } from "../bot/personnelCommands.js";
+import { attachPersonnelInteractions, divisionCommandDefinitions, personnelCommandDefinition, registerPersonnelCommand } from "../bot/personnelCommands.js";
 import { promotionReviewMessage } from "../bot/personnelMessages.js";
 import { checkPublicRsiMembership, discordRsiHandleCandidates } from "../bot/rsiMembership.js";
 
@@ -203,6 +203,7 @@ function fixture(options = {}) {
   const request = { id: requestId, memberId, sourceRankRoleId: sourceRank, targetRankRoleId: targetRank, rankSince: new Date("2026-04-22T12:00:00Z"), eligibleAt: clock, approvalsRequired: options.founding ? 0 : options.approvals || 1, status: options.status || (options.founding ? "APPROVED" : "REVIEW"), officerMessageId: "review-message", announcementMessageId: null, vetoedBy: null, processingToken: null, processingUntil: null, createdAt: clock, executeAfter: null };
   const votes = [];
   const audits = [];
+  const rawQueries = [];
   const assignments = [];
   const websiteRoles = new Set();
   let inTransaction = false;
@@ -228,11 +229,16 @@ function fixture(options = {}) {
   person(officerId, [PERSONNEL_ROLES.lieutenant]);
   person(warlordId, [PERSONNEL_ROLES.warlord]);
   person("173989558877159424", [PERSONNEL_ROLES.captain]);
-  const commands = [command, { id: "locops", commandRoleId: "locops-command", allowedRoleIds: ["mining"], captainDiscordIds: ["173989558877159424"] }];
+  const commands = [structuredClone(command), { id: "locops", commandRoleId: "locops-command", allowedRoleIds: ["mining"], captainDiscordIds: ["173989558877159424"] }];
   function fullRequest() { return { ...structuredClone(request), member: structuredClone(member), votes: structuredClone(votes) }; }
   let queue = Promise.resolve();
   const prisma = {
-    $queryRaw: async () => [],
+    $queryRaw: async (strings, ...parameters) => {
+      const sql = strings.join("?");
+      rawQueries.push({ sql, parameters, inTransaction });
+      if (/^SELECT pg_advisory_xact_lock/.test(sql)) throw new Error("Failed to deserialize column of type void");
+      return sql.includes("pg_advisory_xact_lock") ? [{ locked: 1 }] : [];
+    },
     $transaction: async (operation) => {
       const previous = queue;
       let release;
@@ -311,7 +317,7 @@ function fixture(options = {}) {
   const createService = () => createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer", rsiApiKey: options.rsiApiKey }, membershipLookup: options.membershipLookup, now: () => clock, logger: { error() {} } });
   const service = createService();
   const vote = (actorId, decision = "APPROVE", overrides = {}) => service.castVote({ requestId, actorId, decision, messageId: "review-message", channelId: PERSONNEL_CHANNELS.officers, ...overrides });
-  return { options, service, createService, prisma, assignments, websiteRoles, member, request, votes, audits, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
+  return { options, service, createService, prisma, assignments, websiteRoles, member, request, votes, audits, rawQueries, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
 }
 
 test("approval threshold finalizes and applies only the specified rank changes", async () => {
@@ -572,10 +578,16 @@ test("review cards carry persistent buttons, count votes, and disable terminal d
 test("slash command schema is valid and offers scoped Captain assignment", () => {
   const definition = personnelCommandDefinition();
   assert.equal(definition.name, "personnel");
-  assert.ok(definition.options.find((option) => option.name === "assign-role"));
-  const role = definition.options.find(option => option.name === "assign-role").options.find(option => option.name === "role");
-  assert.equal(role.type, 3);
-  assert.equal(role.autocomplete, true);
+  assert.equal(definition.options.some(option => option.name === "assign-role"), false);
+  const divisions = divisionCommandDefinitions();
+  assert.deepEqual(divisions.map(command => command.name), COMMAND_DEFINITIONS.map(command => command.key));
+  for (const command of divisions) {
+    assert.deepEqual(command.options.map(option => option.name), ["member", "role", "action"]);
+    assert.ok(command.options.every(option => option.required));
+    const role = command.options.find(option => option.name === "role");
+    assert.equal(role.type, 3);
+    assert.equal(role.autocomplete, true);
+  }
   assert.equal(definition.options.some(option => option.name === "initialize-commands"), false);
 });
 
@@ -669,16 +681,147 @@ test("role suggestions exclude administrative, managed, and uneditable roles", a
   assert.deepEqual(await state.service.commandRoleChoices("locops"), []);
 });
 
-test("autocomplete handles command roles without deferring a normal reply", async () => {
+test("role suggestions require the live Captain's own division or Warlord authority", async () => {
+  const state = fixture();
+  const locopsCaptain = "173989558877159424";
+  assert.equal((await state.service.commandRoleChoices("tacops", "", captainId)).length, 1);
+  assert.equal((await state.service.commandRoleChoices("locops", "", locopsCaptain)).length, 1);
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "", locopsCaptain), []);
+  state.people.get(locopsCaptain).roles.cache.set("tacops-command", state.roleDefinitions.get("tacops-command"));
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "", locopsCaptain), [], "A command role cannot bypass a named Captain binding");
+  assert.deepEqual(await state.service.commandRoleChoices("locops", "", captainId), []);
+  assert.deepEqual(await state.service.commandRoleChoices("locops", "", officerId), []);
+  assert.equal((await state.service.commandRoleChoices("locops", "", warlordId)).length, 1);
+  state.people.get(captainId).roles.cache.delete(PERSONNEL_ROLES.captain);
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "", captainId), []);
+});
+
+test("an unnamed command requires both Captain rank and its command role for suggestions", async () => {
+  const state = fixture();
+  state.commands[0].captainDiscordIds = [];
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "", captainId), []);
+  state.people.get(captainId).roles.cache.set("tacops-command", state.roleDefinitions.get("tacops-command"));
+  assert.equal((await state.service.commandRoleChoices("tacops", "", captainId)).length, 1);
+  state.people.get(captainId).roles.cache.delete(PERSONNEL_ROLES.captain);
+  assert.deepEqual(await state.service.commandRoleChoices("tacops", "", captainId), []);
+});
+
+test("assignment queues with a parameterized, transaction-scoped lock without returning void", async () => {
+  const state = fixture();
+  const result = await state.service.assignCommandRole({ actorId: captainId, discordId: candidateId, commandKey: "tacops", roleId: "dire-wolfs", action: "ADD" });
+  assert.equal(result.status, "COMPLETED");
+  const locks = state.rawQueries.filter(query => query.sql.includes("pg_advisory_xact_lock"));
+  assert.equal(locks.length, 1);
+  assert.match(locks[0].sql, /^SELECT 1 AS "locked" FROM pg_advisory_xact_lock/);
+  assert.deepEqual(locks[0].parameters, [`personnel-command:${guildId}:${candidateId}`]);
+  assert.equal(locks[0].inTransaction, true);
+});
+
+test("registration updates all division commands without deleting unrelated commands", async () => {
+  const commands = new Collection([["personnel-id", { id: "personnel-id", name: "personnel" }], ["locops-id", { id: "locops-id", name: "locops" }], ["other-id", { id: "other-id", name: "marketplace" }]]);
+  const edits = [], creates = [];
+  const guild = { commands: {
+    fetch: async () => commands,
+    edit: async (id, definition) => { edits.push(id); commands.set(id, { id, ...definition }); },
+    create: async definition => { creates.push(definition.name); commands.set(definition.name, { id: definition.name, ...definition }); },
+  } };
+  const client = { guilds: { fetch: async id => { assert.equal(id, guildId); return guild; } } };
+  await registerPersonnelCommand(client, guildId);
+  assert.deepEqual(edits, ["personnel-id", "locops-id"]);
+  assert.deepEqual(creates, ["tacops", "specops", "arcops"]);
+  assert.ok(commands.has("other-id"));
+  assert.equal(commands.get("personnel-id").options.some(option => option.name === "assign-role"), false);
+  await registerPersonnelCommand(client, guildId);
+  assert.equal(creates.length, 3, "re-registration must not create duplicates");
+});
+
+for (const division of COMMAND_DEFINITIONS) {
+  test(`/${division.key} autocomplete and execution are bound to ${division.name}`, async () => {
+    const state = unmappedCommandsFixture();
+    await state.service.ensureCommandsConfigured();
+    const actorId = division.captainDiscordIds[0] || captainId;
+    const mapping = state.commands.find(item => item.key === division.key);
+    state.people.get(actorId).roles.cache.set(mapping.commandRoleId, state.roleDefinitions.get(mapping.commandRoleId));
+    const roleId = mapping.allowedRoleIds[0];
+    let handler;
+    attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, state.service, { guildId });
+    const responses = [], replies = [];
+    const interaction = {
+      isAutocomplete: () => true, isButton: () => false, isChatInputCommand: () => true,
+      commandName: division.key, guildId, user: { id: actorId },
+      options: {
+        getSubcommand: () => { assert.fail("Division commands have no subcommands"); },
+        getFocused: () => ({ name: "role", value: "" }),
+        getUser: () => ({ id: candidateId }),
+        getString: name => name === "role" ? roleId : name === "action" ? "ADD" : "another-command",
+      },
+      respond: async choices => responses.push(choices),
+      deferReply: async () => { interaction.deferred = true; },
+      editReply: async reply => replies.push(reply),
+    };
+    await handler(interaction);
+    assert.deepEqual(responses[0].map(choice => choice.name).sort(), [...division.roles].sort());
+    interaction.isAutocomplete = () => false;
+    await handler(interaction);
+    assert.equal(state.assignments[0].commandKey, division.key);
+    assert.equal(state.assignments[0].status, "COMPLETED");
+    assert.match(replies[0], /assignment confirmed/);
+    assert.deepEqual(state.roleCalls, [["ADD", roleId]]);
+    interaction.options.getString = name => name === "role" ? roleId : name === "action" ? "REMOVE" : "another-command";
+    await handler(interaction);
+    assert.equal(state.assignments[1].status, "COMPLETED");
+    assert.equal(state.candidate.roles.cache.has(roleId), false);
+  });
+}
+
+test("division interactions hide unauthorized choices and refuse cross-command assignments", async () => {
+  const state = fixture();
+  let handler;
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, state.service, { guildId });
+  const responses = [], replies = [];
+  const interaction = {
+    isAutocomplete: () => true, isButton: () => false, isChatInputCommand: () => true,
+    commandName: "locops", guildId, user: { id: captainId },
+    options: { getFocused: () => ({ name: "role", value: "" }), getUser: () => ({ id: candidateId }), getString: name => name === "role" ? "mining" : "ADD" },
+    respond: async value => responses.push(value), deferReply: async () => { interaction.deferred = true; }, editReply: async reply => replies.push(reply),
+  };
+  await handler(interaction);
+  assert.deepEqual(responses, [[]]);
+  interaction.isAutocomplete = () => false;
+  await handler(interaction);
+  assert.match(replies[0].content, /own command/);
+  assert.equal(state.assignments.length, 0);
+  assert.equal(state.roleCalls.length, 0);
+  interaction.guildId = "other-guild";
+  await handler(interaction);
+  assert.match(replies.at(-1).content, /House Wolf server/);
+});
+
+test("database failures do not expose Prisma queries in Discord replies", async () => {
+  let handler;
+  const replies = [];
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { assignCommandRole: async () => { throw Object.assign(new Error("Invalid prisma.$queryRaw invocation with internal SQL details"), { name: "PrismaClientKnownRequestError", code: "P2010" }); } }, { guildId });
+  const interaction = {
+    isAutocomplete: () => false, isButton: () => false, isChatInputCommand: () => true,
+    commandName: "locops", guildId, user: { id: captainId },
+    options: { getUser: () => ({ id: candidateId }), getString: name => name === "role" ? "mining" : "ADD" },
+    deferReply: async () => { interaction.deferred = true; }, editReply: async reply => replies.push(reply),
+  };
+  await handler(interaction);
+  assert.match(replies[0].content, /database could not complete/);
+  assert.doesNotMatch(replies[0].content, /queryRaw|SQL details|P2010/);
+});
+
+test("cached personnel autocomplete scopes command roles to the actor without deferring a normal reply", async () => {
   let handler;
   const responses = [];
   const choices = [{ name: "LOCOPS - Mining", value: "mining" }];
-  const service = { commandRoleChoices: async (commandKey, search) => {
-    assert.equal(commandKey, "locops"); assert.equal(search, "min"); return choices;
+  const service = { commandRoleChoices: async (commandKey, search, actorId) => {
+    assert.equal(commandKey, "locops"); assert.equal(search, "min"); assert.equal(actorId, captainId); return choices;
   } };
   attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, service, { guildId });
   const interaction = {
-    isAutocomplete: () => true, commandName: "personnel", guildId,
+    isAutocomplete: () => true, commandName: "personnel", guildId, user: { id: captainId },
     options: { getSubcommand: () => "assign-role", getFocused: named => named ? { name: "role", value: "min" } : "min", getString: () => "locops" },
     respond: async value => responses.push(value),
   };

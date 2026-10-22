@@ -27,8 +27,12 @@ try {
     if (choices.length !== definition.roles.length) incomplete = true;
   }
   if (incomplete) throw new Error("Some specialist choices are unavailable. Review missing/duplicate role names, bot hierarchy, and specialist permissions.");
-  await registerPersonnelCommand(client, process.env.DISCORD_GUILD_ID);
-  console.log("Personnel slash commands updated; the manual mapping command has been removed.");
+  if (!process.argv.includes("--verify-only")) {
+    await registerPersonnelCommand(client, process.env.DISCORD_GUILD_ID);
+    console.log("Personnel and /tacops, /specops, /locops, /arcops commands updated; assignment no longer uses a division dropdown.");
+  } else {
+    console.log("Verification only: Discord slash-command registrations were not changed.");
+  }
   console.log("All four division mappings and specialist role choices are ready. No member roles were changed.");
 } finally {
   client.destroy();
