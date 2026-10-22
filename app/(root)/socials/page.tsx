@@ -1,4 +1,6 @@
-import React, { JSX } from "react";
+import type { JSX } from "react";
+import Link from "next/link";
+import { ArrowRight, Twitch } from "lucide-react";
 import PageHero from "@/components/layout/PageHeader";
 import { SectionHeader } from "./component/SectionHeader";
 import { SocialsCard } from "./component/SocialsCard";
@@ -70,65 +72,72 @@ export default async function SocialsPage(): Promise<JSX.Element> {
   const twitchStreamers = await getApprovedTwitchStreamers();
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
-      {/* HERO */}
+    <main className="min-h-screen bg-background-elevated">
       <PageHero
         title="The Wolf Network"
-        subtitle="Connect with the pack across the verse"
+        subtitle="Connect with the pack across the ’Verse"
         iconSrc="/images/global/HWiconnew.png"
       />
 
-      <section className="relative py-12 md:py-20 px-4 bg-linear-to-b from-obsidian to-night-midnight overflow-visible">
-        {/* NEW: overflow-visible ensures glow is not clipped */}
-        <div className="max-w-7xl mx-auto relative z-10">
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+        <section aria-labelledby="official-channels-heading">
           <SectionHeader
-            title="Official Channels"
-            subtitle="Follow our platforms for updates & media"
-            colorClass="steel-light"
+            id="official-channels-heading"
+            kicker="01 / From House Wolf"
+            title="Official channels"
+            subtitle="Operations, highlights, and moments from the pack. Follow House Wolf on our official platforms."
           />
-
-          <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2">
             <SocialsCard
               title="YouTube"
-              emoji="🎥"
+              platform="youtube"
+              handle="@HouseWolf-SC"
               description={SOCIAL_PLATFORMS.YOUTUBE.description}
-              colorClass="crimson"
               url={SOCIAL_PLATFORMS.YOUTUBE.url}
             />
             <SocialsCard
               title="Instagram"
-              emoji="📸"
+              platform="instagram"
+              handle="@housewolfsc"
               description={SOCIAL_PLATFORMS.INSTAGRAM.description}
-              colorClass="pink"
               url={SOCIAL_PLATFORMS.INSTAGRAM.url}
             />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ----------------------- STREAMERS ----------------------- */}
-      <section className="relative py-12 md:py-20 px-4 bg-linear-to-b from-night-midnight to-shadow overflow-visible">
-        {/* NEW: overflow-visible here as well in case cards gain glow later */}
-        <div className="max-w-7xl mx-auto relative z-10">
+        <section aria-labelledby="streamers-heading" className="mt-10 border-t border-white/10 pt-10 sm:mt-12 sm:pt-12">
           <SectionHeader
+            id="streamers-heading"
+            kicker="02 / From the community"
             title="Wolf Streamers"
-            subtitle="Approved content creators representing House Wolf"
-            colorClass="purple-400"
+            subtitle="Discover approved Twitch creators representing House Wolf across the ’Verse."
           />
-
           {twitchStreamers.length > 0 ? (
-            <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {twitchStreamers.map((streamer) => (
-                <StreamerCard key={streamer.id} streamer={streamer} />
-              ))}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {twitchStreamers.map((streamer) => <StreamerCard key={streamer.id} streamer={streamer} />)}
             </div>
           ) : (
-            <div className="text-center text-foreground-muted py-20">
-              No streamers approved yet
+            <div className="flex flex-col gap-4 rounded-xl border border-white/10 bg-background-base p-6 sm:flex-row sm:items-center sm:p-8">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-foreground-muted"><Twitch size={24} aria-hidden="true" /></span>
+              <div>
+                <h3 className="mb-2 text-lg font-semibold text-white">No featured streamers yet</h3>
+                <p className="max-w-2xl text-sm leading-relaxed text-foreground-muted">Approved community channels will appear here. In the meantime, explore our official channels above.</p>
+              </div>
             </div>
           )}
-        </div>
-      </section>
-    </div>
+        </section>
+
+        <section aria-labelledby="share-channel-heading" className="mt-10 flex flex-col gap-6 rounded-xl border border-white/15 bg-background-base p-6 sm:mt-12 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">Represent the pack</p>
+            <h2 id="share-channel-heading" className="mb-3 text-2xl font-bold text-white sm:text-3xl">Bring your channel to the network</h2>
+            <p className="text-base leading-relaxed text-foreground-muted">House Wolf members can submit a Twitch channel from their profile. Once approved, your channel can be featured alongside the pack.</p>
+          </div>
+          <Link href="/dashboard/profile" className="inline-flex min-h-11 shrink-0 items-center justify-between gap-5 rounded-md border border-white/15 bg-crimson px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-crimson-light focus-visible:outline-white">
+            Open my profile <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
+      </div>
+    </main>
   );
 }

@@ -1,103 +1,36 @@
-import { ExternalLink } from "lucide-react";
-import { JSX } from "react";
+import { ExternalLink, Instagram, Youtube } from "lucide-react";
 
-/**
- * @component SocialsCard
- * @description Displays a social media platform card with emoji, description, brand color, and hover glow.
- * @param {string} title Platform name (e.g., "YouTube").
- * @param {string} emoji Emoji representing the platform.
- * @param {string} description Short description of the platform content.
- * @param {"crimson" | "pink"} colorClass Brand color key controlling styling and glow.
- * @param {string} url External URL to the platform.
- * @returns {JSX.Element} Rendered social card component with hover effects and external link indicator.
- * @author House Wolf Dev Team
- */
-const SOCIAL_CARD_STYLES = {
-  crimson: {
-    bg: "bg-linear-to-br from-red-900/20 to-obsidian",
-    border: "border-red-500/30",
-    hoverBorder: "hover:border-red-500",
-    hoverShadow: "hover:shadow-[0_0_50px_rgba(239,68,68,0.55)]",
-    titleText: "text-red-400",
-    accentText: "text-red-300",
-  },
-  pink: {
-    bg: "bg-linear-to-br from-pink-900/20 to-obsidian",
-    border: "border-pink-500/30",
-    hoverBorder: "hover:border-pink-500",
-    hoverShadow: "hover:shadow-[0_0_50px_rgba(236,72,153,0.55)]",
-    titleText: "text-pink-400",
-    accentText: "text-pink-300",
-  },
-} as const;
+const platformIcons = { youtube: Youtube, instagram: Instagram };
 
-/**
- * @component SocialsCard
- * @description Displays a social media platform card with emoji, description, brand color, and hover glow.
- * @param {string} title Platform name (e.g., "YouTube").
- * @param {string} emoji Emoji representing the platform.
- * @param {string} description Short description of the platform content.
- * @param {"crimson" | "pink"} colorClass Brand color key controlling styling and glow.
- * @param {string} url External URL to the platform.
- * @returns {JSX.Element} Rendered social card component with hover effects and external link indicator.
- * @author House Wolf Dev Team
- */
-export function SocialsCard({
-  title,
-  emoji,
-  description,
-  colorClass,
-  url,
-}: {
+interface SocialsCardProps {
   title: string;
-  emoji: string;
+  platform: keyof typeof platformIcons;
+  handle: string;
   description: string;
-  colorClass: keyof typeof SOCIAL_CARD_STYLES;
   url: string;
-}): JSX.Element {
-  const styles = SOCIAL_CARD_STYLES[colorClass];
+}
+
+/** Official channel card with a clear external destination. */
+export function SocialsCard({ title, platform, handle, description, url }: SocialsCardProps) {
+  const Icon = platformIcons[platform];
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`
-        group 
-        ${styles.bg}
-        border-2 ${styles.border}
-        rounded-lg p-6 md:p-8
-        ${styles.hoverBorder}
-        ${styles.hoverShadow} 
-        hover:scale-[1.03]
-        transition-all duration-400
-      `}
-    >
-      <div className={`flex items-center gap-4 mb-6 ${styles.titleText}`}>
-        <span className="text-5xl">{emoji}</span>
-        <h3
-          className={`text-2xl md:text-3xl font-bold uppercase tracking-wider ${styles.accentText}`}
-        >
-          {title}
-        </h3>
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      aria-label={`Visit House Wolf on ${title} (opens in a new tab)`}
+      className="group flex min-w-0 flex-col rounded-xl border border-white/10 bg-background-base p-6 transition-colors hover:border-white/30 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:p-7">
+      <div className="mb-5 flex items-center gap-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white">
+          <Icon size={25} aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-2xl font-semibold text-white">{title}</h3>
+          <p className="mt-1 break-words text-sm text-foreground-muted">{handle}</p>
+        </div>
       </div>
-
-      <p className="text-foreground-muted text-sm md:text-base leading-relaxed mb-6">
-        {description}
-      </p>
-
-      <div
-        className={`
-          flex items-center gap-2 
-          ${styles.accentText}
-          font-semibold uppercase text-sm 
-          group-hover:gap-4 
-          transition-all
-        `}
-      >
-        <span>Visit</span>
-        <ExternalLink size={18} />
-      </div>
+      <p className="mb-6 text-base leading-relaxed text-foreground-muted">{description}</p>
+      <span className="mt-auto flex min-h-11 items-center justify-between gap-4 border-t border-white/10 pt-4 text-sm font-semibold text-white">
+        Visit {title} <ExternalLink size={16} aria-hidden="true" />
+      </span>
     </a>
   );
 }
