@@ -20,5 +20,14 @@ export async function checkPublicRsiMembership(handle, { apiKey, fetcher = fetch
     || !Number.isFinite(updatedAt.getTime()) || updatedAt.getTime() - now.getTime() > 300_000 || now.getTime() - updatedAt.getTime() > 3_600_000) {
     return { confirmed: false, reason: "UNVERIFIED_OR_STALE_RESPONSE" };
   }
-  return { confirmed: payload.data?.organization?.sid === "CUTTERWOLF", evidence: `https://robertsspaceindustries.com/en/citizens/${handle}`, verifiedAt: updatedAt, reason: "PUBLIC_PRIMARY_ORGANIZATION" };
+  // Live v2 responses wrap primary membership in organization.organization.info;
+  // the provider's documentation also shows a flat organization.sid response.
+  // Affiliations are deliberately excluded from primary-membership proof.
+  const organizations = payload.data?.organization;
+  const nestedSid = organizations?.organization?.info?.sid;
+  const flatSid = organizations?.sid;
+  if (nestedSid && flatSid && nestedSid !== flatSid) return { confirmed: false, reason: "CONFLICTING_ORGANIZATION_RESPONSE" };
+  const primaryOrganizationSid = nestedSid ?? flatSid;
+  const confirmed = primaryOrganizationSid === "CUTTERWOLF";
+  return { confirmed, primaryOrganizationSid: typeof primaryOrganizationSid === "string" ? primaryOrganizationSid : null, evidence: `https://robertsspaceindustries.com/en/citizens/${handle}`, verifiedAt: updatedAt, reason: confirmed ? "PUBLIC_PRIMARY_ORGANIZATION" : "PRIMARY_ORGANIZATION_MISMATCH" };
 }

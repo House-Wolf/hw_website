@@ -798,3 +798,32 @@ test("RSI checks require exact linked identity, fresh data, and CUTTERWOLF", asy
   assert.equal((await check({ ...payload, data: { ...payload.data, profile: { handle: "somebody_else" } } })).confirmed, false);
   assert.equal((await check({ ...payload, data: { ...payload.data, organization: { sid: "OTHERORG" } } })).confirmed, false);
 });
+
+test("RSI verifier supports the real nested v2 primary-organization response", async () => {
+  const now = new Date("2026-10-22T12:00:00Z");
+  const result = await checkPublicRsiMembership("wolf", { apiKey: "test-key", now, fetcher: async () => Response.json({
+    success: true, updatedAt: now.toISOString(), data: { profile: { handle: "Wolf" }, organization: { affiliations: [], organization: { info: { sid: "CUTTERWOLF", name: "House Wolf" } } } },
+  }) });
+  assert.equal(result.confirmed, true);
+  assert.equal(result.primaryOrganizationSid, "CUTTERWOLF");
+});
+
+test("RSI affiliation membership never substitutes for CUTTERWOLF primary membership", async () => {
+  const now = new Date("2026-10-22T12:00:00Z");
+  for (const primary of [{ info: { sid: "OTHERORG" } }, null]) {
+    const result = await checkPublicRsiMembership("wolf", { apiKey: "test-key", now, fetcher: async () => Response.json({
+      success: true, updatedAt: now.toISOString(), data: { profile: { handle: "Wolf" }, organization: { affiliations: [{ sid: "CUTTERWOLF" }], organization: primary } },
+    }) });
+    assert.equal(result.confirmed, false);
+    assert.equal(result.reason, "PRIMARY_ORGANIZATION_MISMATCH");
+  }
+});
+
+test("RSI verifier refuses conflicting flat and nested primary organizations", async () => {
+  const now = new Date("2026-10-22T12:00:00Z");
+  const result = await checkPublicRsiMembership("wolf", { apiKey: "test-key", now, fetcher: async () => Response.json({
+    success: true, updatedAt: now.toISOString(), data: { profile: { handle: "Wolf" }, organization: { sid: "CUTTERWOLF", organization: { info: { sid: "OTHERORG" } } } },
+  }) });
+  assert.equal(result.confirmed, false);
+  assert.equal(result.reason, "CONFLICTING_ORGANIZATION_RESPONSE");
+});
