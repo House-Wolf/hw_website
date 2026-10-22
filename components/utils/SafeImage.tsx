@@ -1,6 +1,7 @@
 "use client";
 import Image, { ImageProps } from "next/image";
 import React, { useState } from "react";
+import { normalizeImageSource } from "@/lib/imageSource";
 
 interface SafeImageProps extends ImageProps {
   fallbackSrc?: string;
@@ -22,15 +23,16 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   fallbackSrc = "/images/global/HWiconnew.png",
   ...props
 }) => {
-  const [error, setError] = useState(false);
+  const [failedSource, setFailedSource] = useState<ImageProps["src"] | null>(null);
+  const imageSource = typeof src === "string" ? normalizeImageSource(src) : src;
 
   const { alt, ...restProps } = props;
 
   return (
     <Image
-      src={error ? fallbackSrc : src}
+      src={failedSource === imageSource ? fallbackSrc : imageSource}
       alt={alt || "image"}
-      onError={() => setError(true)}
+      onError={() => setFailedSource(imageSource)}
       {...restProps}
     />
   );

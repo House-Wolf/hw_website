@@ -37,7 +37,6 @@ export default function DiscordInviteModal({
     const handleEscape = (e: KeyboardEvent) => e.key === "Escape" && onClose();
 
     if (isOpen) {
-      console.log("DiscordInviteModal opened for:", itemTitle);
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
     }
@@ -49,7 +48,6 @@ export default function DiscordInviteModal({
   }, [isOpen, onClose, itemTitle]);
 
   if (!isOpen) {
-    console.log("DiscordInviteModal closed - isOpen:", isOpen);
     return null;
   }
 

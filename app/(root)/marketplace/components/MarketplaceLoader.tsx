@@ -22,15 +22,12 @@ export default function MarketplaceLoader() {
     audio.loop = false; // Don't loop the audio
     audioRef.current = audio;
 
-    // Play audio when component mounts
-    const playPromise = audio.play();
-
-    // Handle play promise to avoid unhandled rejection
-    if (playPromise !== undefined) {
-      playPromise.catch(error => {
-        // Auto-play was prevented (common in browsers)
-        console.log("Audio autoplay prevented:", error);
-      });
+    // Sound requires a user gesture; initial page loads remain silent.
+    const playAudio = () => { void audio.play().catch(() => {}); };
+    if (navigator.userActivation?.isActive) playAudio();
+    else {
+      window.addEventListener("pointerdown", playAudio, { once: true });
+      window.addEventListener("keydown", playAudio, { once: true });
     }
 
     // Fade out audio over 1 second before loader disappears
@@ -54,6 +51,8 @@ export default function MarketplaceLoader() {
 
     // Start fade out after 1.5 seconds
     const fadeTimeout = setTimeout(() => {
+      window.removeEventListener("pointerdown", playAudio);
+      window.removeEventListener("keydown", playAudio);
       startFadeOut();
       // Trigger animation out after audio starts fading
       setIsAnimatingOut(true);
@@ -62,6 +61,8 @@ export default function MarketplaceLoader() {
     // Cleanup: stop audio when component unmounts
     return () => {
       clearTimeout(fadeTimeout);
+      window.removeEventListener("pointerdown", playAudio);
+      window.removeEventListener("keydown", playAudio);
       if (fadeInterval) clearInterval(fadeInterval);
       if (audioRef.current) {
         audioRef.current.pause();
