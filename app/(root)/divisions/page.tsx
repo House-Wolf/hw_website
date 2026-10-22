@@ -43,7 +43,8 @@ export default function DivisionsPage() {
       {/* ===================== */}
       {/* HERO SECTION */}
       {/* ===================== */}
-      <section className="relative h-[95vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      {/* Match the artwork's native ratio on screens where the image is shown. */}
+      <section className="relative h-[95vh] min-h-[600px] flex items-center justify-center overflow-hidden 2xl:aspect-[2987/1256] 2xl:h-auto 2xl:min-h-0">
         {/* Background imagery (large screens only) */}
         <div className="absolute inset-0 z-0 hidden 2xl:block">
           <SafeImage
@@ -51,7 +52,7 @@ export default function DivisionsPage() {
             alt="House Wolf Divisions"
             fill
             sizes="100vw"
-            className="object-cover object-top"
+            className="object-contain object-top"
           />
           <div aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-transparent via-black/40 to-transparent" />
           <div aria-hidden="true" className="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-background-elevated/70" />
