@@ -1,26 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { SafeImage } from "../utils/SafeImage";
 
 /**
- * @component CTA Section with Parallax Background, Animated Glows, and CTA Buttons
- * @description A visually engaging Call to Action section featuring a parallax background, animated glow effects, and prominent CTA buttons.
+ * @component CTA Section with a steady background and prominent CTA buttons.
+ * @description Call to action with static ambient lighting and division insignia.
  * @returns {JSX.Element} The CTA section component.
  * @author House Wolf Dev Team
  */
 
 export default function EpicCTA() {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
     <section className="relative w-full min-h-[700px] overflow-hidden border-t border-white/40">
       {/* Background Image */}
@@ -38,10 +29,10 @@ export default function EpicCTA() {
         <div className="absolute inset-0 bg-linear-to-r from-crimson/10 via-transparent to-steel/10" />
       </div>
 
-      {/* Animated Glow Effect */}
-      <div className="absolute inset-0 z-10">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/30 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/30 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
+      {/* Steady ambient lighting */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/30 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/30 rounded-full blur-[120px]" />
       </div>
 
       {/* Content */}

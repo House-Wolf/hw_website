@@ -68,7 +68,7 @@ export default function OriginsPage(): JSX.Element {
 
           {/* Text */}
           <div>
-            <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-6 uppercase tracking-wider">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 uppercase tracking-wider">
               Kampos
             </h2>
             <div className="h-1 w-24 bg-steel-light mb-6" />
@@ -152,7 +152,7 @@ export default function OriginsPage(): JSX.Element {
                 className="w-full h-64 object-cover rounded-lg mb-6"
                 loading="lazy"
               />
-              <h3 className="text-2xl font-bold text-steel-light mb-4 uppercase">
+              <h3 className="text-2xl font-bold text-white mb-4 uppercase">
                 Dragoon Space
               </h3>
               <p className="text-foreground-muted leading-relaxed">
@@ -172,7 +172,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-steel-light mb-8 uppercase tracking-wider">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 uppercase tracking-wider">
             Our Legacy Continues
           </h2>
 

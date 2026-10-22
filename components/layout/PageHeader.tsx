@@ -70,11 +70,12 @@ export default function HeroSection({
 
       {/* Glow Effects */}
       <div
-        className={`absolute top-1/4 left-1/4 w-96 h-96 ${glowColor1} rounded-full blur-[120px] animate-pulse`}
+        aria-hidden="true"
+        className={`pointer-events-none absolute top-1/4 left-1/4 w-96 h-96 ${glowColor1} rounded-full blur-[120px]`}
       />
       <div
-        className={`absolute bottom-1/4 right-1/4 w-96 h-96 ${glowColor2} rounded-full blur-[120px] animate-pulse`}
-        style={{ animationDelay: "1s" }}
+        aria-hidden="true"
+        className={`pointer-events-none absolute bottom-1/4 right-1/4 w-96 h-96 ${glowColor2} rounded-full blur-[120px]`}
       />
 
       {/* Decorative Bottom Line */}
@@ -93,7 +94,7 @@ export default function HeroSection({
           />
         )}
         {title && (
-          <h1 className="text-5xl md:text-7xl font-bold text-steel-light mb-6 tracking-wider uppercase drop-shadow-[0_0_20px_rgba(17,78,98,0.8)]">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-wider uppercase drop-shadow-lg">
             {title}
           </h1>
         )}

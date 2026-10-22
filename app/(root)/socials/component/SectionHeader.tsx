@@ -13,7 +13,7 @@ import { JSX } from "react";
 // Added a safe COLOR_STYLES map to avoid dynamic Tailwind class names.
 const SECTION_HEADER_COLOR_STYLES = {
   "steel-light": {
-    text: "text-steel-light",
+    text: "text-white",
     via: "via-steel-light",
   },
   crimson: {

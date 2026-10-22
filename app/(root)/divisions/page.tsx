@@ -34,10 +34,10 @@ export default function DivisionsPage() {
             className="object-center opacity-90"
           />
           <div className="absolute inset-0 bg-linear-to-b from-obsidian/80 via-obsidian/60 to-obsidian/95" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px] animate-pulse" />
+          <div aria-hidden="true" className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px]" />
           <div
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px] animate-pulse"
-            style={{ animationDelay: "1s" }}
+            aria-hidden="true"
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px]"
           />
         </div>
 
@@ -53,7 +53,7 @@ export default function DivisionsPage() {
             height={120}
             className="mx-auto drop-shadow-[0_0_30px_rgba(17,78,98,0.8)]"
           />
-          <h1 className="text-5xl md:text-7xl font-bold text-steel-light mb-6 tracking-wider uppercase font-mono">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-wider uppercase font-mono">
             Our Divisions
           </h1>
           <p className="text-xl md:text-2xl text-foreground-muted italic">
@@ -86,7 +86,7 @@ export default function DivisionsPage() {
               </div>
 
               {/* Text */}
-              <h3 className="text-2xl font-bold uppercase tracking-wider text-steel-light group-hover:text-foreground">
+              <h3 className="text-2xl font-bold uppercase tracking-wider text-white group-hover:text-white">
                 {division.name}
               </h3>
 

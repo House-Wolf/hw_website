@@ -163,7 +163,7 @@ export default function DragoonCodePage(): JSX.Element {
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-14 md:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-steel-light mb-4 tracking-widest uppercase">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 tracking-widest uppercase">
               The Resol&apos;nare
             </h2>
             <p className="text-lg sm:text-xl text-foreground-muted italic">
@@ -177,7 +177,7 @@ export default function DragoonCodePage(): JSX.Element {
               <div className="flex items-start gap-4">
                 <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300" />
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-steel-light mb-2">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
                     Raise Children as Dragoons
                   </h3>
                   <p className="text-sm sm:text-base text-foreground-muted">
@@ -211,7 +211,7 @@ export default function DragoonCodePage(): JSX.Element {
               <div className="flex items-start gap-4">
                 <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300" />
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-steel-light mb-2">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
                     Master Self-Defense
                   </h3>
                   <p className="text-sm sm:text-base text-foreground-muted">
@@ -245,7 +245,7 @@ export default function DragoonCodePage(): JSX.Element {
               <div className="flex items-start gap-4">
                 <div className="shrink-0 w-12 h-12 bg-linear-to-br from-steel to-steel-light rounded-lg flex items-center justify-center text-2xl font-bold text-foreground group-hover:scale-110 transition-transform duration-300" />
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-steel-light mb-2">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
                     Speak the Dragoon Language
                   </h3>
                   <p className="text-sm sm:text-base text-foreground-muted">
