@@ -5,7 +5,7 @@ import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromo
 import { createPersonnelService } from "../bot/personnelService.js";
 import { attachPersonnelInteractions, personnelCommandDefinition } from "../bot/personnelCommands.js";
 import { promotionReviewMessage } from "../bot/personnelMessages.js";
-import { checkPublicRsiMembership } from "../bot/rsiMembership.js";
+import { checkPublicRsiMembership, discordRsiHandleCandidates } from "../bot/rsiMembership.js";
 
 const guildId = "100000000000000001";
 const candidateId = "100000000000000002";
@@ -308,7 +308,7 @@ function fixture(options = {}) {
   } };
   const server = { id: guildId, members: { fetch: async ({ user }) => { if (!people.has(user)) throw Object.assign(new Error("Unknown member"), { code: 10007 }); return people.get(user); }, fetchMe: async () => ({}) }, roles: { fetch: async () => roleDefinitions } };
   const client = { user: { id: "bot" }, isReady: () => true, guilds: { fetch: async () => server }, channels: { fetch: async () => destination } };
-  const createService = () => createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer" }, now: () => clock, logger: { error() {} } });
+  const createService = () => createPersonnelService({ client, prisma, config: { guildId, buyerRoleId: "buyer", rsiApiKey: options.rsiApiKey }, membershipLookup: options.membershipLookup, now: () => clock, logger: { error() {} } });
   const service = createService();
   const vote = (actorId, decision = "APPROVE", overrides = {}) => service.castVote({ requestId, actorId, decision, messageId: "review-message", channelId: PERSONNEL_CHANNELS.officers, ...overrides });
   return { options, service, createService, prisma, assignments, websiteRoles, member, request, votes, audits, roleCalls, candidate, people, sent, vote, roleDefinitions, commands, advance: (milliseconds) => { clock = new Date(clock.getTime() + milliseconds); } };
@@ -691,6 +691,102 @@ test("autocomplete handles command roles without deferring a normal reply", asyn
 
 test("RSI membership is never inferred from an unconfigured API", async () => {
   assert.equal((await checkPublicRsiMembership("wolf", {})).confirmed, false);
+});
+
+test("RSI candidates use exact Discord names, deduplicate case, and never guess from tags or punctuation", () => {
+  assert.deepEqual(discordRsiHandleCandidates({ displayName: " Wolf_One ", user: { globalName: "wolf_ONE", username: "wolf-two" } }), ["wolf_one", "wolf-two"]);
+  assert.deepEqual(discordRsiHandleCandidates({ displayName: "[HW] Wolf", user: { globalName: "Wolf One", username: "wolf.one" } }), []);
+});
+
+test("same-name RSI suggestions do not verify identity, grant roles, or call the external provider", async () => {
+  const state = fixture({ founding: true, unverified: true, rsiApiKey: "test-key", membershipLookup: async () => { assert.fail("Autocomplete must not call the provider"); } });
+  state.member.rsiHandle = null;
+  state.candidate.displayName = "Wolf";
+  state.candidate.user.globalName = "WOLF";
+  state.candidate.user.username = "wolf_alt";
+  const choices = await state.service.rsiHandleChoices(candidateId, "wo");
+  assert.deepEqual(choices.map(choice => choice.value), ["wolf", "wolf_alt"]);
+  assert.ok(choices.every(choice => choice.name.includes("verify identity")));
+  assert.equal(state.member.membershipConfirmedAt, null);
+  assert.equal(state.roleCalls.length, 0);
+});
+
+test("existing linked RSI identities take precedence over changed Discord names", async () => {
+  const state = fixture();
+  state.candidate.user.username = "different_user";
+  assert.deepEqual(await state.service.rsiHandleChoices(candidateId), [{ name: "wolf (linked RSI handle)", value: "wolf" }]);
+  assert.deepEqual(await state.service.rsiHandleChoices(candidateId, "different"), []);
+  state.candidate.user.bot = true;
+  assert.deepEqual(await state.service.rsiHandleChoices(candidateId), []);
+});
+
+test("acceptance automatically checks the selected RSI handle and queues Foundling on confirmed membership", async () => {
+  const lookups = [];
+  const state = fixture({ founding: true, unverified: true, rsiApiKey: "test-key", membershipLookup: async (handle, options) => {
+    lookups.push({ handle, apiKey: options.apiKey });
+    return { confirmed: true, evidence: "https://robertsspaceindustries.com/en/citizens/wolf", verifiedAt: new Date("2026-10-22T12:00:00Z") };
+  } });
+  await state.service.acceptApplication({ actorId: captainId, discordId: candidateId, rsiHandle: "Wolf", evidence: "Officer verified this Discord member's RSI identity and application" });
+  assert.deepEqual(lookups, [{ handle: "wolf", apiKey: "test-key" }]);
+  assert.equal(state.member.membershipVerifiedBy, "RSI_PUBLIC_PROVIDER");
+  assert.ok(state.member.membershipConfirmedAt);
+  assert.equal(state.request.status, "COMPLETED");
+  assert.equal(state.candidate.roles.cache.has(PERSONNEL_ROLES.foundling), true);
+  assert.equal(state.candidate.roles.cache.has(PERSONNEL_ROLES.visitor), false);
+  const audit = state.audits.find(event => event.action === "APPLICATION_ACCEPTED");
+  assert.equal(audit.details.identityAttestedBy, captainId);
+  assert.equal(audit.details.automaticallyConfirmed, true);
+  assert.match(audit.details.membershipEvidence, /citizens\/wolf$/);
+});
+
+for (const scenario of ["unconfigured", "not-confirmed", "provider-failure"]) {
+  test(`automatic RSI lookup leaves the accepted application pending without granting membership: ${scenario}`, async () => {
+    const state = fixture({ founding: true, unverified: true, rsiApiKey: scenario === "unconfigured" ? undefined : "test-key", membershipLookup: async () => {
+      if (scenario === "unconfigured") assert.fail("No API calls without a configured key");
+      if (scenario === "provider-failure") throw new Error("Provider unavailable");
+      return { confirmed: false, reason: "UNVERIFIED_OR_STALE_RESPONSE" };
+    } });
+    await state.service.acceptApplication({ actorId: captainId, discordId: candidateId, rsiHandle: "wolf", evidence: "Officer verified application and identity" });
+    assert.ok(state.member.applicationAcceptedAt);
+    assert.equal(state.member.membershipConfirmedAt, null);
+    assert.equal(state.roleCalls.length, 0);
+    assert.equal(state.audits.find(event => event.action === "APPLICATION_ACCEPTED").details.automaticallyConfirmed, false);
+  });
+}
+
+test("manual officer membership confirmation remains available without calling the provider", async () => {
+  const state = fixture({ founding: true, unverified: true, rsiApiKey: "test-key", membershipLookup: async () => { assert.fail("Manual evidence does not need a provider lookup"); } });
+  await state.service.acceptApplication({ actorId: captainId, discordId: candidateId, rsiHandle: "wolf", evidence: "Officer verified RSI membership directly", rsiConfirmed: true });
+  assert.equal(state.member.membershipVerifiedBy, captainId);
+  assert.equal(state.request.status, "COMPLETED");
+});
+
+test("a name suggestion cannot overwrite an existing RSI identity", async () => {
+  const state = fixture({ rsiApiKey: "test-key", membershipLookup: async () => { assert.fail("Conflicting identities must be rejected before lookup"); } });
+  await assert.rejects(state.service.acceptApplication({ actorId: captainId, discordId: candidateId, rsiHandle: "otherwolf", evidence: "Application identity evidence" }), /already linked/);
+  assert.equal(state.member.rsiHandle, "wolf");
+  assert.equal(state.roleCalls.length, 0);
+});
+
+test("accept-application autocomplete uses the selected member and stays separate from specialist roles", async () => {
+  let handler;
+  const responses = [];
+  const choices = [{ name: "wolf (Discord name; verify identity)", value: "wolf" }];
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { rsiHandleChoices: async (discordId, query) => {
+    assert.equal(discordId, candidateId);
+    assert.equal(query, "wo");
+    return choices;
+  } }, { guildId });
+  const interaction = { isAutocomplete: () => true, commandName: "personnel", guildId,
+    options: { getSubcommand: () => "accept-application", getFocused: () => ({ name: "rsi-handle", value: "wo" }), getUser: () => ({ id: candidateId }) },
+    respond: async value => responses.push(value),
+  };
+  await handler(interaction);
+  interaction.options.getUser = () => null;
+  await handler(interaction);
+  assert.deepEqual(responses, [choices, []]);
+  const handle = personnelCommandDefinition().options.find(option => option.name === "accept-application").options.find(option => option.name === "rsi-handle");
+  assert.equal(handle.autocomplete, true);
 });
 
 test("RSI checks require exact linked identity, fresh data, and CUTTERWOLF", async () => {

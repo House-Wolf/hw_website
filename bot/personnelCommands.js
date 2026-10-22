@@ -5,7 +5,7 @@ export function personnelCommandDefinition() {
   const command = new SlashCommandBuilder().setName("personnel").setDescription("House Wolf service records, promotions, and command assignments");
   command.addSubcommand((subcommand) => subcommand.setName("accept-application").setDescription("Record accepted application and a verified Discord-to-RSI identity")
     .addUserOption((option) => option.setName("member").setDescription("Discord member whose RSI identity you have verified").setRequired(true))
-    .addStringOption((option) => option.setName("rsi-handle").setDescription("Verified RSI handle, not just a matching Discord name").setRequired(true).setMaxLength(60))
+    .addStringOption((option) => option.setName("rsi-handle").setDescription("Same-name suggestions appear after selecting a member; verify the RSI identity").setRequired(true).setMaxLength(60).setAutocomplete(true))
     .addStringOption((option) => option.setName("evidence").setDescription("Application acceptance and identity verification evidence").setRequired(true).setMinLength(10).setMaxLength(1000))
     .addBooleanOption((option) => option.setName("rsi-confirmed").setDescription("You have also confirmed actual CUTTERWOLF membership on RSI")));
   command.addSubcommand((subcommand) => subcommand.setName("service-history").setDescription("Warlord: import a verified start date for a member's existing rank")
@@ -33,11 +33,19 @@ export function attachPersonnelInteractions(client, service, config) {
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isAutocomplete() && interaction.commandName === "personnel") {
       try {
-        if (interaction.guildId !== config.guildId || interaction.options.getSubcommand() !== "assign-role" || interaction.options.getFocused(true).name !== "role") {
+        if (interaction.guildId !== config.guildId) {
           await interaction.respond([]);
           return;
         }
-        const choices = await service.commandRoleChoices(interaction.options.getString("command"), interaction.options.getFocused());
+        const subcommand = interaction.options.getSubcommand();
+        const focused = interaction.options.getFocused(true);
+        let choices = [];
+        if (subcommand === "assign-role" && focused.name === "role") {
+          choices = await service.commandRoleChoices(interaction.options.getString("command"), focused.value);
+        } else if (subcommand === "accept-application" && focused.name === "rsi-handle") {
+          const member = interaction.options.getUser("member");
+          if (member) choices = await service.rsiHandleChoices(member.id, focused.value);
+        }
         await interaction.respond(choices);
       } catch (error) {
         console.error("Personnel role suggestions failed:", error.message);
@@ -61,7 +69,7 @@ export function attachPersonnelInteractions(client, service, config) {
       const action = interaction.options.getSubcommand();
       if (action === "accept-application") {
         const record = await service.acceptApplication({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, rsiHandle: interaction.options.getString("rsi-handle", true), evidence: interaction.options.getString("evidence", true), rsiConfirmed: interaction.options.getBoolean("rsi-confirmed") === true });
-        await interaction.editReply(record.membershipConfirmedAt ? "Acceptance and RSI identity/membership confirmation recorded. Foundling reconciliation is queued automatically; no officer ballot is required." : "Application acceptance and RSI identity recorded. Foundling remains blocked until organization membership is confirmed. Configure the membership API or submit confirmed RSI evidence.");
+        await interaction.editReply(record.membershipConfirmedAt ? `Acceptance and RSI identity/membership confirmation recorded for ${record.rsiHandle}. Foundling reconciliation is queued automatically; no officer ballot is required.` : "Application acceptance and RSI identity recorded. Foundling remains blocked until organization membership is confirmed. Configure the membership API or submit confirmed RSI evidence.");
       } else if (action === "service-history") {
         await service.recordHistory({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, rankRoleId: interaction.options.getString("rank", true), since: interaction.options.getString("since", true), evidence: interaction.options.getString("evidence", true) });
         await interaction.editReply("Verified time in rank recorded. If the required term is complete, the officer review is queued.");

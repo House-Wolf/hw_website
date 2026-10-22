@@ -1,3 +1,12 @@
+export function discordRsiHandleCandidates(member) {
+  // Exact names only. Removing spaces, clan tags, or punctuation can identify
+  // a different citizen; leave those cases for the officer to enter explicitly.
+  return [...new Set([member.displayName, member.user.globalName, member.user.username]
+    .filter(value => typeof value === "string")
+    .map(value => value.trim().toLowerCase())
+    .filter(value => /^[a-z0-9_-]{3,60}$/.test(value)))];
+}
+
 export async function checkPublicRsiMembership(handle, { apiKey, fetcher = fetch, now = new Date() }) {
   if (!apiKey) return { confirmed: false, reason: "API_NOT_CONFIGURED" };
   if (!/^[a-zA-Z0-9_-]{3,60}$/.test(handle)) throw new Error("Invalid RSI handle");

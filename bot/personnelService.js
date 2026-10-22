@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { PermissionsBitField } from "discord.js";
 import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
 import { promotionAnnouncement, promotionReviewMessage } from "./personnelMessages.js";
-import { checkPublicRsiMembership } from "./rsiMembership.js";
+import { checkPublicRsiMembership, discordRsiHandleCandidates } from "./rsiMembership.js";
 
 class CommandAssignmentPolicyError extends Error {}
 
@@ -11,7 +11,7 @@ const requestInclude = { member: true, votes: true };
 const activeStates = ["REVIEW", "APPROVED", "EXECUTING", "RETRY"];
 const protectedPermissions = ["Administrator", "ManageRoles", "ManageGuild", "ManageChannels", "ManageWebhooks", "BanMembers", "KickMembers", "ModerateMembers", "MentionEveryone", "ViewAuditLog", "ManageMessages"].map((key) => PermissionsBitField.Flags[key]);
 
-export function createPersonnelService({ client, prisma, config, now = () => new Date(), logger = console }) {
+export function createPersonnelService({ client, prisma, config, now = () => new Date(), logger = console, membershipLookup = checkPublicRsiMembership }) {
   let running = false;
 
   async function guild() {
@@ -193,14 +193,35 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     if (existing?.rsiHandle && existing.rsiHandle !== handle) throw new Error("RSI identity is already linked. Correct it through an audited administrative migration.");
     const linked = await prisma.personnelMember.findUnique({ where: { guildId_rsiHandle: { guildId: config.guildId, rsiHandle: handle } } });
     if (linked && linked.discordId !== discordId) throw new Error("This RSI handle is already linked to another Discord member.");
+    let publicMembership;
+    if (!rsiConfirmed && !existing?.membershipConfirmedAt && config.rsiApiKey) {
+      try { publicMembership = await membershipLookup(handle, { apiKey: config.rsiApiKey, now: now() }); }
+      catch (error) { logger.error("Application accepted; automatic RSI membership check will retry:", error.message); }
+    }
+    const automaticallyConfirmed = publicMembership?.confirmed === true;
+    const confirmation = rsiConfirmed || automaticallyConfirmed
+      ? { membershipConfirmedAt: existing?.membershipConfirmedAt || now(), membershipVerifiedBy: rsiConfirmed ? actorId : "RSI_PUBLIC_PROVIDER" } : {};
     const record = await prisma.personnelMember.upsert({
       where: { guildId_discordId: { guildId: config.guildId, discordId } },
-      create: { guildId: config.guildId, discordId, rsiHandle: handle, applicationAcceptedAt: now(), membershipEvidence: evidence, ...(observedRank ? { currentRankRoleId: observedRank.roleId } : {}), ...(rsiConfirmed ? { membershipConfirmedAt: now(), membershipVerifiedBy: actorId } : {}) },
-      update: { applicationAcceptedAt: existing?.applicationAcceptedAt || now(), membershipEvidence: evidence, ...(rsiConfirmed ? { membershipConfirmedAt: existing?.membershipConfirmedAt || now(), membershipVerifiedBy: actorId } : {}) },
+      create: { guildId: config.guildId, discordId, rsiHandle: handle, applicationAcceptedAt: now(), membershipEvidence: evidence, ...(observedRank ? { currentRankRoleId: observedRank.roleId } : {}), ...confirmation },
+      update: { applicationAcceptedAt: existing?.applicationAcceptedAt || now(), membershipEvidence: evidence, ...confirmation },
     });
-    await audit("APPLICATION_ACCEPTED", discordId, { rsiHandle: handle, evidence, rsiConfirmed, identityAttestedBy: actorId }, actorId);
+    await audit("APPLICATION_ACCEPTED", discordId, { rsiHandle: handle, evidence, rsiConfirmed, identityAttestedBy: actorId, automaticallyConfirmed, ...(automaticallyConfirmed ? { membershipEvidence: publicMembership.evidence, snapshotAt: publicMembership.verifiedAt.toISOString() } : {}) }, actorId);
     await considerMember(record);
     return record;
+  }
+
+  async function rsiHandleChoices(discordId, search = "") {
+    const member = await liveMember(discordId);
+    if (member.user.bot) return [];
+    const existing = await prisma.personnelMember.findUnique({ where: { guildId_discordId: { guildId: config.guildId, discordId } } });
+    const handles = existing?.rsiHandle ? [existing.rsiHandle] : discordRsiHandleCandidates(member);
+    const query = search.trim().toLowerCase();
+    // Suggestions do not call the external provider: Discord autocomplete has
+    // a short response deadline. Membership is checked after officer acceptance.
+    return handles.filter(handle => handle.includes(query)).map(handle => ({
+      name: `${handle} (${existing?.rsiHandle ? "linked RSI handle" : "Discord name; verify identity"})`, value: handle,
+    }));
   }
 
   async function recordHistory({ actorId, discordId, rankRoleId, since, evidence }) {
@@ -428,7 +449,7 @@ export function createPersonnelService({ client, prisma, config, now = () => new
       if (config.rsiApiKey) for (const candidate of pendingMembership) {
         try {
           await prisma.personnelMember.update({ where: { id: candidate.id }, data: { rsiCheckedAt: now() } });
-          const result = await checkPublicRsiMembership(candidate.rsiHandle, { apiKey: config.rsiApiKey, now: now() });
+          const result = await membershipLookup(candidate.rsiHandle, { apiKey: config.rsiApiKey, now: now() });
           if (result.confirmed) {
             await prisma.personnelMember.update({ where: { id: candidate.id }, data: { membershipConfirmedAt: now(), membershipVerifiedBy: "RSI_PUBLIC_PROVIDER", membershipEvidence: result.evidence } });
             await audit("RSI_MEMBERSHIP_CONFIRMED", candidate.discordId, { handle: candidate.rsiHandle, evidence: result.evidence, snapshotAt: result.verifiedAt.toISOString() });
@@ -467,5 +488,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, recordHistory, ensureCommandsConfigured, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }
