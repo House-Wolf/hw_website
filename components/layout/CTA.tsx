@@ -98,24 +98,21 @@ export default function EpicCTA() {
 
             <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto leading-relaxed font-light tracking-wide">
               The Dragoons stand ready. Elite warriors, bound by honor and forged in battle.
-              <span className="block mt-4 text-crimson-light font-semibold">
+              <span className="block mt-4 text-white font-semibold drop-shadow-lg">
                 Will you rise to join our ranks?
               </span>
             </p>
           </div>
 
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-4 pt-8">
-            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">
-              ELITE OPERATIONS
-            </div>
-            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">
-              BROTHERHOOD
-            </div>
-            <div className="px-6 py-3 bg-background-card/40 backdrop-blur-md border border-white/50 rounded-full text-sm font-mono tracking-wider text-foreground shadow-lg shadow-white/20">
-              LEGACY
-            </div>
-          </div>
+          {/* Values are supporting text; the actions sit below. */}
+          <ul aria-label="House Wolf values" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-8 text-xs font-mono uppercase tracking-[0.18em] text-white/90 drop-shadow-md sm:text-sm">
+            {["Elite operations", "Brotherhood", "Legacy"].map((value, index) => (
+              <li key={value} className="flex items-center gap-6">
+                {index > 0 && <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/50" />}
+                {value}
+              </li>
+            ))}
+          </ul>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-6 pt-12">

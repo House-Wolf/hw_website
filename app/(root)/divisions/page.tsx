@@ -1,7 +1,26 @@
 import Link from "next/link";
 import { SafeImage } from "@/components/utils/SafeImage";
 import { ArrowRight } from "lucide-react";
-import { DIVISIONS } from "@/lib/divisions/divisionConfig";
+import { DIVISIONS, type DivisionSlug } from "@/lib/divisions/divisionConfig";
+
+const divisionHighlights: Record<DivisionSlug, { summary: string; specialties: string[] }> = {
+  arcops: {
+    summary: "Explore uncharted systems, chart new routes, and turn research into the knowledge and technology that move House Wolf forward.",
+    specialties: ["Exploration", "Cartography", "Research"],
+  },
+  locops: {
+    summary: "Keep every operation supplied through industry, trade, salvage, and heavy-lift logistics.",
+    specialties: ["Industry", "Trade", "Logistics"],
+  },
+  specops: {
+    summary: "Operate beyond conventional reach with covert reconnaissance, precision strikes, and critical extractions.",
+    specialties: ["Reconnaissance", "Covert operations", "Extractions"],
+  },
+  tacops: {
+    summary: "Control the battlespace from atmosphere to vacuum with coordinated fighter wings, close support, and heavy bombardment.",
+    specialties: ["Fighter wings", "Air support", "Bombardment"],
+  },
+};
 
 export const metadata = {
   title: "Divisions | House Wolf Dragoons",
@@ -60,46 +79,44 @@ export default function DivisionsPage() {
       {/* ===================== */}
       {/* DIVISIONS GRID */}
       {/* ===================== */}
-      <section className="py-20 px-4 bg-background-elevated">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {Object.values(DIVISIONS).map((division) => (
-            <Link
-              key={division.slug}
-              href={`/divisions/${division.slug}`}
-              className="group bg-linear-to-br from-steel-dark/20 to-obsidian border-2 border-steel/30 rounded-lg p-8 hover:scale-105 transition-all duration-500"
-            >
-              {/* Patch */}
-              <div className="relative mb-6 flex justify-center">
-                <div className="absolute inset-0 bg-steel/20 blur-2xl group-hover:blur-3xl transition-all" />
-                <SafeImage
-                  src={division.patchImagePath}
-                  alt={division.patchAlt}
-                  width={150}
-                  height={150}
-                  className="relative drop-shadow-2xl group-hover:scale-110 transition-transform"
-                />
-              </div>
+      <section aria-labelledby="division-guide-heading" className="bg-background-elevated px-5 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-8 max-w-2xl">
+            <p className="mb-2 text-xs font-mono uppercase tracking-[0.2em] text-foreground-muted">House Wolf commands</p>
+            <h2 id="division-guide-heading" className="mb-3 text-3xl font-bold text-white sm:text-4xl">Find your command</h2>
+            <p className="text-base leading-relaxed text-foreground-muted">Discover where your skills fit within the pack. Each command brings a different strength to the mission.</p>
+          </header>
+          <div className="grid gap-6 xl:grid-cols-2">
+            {Object.values(DIVISIONS).map((division) => (
+              <Link
+                key={division.slug}
+                href={`/divisions/${division.slug}`}
+                className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-background-base transition-colors hover:border-white/30 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:flex-row"
+              >
+                {/* Patch */}
+                <div className="relative h-56 shrink-0 border-b border-white/10 bg-white/[0.025] sm:h-auto sm:w-44 sm:border-b-0 sm:border-r">
+                  <div className="relative mx-auto h-56 w-40 sm:absolute sm:inset-5 sm:h-auto sm:w-auto">
+                    <SafeImage src={division.patchImagePath} alt={division.patchAlt} fill sizes="160px" className="object-contain brightness-110" />
+                  </div>
+                </div>
 
-              {/* Text */}
-              <h3 className="text-2xl font-bold uppercase tracking-wider text-white group-hover:text-white">
-                {division.name}
-              </h3>
-
-              <p className="text-sm text-foreground-muted uppercase tracking-widest font-mono">
-                {division.navDescription}
-              </p>
-
-              <p className="text-foreground-muted leading-relaxed mt-4 mb-6">
-                {division.description}
-              </p>
-
-              {/* CTA */}
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-steel-light group-hover:text-foreground">
-                <span>View Division</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-          ))}
+                <div className="flex min-w-0 flex-1 flex-col p-6 sm:p-7">
+                  <h3 className="mb-2 text-2xl font-bold tracking-wider text-white">{division.name}</h3>
+                  <p className="mb-4 text-sm font-medium leading-relaxed text-foreground">{division.navDescription}</p>
+                  <p className="mb-5 text-sm leading-relaxed text-foreground-muted">{divisionHighlights[division.slug].summary}</p>
+                  <ul aria-label={`${division.name} specialties`} className="mb-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground-muted">
+                    {divisionHighlights[division.slug].specialties.map((specialty) => (
+                      <li key={specialty} className="flex items-center gap-2"><span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/40" />{specialty}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto flex min-h-11 items-center justify-between gap-4 border-t border-white/10 pt-4 text-sm font-semibold text-white">
+                    <span>Explore {division.name}</span>
+                    <ArrowRight size={18} aria-hidden="true" className="transition-transform motion-safe:group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     </main>
