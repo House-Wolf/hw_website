@@ -3,6 +3,7 @@ import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
+import { hasOnboardingJoinConsent, joinDiscordForOnboarding } from "@/lib/onboardingDiscordJoin";
 
 type DiscordGuild = {
   id: string;
@@ -117,7 +118,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   callbacks: {
     // 1) Gate by House Wolf guild membership
-    async signIn({ account }) {
+    async signIn({ account, profile }) {
       if (!account?.access_token) return false;
 
       try {
@@ -139,6 +140,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const guildId = process.env.DISCORD_GUILD_ID;
 
         const isMember = guilds.some((guild) => guild.id === guildId);
+        if (!isMember && hasOnboardingJoinConsent(account)) {
+          const discordId = profile?.id;
+          if (typeof discordId !== "string") return false;
+          const existingUser = await prisma.user.findUnique({ where: { discordId }, select: { isActive: true } });
+          if (existingUser?.isActive === false) return "/auth/error?error=Suspended";
+          return await joinDiscordForOnboarding(account, discordId)
+            ? true : "/onboarding?error=discord_join_failed";
+        }
         if (!isMember) {
           console.log("User is not a member of the House Wolf Discord");
         }

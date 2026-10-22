@@ -2,7 +2,9 @@
 
 The public `/onboarding` page provides a two-step, responsive onboarding experience. Star Citizen interests are multi-select; Another game can be selected alongside them or on its own. The final screen preserves the four supplied server rules and requires explicit agreement.
 
-Visitors can preview both steps without signing in. Finishing requires Discord authentication and existing server membership. Answers are retained locally through sign-in, but rules must be accepted again after returning. Completion records interests, another game, the rules version, acceptance time, and completion time in `onboarding_profiles`. Interests are preferences, not permission-bearing role assignments.
+Visitors can preview both steps without signing in. The Connect Discord & join button requests Discord login and permission to join House Wolf (`guilds.join`). The auth callback adds consenting newcomers to the configured server without assigning roles, then returns them to `/onboarding`. Existing members are not re-added or given different roles. Ordinary dashboard sign-in still requires existing membership. Answers are retained locally through sign-in, but rules must be accepted again after returning. Completion records interests, another game, the rules version, acceptance time, and completion time in `onboarding_profiles`. Interests are preferences, not permission-bearing role assignments.
+
+Share `https://www.housewolf.co/onboarding` as the public joining link. The joining flow reuses the existing `/api/auth/callback/discord` OAuth redirect; no additional callback or secret is needed. The Discord bot must belong to the same application as the OAuth client, be installed in the server, and have the permissions required to add guild members. Keep `AUTH_URL` (if set) and `NEXTAUTH_URL` on the same canonical website origin. Discord invite URLs remain controlled by Discord and cannot redirect to this page.
 
 ## Activation
 
@@ -25,7 +27,7 @@ After completion, the bot picks up the persisted welcome job on its next 15-seco
 
 Welcome jobs use a database claim to prevent multiple workers from processing the same member concurrently. Failures remain pending, with `welcome_last_error` stored for inspection, and retry after five minutes. Successful message IDs are stored to prevent routine duplicates across restarts. A deterministic Discord nonce provides additional protection for recent retries; Discord's nonce deduplication is time-limited, so a process crash after posting but before saving the ID can still produce a duplicate after that window. Buyer accounts and inactive accounts are excluded from announcements. Keep the bot worker running to deliver posts.
 
-Run targeted checks with `node --test scripts/test-onboarding.mjs`. These use mocked authentication, database, and Discord calls and do not post live messages or assign real roles.
+Run targeted checks with `node --test scripts/test-onboarding.mjs scripts/test-onboarding-join.mjs`. These use mocked authentication, database, and Discord calls and do not join real users, post live messages, or assign real roles. After deployment, test a nonmember authorizing the join, cancellation, an existing member, and a Buyer; confirm return to `/onboarding`, preserved interests, and Visitor granted only after rules are accepted and completion succeeds.
 
 ## Scope
 

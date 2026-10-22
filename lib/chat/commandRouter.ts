@@ -11,9 +11,8 @@ export function routeWolfCommand(input: string): CommandResult {
     // -----------------------------
     case cmd === "open-discord":
       return {
-        type: "external",
-        label: "House Wolf Discord",
-        url: "https://discord.gg/AGDTgRSG93",
+        type: "navigate",
+        path: "/onboarding",
       };
 
     case cmd === "open-join":

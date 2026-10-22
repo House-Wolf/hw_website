@@ -129,9 +129,7 @@ export default function EpicCTA() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-6 pt-12">
             <Link
-              href="https://robertsspaceindustries.com/en/orgs/CUTTERWOLF"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/onboarding"
               prefetch={false}
               className="group relative px-12 py-5 bg-linear-to-r from-crimson to-crimson-light text-foreground text-lg font-bold uppercase tracking-widest rounded-md overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(220,38,38,0.6)] border-2 border-crimson-light"
             >

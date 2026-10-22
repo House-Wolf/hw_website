@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const authorization = { Authorization: `Bot ${botToken}` };
     const memberResponse = await fetch(memberUrl, { headers: authorization, cache: "no-store", signal: AbortSignal.timeout(10_000) });
     if (!memberResponse.ok) {
-      return NextResponse.json({ error: memberResponse.status === 404 ? "Join the House Wolf Discord server before completing onboarding." : "We couldn’t verify your Discord membership. Please try again." }, { status: memberResponse.status === 404 ? 403 : 502, headers });
+      return NextResponse.json({ code: memberResponse.status === 404 ? "membership_required" : "membership_unavailable", error: memberResponse.status === 404 ? "Connect Discord to join the House Wolf server, then finish onboarding." : "We couldn’t verify your Discord membership. Please try again." }, { status: memberResponse.status === 404 ? 403 : 502, headers });
     }
     const member = await memberResponse.json() as { roles: string[] };
     if (member.roles.includes(buyerRoleId)) {

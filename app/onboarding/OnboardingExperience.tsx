@@ -20,6 +20,7 @@ export default function OnboardingExperience() {
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [needsJoin, setNeedsJoin] = useState(false);
   const [discordUrl, setDiscordUrl] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
   const hasMoved = useRef(false);
@@ -27,6 +28,12 @@ export default function OnboardingExperience() {
   const selectionCount = interests.length + Number(otherGameSelected && Boolean(otherGame.trim()));
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinFailed = params.get("error") === "discord_join_failed";
+    if (joinFailed) {
+      setNeedsJoin(true);
+      setError("We couldn't add you to Discord. Please retry connecting, or contact a moderator if the problem continues.");
+    }
     try {
       const stored = localStorage.getItem(draftKey);
       const draft = stored ? validateOnboardingChoices(JSON.parse(stored)) : null;
@@ -34,6 +41,7 @@ export default function OnboardingExperience() {
         setInterests(draft.interests);
         setOtherGame(draft.otherGame);
         setOtherGameSelected(draft.otherGameSelected);
+        if (params.get("connected") === "1" || joinFailed) setStep("rules");
       }
     } catch {}
   }, []);
@@ -50,8 +58,18 @@ export default function OnboardingExperience() {
   async function finish() {
     if (!accepted || !ready || saving || status === "loading") return;
     saveDraft();
-    if (!session?.user) {
-      await signIn("discord", { redirectTo: "/onboarding" });
+    if (!session?.user || needsJoin) {
+      setSaving(true);
+      setError("");
+      try {
+        await signIn("discord", { redirectTo: "/onboarding?connected=1" }, {
+          scope: "identify email guilds guilds.members.read guilds.join",
+        });
+      } catch {
+        setError("We couldn't connect to Discord. Please try again.");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
     setSaving(true);
@@ -63,6 +81,7 @@ export default function OnboardingExperience() {
         body: JSON.stringify({ interests, otherGame, otherGameSelected, rulesAccepted: true, rulesVersion: ONBOARDING_RULES_VERSION }),
       });
       const result = await response.json();
+      if (result.code === "membership_required") setNeedsJoin(true);
       if (!response.ok) throw new Error(result.error || "We couldn’t complete onboarding. Please try again.");
       setDiscordUrl(result.discordUrl);
       try { localStorage.removeItem(draftKey); } catch {}
@@ -136,14 +155,14 @@ export default function OnboardingExperience() {
               <p className={styles.subtitle}>A mercenary’s word is their bond. Read the House Wolf code and pledge to stand by your fellow Dragoons, on and off the battlefield.</p>
               <div className={styles.rules}>{ONBOARDING_RULES.map((rule, index) => <article className={styles.rule} key={rule.label}><span className={styles.ruleNumber}>0{index + 1}</span><div><span className={styles.ruleLabel}>{rule.label}</span><h2>{rule.title}</h2><p>{rule.text}</p></div></article>)}</div>
               <label className={`${styles.acceptance} ${accepted ? styles.accepted : ""}`}><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} /><span><strong>I’ve read the rules. I’m ready to stand with the pack.</strong><small>I agree to follow these rules while taking part in House Wolf.</small></span></label>
-              {!session?.user && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to finish. Your interests will be kept on this device.</p>}
+              {(!session?.user || needsJoin) && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to join the House Wolf server and return here to finish. Already a member? You can use the same button. Your interests stay saved on this device.</p>}
             </>}
 
             {step === "complete" && <div className={styles.completion}><div className={styles.completionIcon}><ShieldCheck size={46} strokeWidth={1.3} /></div><span className={styles.kicker}>YOUR NEXT CHAPTER</span><h1 ref={heading} tabIndex={-1}>Welcome to<br />House Wolf.</h1><p>Your Visitor role is ready. Your interests are saved.<br />Watch general chat for your welcome to the pack.</p><a className={styles.primaryButton} href={discordUrl}>Return to Discord <ArrowRight size={17} /></a><Link href="/dashboard" className={styles.dashboardLink}>Explore your dashboard <ChevronRight size={14} /></Link></div>}
 
             {error && <div className={styles.error} role="alert">{error}</div>}
           </div>
-          {step !== "complete" && <footer className={styles.panelFooter}><div>{step === "rules" ? <button type="button" className={styles.backButton} disabled={saving} onClick={() => { setStep("interests"); setError(""); }}><ArrowLeft size={16} /> Back</button> : <span className={styles.footerNote}>YOUR STORY. YOUR CALLING.</span>}</div><button type="button" className={styles.primaryButton} disabled={step === "interests" ? !ready : !accepted || saving || status === "loading"} onClick={() => { if (step === "interests") { saveDraft(); setStep("rules"); } else { void finish(); } }}>{saving ? <><LoaderCircle className={styles.spinner} size={17} /> Finishing up…</> : step === "interests" ? <>Continue <ArrowRight size={17} /></> : <>{session?.user ? "Join the pack" : "Connect Discord & finish"} <ArrowRight size={17} /></>}</button></footer>}
+          {step !== "complete" && <footer className={styles.panelFooter}><div>{step === "rules" ? <button type="button" className={styles.backButton} disabled={saving} onClick={() => { setStep("interests"); setError(""); }}><ArrowLeft size={16} /> Back</button> : <span className={styles.footerNote}>YOUR STORY. YOUR CALLING.</span>}</div><button type="button" className={styles.primaryButton} disabled={step === "interests" ? !ready : !accepted || saving || status === "loading"} onClick={() => { if (step === "interests") { saveDraft(); setStep("rules"); } else { void finish(); } }}>{saving ? <><LoaderCircle className={styles.spinner} size={17} /> Finishing up…</> : step === "interests" ? <>Continue <ArrowRight size={17} /></> : <>{session?.user && !needsJoin ? "Join the pack" : "Connect Discord & join"} <ArrowRight size={17} /></>}</button></footer>}
         </section>
       </div>
       <footer className={styles.pageFooter}><span>HOUSE WOLF <span aria-hidden="true">/</span> EST. 2951</span><span>STRONGER TOGETHER. ALWAYS.</span></footer>
