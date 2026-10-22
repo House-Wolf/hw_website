@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth";
-import { ONBOARDING_RULES_VERSION, validateOnboardingChoices } from "@/lib/onboarding";
+import { needsWelcomeAfterRejoin, ONBOARDING_RULES_VERSION, validateOnboardingChoices } from "@/lib/onboarding";
 import { prisma } from "@/lib/prisma";
 import { PERSONNEL_ROLES } from "@/lib/personnel/policy.js";
 import { createRateLimitHeaders, rateLimit } from "@/lib/rate-limit";
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!memberResponse.ok) {
       return NextResponse.json({ code: memberResponse.status === 404 ? "membership_required" : "membership_unavailable", error: memberResponse.status === 404 ? "Connect Discord to join the House Wolf server, then finish onboarding." : "We couldn’t verify your Discord membership. Please try again." }, { status: memberResponse.status === 404 ? 403 : 502, headers });
     }
-    const member = await memberResponse.json() as { roles: string[] };
+    const member = await memberResponse.json() as { roles: string[]; joined_at?: string };
     // Explicitly completing community onboarding converts temporary buyers.
     // Use the same lease as the expiry worker before changing their roles.
     const guest = await prisma.marketplaceGuest.findUnique({ where: { discordUserId_guildId: { discordUserId: session.user.discordId, guildId } } });
@@ -79,8 +79,16 @@ export async function POST(request: NextRequest) {
       await prisma.marketplaceGuest.deleteMany({ where: { id: guestClaim.id, processingToken: guestClaim.token } });
     }
     const saved = await prisma.onboardingProfile.findUnique({ where: { userId: session.user.id } });
+    const rejoined = needsWelcomeAfterRejoin(member.joined_at, saved?.welcomeMessageId);
+    if (rejoined) {
+      const reset = await prisma.onboardingProfile.updateMany({
+        where: { userId: session.user.id, welcomeMessageId: saved!.welcomeMessageId },
+        data: { completedAt: null, welcomeMessageId: null, welcomeClaimedAt: null, welcomeLastError: null },
+      });
+      if (!reset.count) return NextResponse.json({ error: "Your welcome is being updated. Please retry onboarding in a moment." }, { status: 409, headers });
+    }
     const discordUrl = `https://discord.com/channels/${guildId}`;
-    if (saved?.completedAt && saved.rulesVersion === ONBOARDING_RULES_VERSION && member.roles.includes(visitorRoleId) && !member.roles.includes(buyerRoleId)) {
+    if (!rejoined && saved?.completedAt && saved.rulesVersion === ONBOARDING_RULES_VERSION && member.roles.includes(visitorRoleId) && !member.roles.includes(buyerRoleId)) {
       return NextResponse.json({ success: true, discordUrl }, { headers });
     }
     const data = { interests: choices.interests, otherGame: choices.otherGame || null, rulesVersion: ONBOARDING_RULES_VERSION, rulesAcceptedAt: new Date(), completedAt: null };

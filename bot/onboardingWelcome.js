@@ -58,7 +58,7 @@ export function createWelcomeMessage(profile, discordId, displayName = "New Drag
   fields.push({ name: "\u200b", value: "Say hello, invite them to your next session, and help our newest member find their crew.", inline: false });
   return {
     allowedMentions: { parse: [], users: [discordId] },
-    nonce: createHash("sha256").update(`onboarding:${profile.userId}`).digest("hex").slice(0, 24),
+    nonce: createHash("sha256").update(`onboarding:${profile.userId}:${profile.completedAt ? new Date(profile.completedAt).toISOString() : "initial"}`).digest("hex").slice(0, 24),
     enforceNonce: true,
     embeds: [
       { color: 0x470000, image: { url: "attachment://house-wolf-welcome.png", width: 1200, height: 520 } },

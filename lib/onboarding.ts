@@ -1,5 +1,13 @@
 export const ONBOARDING_RULES_VERSION = "2026-10-22";
 
+/** Discord message IDs encode when a previous welcome was actually posted. */
+export function needsWelcomeAfterRejoin(joinedAt: string | undefined, welcomeMessageId: string | null | undefined) {
+  if (!joinedAt || !welcomeMessageId || !/^\d{17,20}$/.test(welcomeMessageId)) return false;
+  const joined = new Date(joinedAt).getTime();
+  const posted = Number((BigInt(welcomeMessageId) >> BigInt(22)) + BigInt("1420070400000"));
+  return Number.isFinite(joined) && joined > posted;
+}
+
 export const ONBOARDING_INTERESTS = [
   { id: "bunker-running", title: "Bunker Running", category: "GROUND OPERATIONS", description: "Clear hostile bunkers. Watch your corners. Bring the squad home.", icon: "crosshair" },
   { id: "space-trucking", title: "Space Trucking", category: "LOGISTICS", description: "Move cargo across the stars. Legal or otherwise, the haul is yours.", icon: "truck" },

@@ -52,6 +52,7 @@ function createFixture(options = {}) {
       findUnique: async () => saved,
       upsert: async (query) => { writes.push({ action: "save", query }); },
       update: async (query) => { writes.push({ action: "complete", query }); },
+      updateMany: async (query) => { writes.push({ action: "reset-welcome", query }); return { count: 1 }; },
     },
   };
   const route = loadTypeScript("../app/api/onboarding/route.ts", {
@@ -69,7 +70,7 @@ function createFixture(options = {}) {
       if (init.method === "DELETE") return new Response(null, { status: options.buyerRemovalFailure ? 403 : 204 });
       if (init.method === "PUT") return new Response(null, { status: options.roleFailure ? 403 : 204 });
       if (options.notMember) return new Response(null, { status: 404 });
-      return Response.json({ roles: options.buyer ? ["buyer"] : saved ? ["visitor"] : [] });
+      return Response.json({ roles: options.buyer ? ["buyer"] : saved ? ["visitor"] : [], joined_at: options.joinedAt });
     },
   });
   const request = { nextUrl: new URL("https://housewolf.test/api/onboarding"), headers: new Headers({ origin: options.foreignOrigin ? "https://other.test" : "https://housewolf.test" }), json: async () => options.input || validInput };
@@ -169,6 +170,30 @@ test("repeated completion does not reassign roles or rewrite the agreement", asy
   assert.equal((await fixture.submit()).status, 200);
   assert.equal(fixture.writes.length, 0);
   assert.equal(fixture.discordCalls.length, 1);
+});
+
+const snowflakeAt = date => ((BigInt(new Date(date).getTime()) - BigInt("1420070400000")) << BigInt(22)).toString();
+
+test("a rejoining member queues a fresh welcome only after onboarding completes", async () => {
+  const fixture = createFixture({ joinedAt: "2026-10-22T10:36:00Z", saved: { completedAt: new Date(), rulesVersion: onboarding.ONBOARDING_RULES_VERSION, welcomeMessageId: snowflakeAt("2026-10-22T08:49:00Z") } });
+  assert.equal((await fixture.submit()).status, 200);
+  assert.deepEqual(fixture.writes.map(write => write.action), ["reset-welcome", "save", "complete"]);
+  assert.equal(fixture.writes[0].query.data.welcomeMessageId, null);
+  assert.equal(fixture.writes[0].query.data.completedAt, null);
+  assert.ok(fixture.writes.at(-1).query.data.completedAt);
+});
+
+test("same-membership retries preserve a delivered welcome", async () => {
+  const fixture = createFixture({ joinedAt: "2026-10-22T08:00:00Z", saved: { completedAt: new Date(), rulesVersion: onboarding.ONBOARDING_RULES_VERSION, welcomeMessageId: snowflakeAt("2026-10-22T08:49:00Z") } });
+  assert.equal((await fixture.submit()).status, 200);
+  assert.equal(fixture.writes.length, 0);
+});
+
+test("new onboarding completions get a distinct welcome nonce while retries keep it", () => {
+  const profile = { userId: "member", interests: [], otherGame: "DayZ", completedAt: "2026-10-22T08:49:00Z" };
+  const first = createWelcomeMessage(profile, "123");
+  assert.equal(first.nonce, createWelcomeMessage(profile, "123").nonce);
+  assert.notEqual(first.nonce, createWelcomeMessage({ ...profile, completedAt: "2026-10-22T10:40:00Z" }, "123").nonce);
 });
 
 test("welcome has a separate interest block and restricts mentions", () => {
