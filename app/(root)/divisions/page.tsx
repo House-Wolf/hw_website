@@ -20,7 +20,7 @@ export const metadata = {
  */
 export default function DivisionsPage() {
   return (
-    <main className="min-h-screen bg-linear-to-b from-shadow via-obsidian to-night-deep">
+    <main className="min-h-screen bg-background-elevated">
       {/* ===================== */}
       {/* HERO SECTION */}
       {/* ===================== */}
@@ -33,12 +33,7 @@ export default function DivisionsPage() {
             fill
             className="object-center opacity-90"
           />
-          <div className="absolute inset-0 bg-linear-to-b from-obsidian/80 via-obsidian/60 to-obsidian/95" />
-          <div aria-hidden="true" className="absolute top-1/4 left-1/4 w-96 h-96 bg-crimson/20 rounded-full blur-[120px]" />
-          <div
-            aria-hidden="true"
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-steel/20 rounded-full blur-[120px]"
-          />
+          <div className="absolute inset-0 bg-background-elevated/95" />
         </div>
 
         {/* Divider */}
@@ -65,7 +60,7 @@ export default function DivisionsPage() {
       {/* ===================== */}
       {/* DIVISIONS GRID */}
       {/* ===================== */}
-      <section className="py-20 px-4 bg-linear-to-b from-night-midnight to-obsidian">
+      <section className="py-20 px-4 bg-background-elevated">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {Object.values(DIVISIONS).map((division) => (
             <Link

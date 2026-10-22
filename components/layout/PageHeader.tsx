@@ -35,12 +35,12 @@ export default function HeroSection({
 
   backgroundImage,
   backgroundImageOpacity = 0.5,
-  backgroundOverlay = "bg-linear-to-b from-obsidian/80 via-obsidian/60 to-obsidian/95",
+  backgroundOverlay = "bg-background-elevated/95",
 
   minHeight = "60vh",
 
-  glowColor1 = "bg-crimson/20",
-  glowColor2 = "bg-steel/20",
+  glowColor1,
+  glowColor2,
 
   children,
 }: HeroSectionProps) {
@@ -68,15 +68,15 @@ export default function HeroSection({
       {/* Overlay Gradient */}
       <div className={`absolute inset-0 z-0 ${backgroundOverlay}`} />
 
-      {/* Glow Effects */}
-      <div
+      {/* Optional static ambient lighting */}
+      {glowColor1 && <div
         aria-hidden="true"
         className={`pointer-events-none absolute top-1/4 left-1/4 w-96 h-96 ${glowColor1} rounded-full blur-[120px]`}
-      />
-      <div
+      />}
+      {glowColor2 && <div
         aria-hidden="true"
         className={`pointer-events-none absolute bottom-1/4 right-1/4 w-96 h-96 ${glowColor2} rounded-full blur-[120px]`}
-      />
+      />}
 
       {/* Decorative Bottom Line */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-white to-transparent opacity-40 z-10" />

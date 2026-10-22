@@ -12,15 +12,13 @@ import PageHeader from "@/components/layout/PageHeader";
  */
 export default function OriginsPage(): JSX.Element {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-shadow via-obsidian to-black">
+    <div className="min-h-screen bg-background-elevated">
       <PageHeader
         title="Our Origins"
         subtitle="The legendary history of the Kamposian Dragoons"
         iconSrc="/images/global/HWiconnew.png"
       />
-      <section className="relative py-20 px-4 bg-gradient-to-b from-obsidian to-night-midnight overflow-visible">
-        {/* NEW: Fixed radial gradient syntax */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-steel/10 via-transparent to-transparent opacity-30" />
+      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
 
         <div className="max-w-4xl mx-auto relative z-10">
           <div className="bg-gradient-to-br from-steel-dark/20 via-crimson-dark/10 to-obsidian border-2 border-steel/30 rounded-lg p-8 md:p-12 shadow-[0_0_50px_rgba(17,78,98,0.4)]">
@@ -40,7 +38,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gradient-to-b from-night-midnight to-obsidian">
+      <section className="py-20 px-4 bg-background-elevated">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           {/* Image */}
           <div className="relative">
@@ -113,7 +111,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="relative py-20 px-4 bg-gradient-to-b from-obsidian to-black overflow-visible">
+      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
         {/* NEW: Glow now visible */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-crimson/10 rounded-full blur-[150px]" />
 
@@ -165,12 +163,7 @@ export default function OriginsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="relative py-20 px-4 bg-gradient-to-b from-shadow to-black overflow-visible">
-        <div className="absolute inset-0 flex items-center justify-center">
-          {/* NEW: Fixed gradient syntax */}
-          <div className="w-[600px] h-[600px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-steel/20 via-crimson/10 to-transparent rounded-full blur-[100px]" />
-        </div>
-
+      <section className="relative py-20 px-4 bg-background-elevated overflow-visible">
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 uppercase tracking-wider">
             Our Legacy Continues
