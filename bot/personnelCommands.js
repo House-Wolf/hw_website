@@ -1,11 +1,17 @@
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { COMMAND_DEFINITIONS, SERVICE_RANKS } from "../lib/personnel/policy.js";
 
-export function divisionCommandDefinitions() {
+export function divisionCommandDefinitions(roleChoicesByCommand = {}) {
   return COMMAND_DEFINITIONS.map((definition) => new SlashCommandBuilder()
     .setName(definition.key).setDescription(`Captain: assign or remove ${definition.name} specialist roles`)
     .addUserOption((option) => option.setName("member").setDescription("House Wolf member").setRequired(true))
-    .addStringOption((option) => option.setName("role").setDescription(`An approved ${definition.name} specialist role`).setRequired(true).setAutocomplete(true))
+    .addStringOption((option) => {
+      option.setName("role").setDescription(`An approved ${definition.name} specialist role`).setRequired(true);
+      const choices = roleChoicesByCommand[definition.key] || [];
+      // Each division has only a few roles. Let Discord serve these options
+      // immediately instead of relying on a timed autocomplete interaction.
+      return choices.length ? option.setAutocomplete(false).addChoices(...choices) : option.setAutocomplete(true);
+    })
     .addStringOption((option) => option.setName("action").setDescription("Add or remove this specialist role").setRequired(true).addChoices({ name: "Assign", value: "ADD" }, { name: "Remove", value: "REMOVE" }))
     .toJSON());
 }
@@ -25,10 +31,15 @@ export function personnelCommandDefinition() {
   return command.toJSON();
 }
 
-export async function registerPersonnelCommand(client, guildId) {
+export async function registerPersonnelCommand(client, guildId, service) {
+  if (!service?.commandRoleChoices) throw new Error("Personnel role service is required to register division choices.");
   const guild = await client.guilds.fetch(guildId);
   const commands = await guild.commands.fetch();
-  for (const definition of [personnelCommandDefinition(), ...divisionCommandDefinitions()]) {
+  const roleChoicesByCommand = {};
+  for (const definition of COMMAND_DEFINITIONS) {
+    roleChoicesByCommand[definition.key] = await service.commandRoleChoices(definition.key);
+  }
+  for (const definition of [personnelCommandDefinition(), ...divisionCommandDefinitions(roleChoicesByCommand)]) {
     const existing = commands.find((command) => command.name === definition.name);
     if (existing) await guild.commands.edit(existing.id, definition);
     else await guild.commands.create(definition);

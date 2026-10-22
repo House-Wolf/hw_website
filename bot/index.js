@@ -71,7 +71,7 @@ const personnelConfig = {
   rsiApiKey: process.env.RSI_MEMBERSHIP_API_KEY,
 };
 const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
-const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: registerPersonnelCommand, guildId: personnelConfig.guildId });
+const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: (runtimeClient, guildId) => registerPersonnelCommand(runtimeClient, guildId, personnel), guildId: personnelConfig.guildId });
 if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
 
 client.once("ready", async () => {

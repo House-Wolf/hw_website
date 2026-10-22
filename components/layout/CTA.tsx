@@ -96,7 +96,7 @@ export default function EpicCTA() {
               </span>
             </h2>
 
-            <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto leading-relaxed font-light tracking-wide">
+            <p className="text-xl md:text-2xl text-white max-w-3xl mx-auto leading-relaxed font-light tracking-wide [text-shadow:0_2px_4px_rgb(0_0_0/90%),0_4px_12px_rgb(0_0_0/70%)]">
               The Dragoons stand ready. Elite warriors, bound by honor and forged in battle.
               <span className="block mt-4 text-white font-semibold drop-shadow-lg">
                 Will you rise to join our ranks?

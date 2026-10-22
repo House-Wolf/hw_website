@@ -579,14 +579,16 @@ test("slash command schema is valid and offers scoped Captain assignment", () =>
   const definition = personnelCommandDefinition();
   assert.equal(definition.name, "personnel");
   assert.equal(definition.options.some(option => option.name === "assign-role"), false);
-  const divisions = divisionCommandDefinitions();
+  const choices = Object.fromEntries(COMMAND_DEFINITIONS.map(command => [command.key, command.roles.map((name, index) => ({ name, value: `${command.key}-role-${index}` }))]));
+  const divisions = divisionCommandDefinitions(choices);
   assert.deepEqual(divisions.map(command => command.name), COMMAND_DEFINITIONS.map(command => command.key));
   for (const command of divisions) {
     assert.deepEqual(command.options.map(option => option.name), ["member", "role", "action"]);
     assert.ok(command.options.every(option => option.required));
     const role = command.options.find(option => option.name === "role");
     assert.equal(role.type, 3);
-    assert.equal(role.autocomplete, true);
+    assert.equal(role.autocomplete, false);
+    assert.deepEqual(JSON.parse(JSON.stringify(role.choices)), choices[command.name]);
   }
   assert.equal(definition.options.some(option => option.name === "initialize-commands"), false);
 });
@@ -726,13 +728,32 @@ test("registration updates all division commands without deleting unrelated comm
     create: async definition => { creates.push(definition.name); commands.set(definition.name, { id: definition.name, ...definition }); },
   } };
   const client = { guilds: { fetch: async id => { assert.equal(id, guildId); return guild; } } };
-  await registerPersonnelCommand(client, guildId);
+  const roleChoices = Object.fromEntries(COMMAND_DEFINITIONS.map(command => [command.key, command.roles.map((name, index) => ({ name, value: `${command.key}-role-${index}` }))]));
+  const service = { commandRoleChoices: async key => roleChoices[key] };
+  await registerPersonnelCommand(client, guildId, service);
   assert.deepEqual(edits, ["personnel-id", "locops-id"]);
   assert.deepEqual(creates, ["tacops", "specops", "arcops"]);
   assert.ok(commands.has("other-id"));
   assert.equal(commands.get("personnel-id").options.some(option => option.name === "assign-role"), false);
-  await registerPersonnelCommand(client, guildId);
+  for (const division of COMMAND_DEFINITIONS) {
+    const role = commands.find(command => command.name === division.key).options.find(option => option.name === "role");
+    assert.equal(role.autocomplete, false);
+    assert.deepEqual(JSON.parse(JSON.stringify(role.choices)), roleChoices[division.key]);
+  }
+  await registerPersonnelCommand(client, guildId, service);
   assert.equal(creates.length, 3, "re-registration must not create duplicates");
+});
+
+test("a role lookup failure cannot publish partially prepared division menus", async () => {
+  const writes = [];
+  const client = { guilds: { fetch: async () => ({ commands: {
+    fetch: async () => new Collection(), create: async definition => writes.push(definition), edit: async () => assert.fail("No edits expected"),
+  } }) } };
+  await assert.rejects(registerPersonnelCommand(client, guildId, { commandRoleChoices: async key => {
+    if (key === "specops") throw new Error("Database unavailable");
+    return [{ name: "TACOPS - Dire Wolfs", value: "dire-wolfs" }];
+  } }), /Database unavailable/);
+  assert.deepEqual(writes, []);
 });
 
 for (const division of COMMAND_DEFINITIONS) {
