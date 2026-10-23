@@ -477,7 +477,7 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     running = true;
     try {
       await reconcileCommandAssignments();
-      const pendingMembership = await prisma.personnelMember.findMany({ where: { guildId: config.guildId, applicationAcceptedAt: { not: null }, membershipConfirmedAt: null, rsiHandle: { not: null }, OR: [{ rsiCheckedAt: null }, { rsiCheckedAt: { lt: new Date(now().getTime() - 21_600_000) } }] }, take: 10 });
+      const pendingMembership = await prisma.personnelMember.findMany({ where: { guildId: config.guildId, applicationAcceptedAt: { not: null }, membershipConfirmedAt: null, rsiHandle: { not: null }, OR: [{ rsiCheckedAt: null }, { rsiCheckedAt: { lt: new Date(now().getTime() - 60_000) } }] }, take: 10 });
       if (config.rsiApiKey) for (const candidate of pendingMembership) {
         try {
           await prisma.personnelMember.update({ where: { id: candidate.id }, data: { rsiCheckedAt: now() } });
