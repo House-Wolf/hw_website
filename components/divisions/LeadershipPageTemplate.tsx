@@ -1,5 +1,6 @@
 import { SafeImage } from "@/components/utils/SafeImage";
 import { MemberCard } from "./MemberCard";
+import { RosterGrid } from "./RosterGrid";
 import type { LeadershipMember } from "@/lib/divisions/getLeadershipRoster";
 
 interface LeadershipPageTemplateProps {
@@ -83,7 +84,7 @@ export default function LeadershipPageTemplate({
             </h2>
 
             {/* GRID */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+            <RosterGrid>
               {leadershipCore.map((member) => (
                 <MemberCard
                   key={member.id}
@@ -98,7 +99,7 @@ export default function LeadershipPageTemplate({
                   }}
                 />
               ))}
-            </div>
+            </RosterGrid>
           </section>
         )}
 
@@ -116,7 +117,7 @@ export default function LeadershipPageTemplate({
             </h2>
 
             {/* GRID */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+            <RosterGrid>
               {officers.map((member) => (
                 <MemberCard
                   key={member.id}
@@ -131,7 +132,7 @@ export default function LeadershipPageTemplate({
                   }}
                 />
               ))}
-            </div>
+            </RosterGrid>
           </section>
         )}
       </div>

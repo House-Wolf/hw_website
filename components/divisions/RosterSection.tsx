@@ -1,5 +1,6 @@
 import type { DivisionMember } from "@/lib/divisions/getDivisionsRoster";
 import { MemberCard } from "./MemberCard";
+import { RosterGrid } from "./RosterGrid";
 
 export function RosterSection({
   title,
@@ -21,13 +22,11 @@ export function RosterSection({
       </h2>
 
       {/* Center every row, including an incomplete final row. */}
-      <div className="flex flex-wrap items-stretch justify-center gap-6">
+      <RosterGrid>
         {members.map((m) => (
-          <div key={m.id} className="w-full min-w-0 sm:w-[calc((100%_-_1.5rem)/2)] lg:w-[calc((100%_-_3rem)/3)]">
-            <MemberCard member={m} />
-          </div>
+          <MemberCard key={m.id} member={m} />
         ))}
-      </div>
+      </RosterGrid>
     </section>
   );
 }
