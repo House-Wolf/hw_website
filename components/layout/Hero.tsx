@@ -111,7 +111,7 @@ export default function Hero({ events, announcements, featuredPhotos, featuredVi
                         <ChevronDown size={14} className="transition-transform group-open/news:rotate-180" aria-hidden="true" />
                       </span>
                     </summary>
-                    <MarkdownContent content={announcement.content} className="mt-5 border-t border-border-default pt-5 break-words text-sm leading-relaxed text-foreground-muted [&_img]:hidden" />
+                    <MarkdownContent content={announcement.content} className="mt-1 border-t-2 border-white/25 pt-5 break-words text-sm leading-relaxed text-foreground-muted [&_img]:hidden" />
                   </details>
                 ) : (
                   <MarkdownContent content={announcement.content} className="break-words text-sm leading-relaxed text-foreground-muted [&_img]:hidden" />
