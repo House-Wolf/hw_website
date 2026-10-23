@@ -13,6 +13,7 @@ export async function checkPublicRsiMembership(handle, { apiKey, fetcher = fetch
   const response = await fetcher(`https://apiv2.starcitizen-api.com/v2/users/${encodeURIComponent(handle)}?refresh=true`, {
     headers: { "x-api-key": apiKey }, signal: AbortSignal.timeout(10_000),
   });
+  if (response.status === 404) return { confirmed: false, reason: "RSI_HANDLE_NOT_FOUND" };
   if (!response.ok) throw new Error(`RSI membership provider returned ${response.status}`);
   const payload = await response.json();
   const updatedAt = new Date(payload.updatedAt);

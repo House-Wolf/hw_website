@@ -3,6 +3,7 @@ import { PermissionsBitField } from "discord.js";
 import { addCalendarMonths, canLeadCommand, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
 import { promotionAnnouncement, promotionReviewMessage } from "./personnelMessages.js";
 import { checkPublicRsiMembership, discordRsiHandleCandidates } from "./rsiMembership.js";
+import { createRsiMembershipSync, rsiSyncInterval } from "./rsiMembershipSync.js";
 
 class CommandAssignmentPolicyError extends Error {}
 
@@ -20,6 +21,8 @@ const protectedPermissions = ["Administrator", "ManageRoles", "ManageGuild", "Ma
 
 export function createPersonnelService({ client, prisma, config, now = () => new Date(), logger = console, membershipLookup = checkPublicRsiMembership }) {
   let running = false;
+  const rsiInterval = rsiSyncInterval(config.rsiCheckIntervalMs);
+  const membershipSync = createRsiMembershipSync({ client, prisma, config, now, logger, membershipLookup, reconcile: reconcileRsiMember });
 
   async function guild() {
     if (!config.guildId || !config.buyerRoleId || Object.values(PERSONNEL_ROLES).includes(config.buyerRoleId)) throw new Error("Personnel requires the server ID and a Buyer role distinct from all membership, rank, and officer roles.");
@@ -262,10 +265,38 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     const eligibleAt = addCalendarMonths(started, target.months);
     if (eligibleAt > now()) return;
     const live = await liveMember(member.discordId);
-    if (OFFICER_ROLE_IDS.some((id) => live.roles.cache.has(id)) || (target.approvals > 0 && serviceRankFromRoles(roleIds(live))?.roleId !== sourceRoleId)) return;
+    if (OFFICER_ROLE_IDS.some((id) => live.roles.cache.has(id))
+      || (target.roleId === PERSONNEL_ROLES.foundling && SERVICE_RANKS.slice(1).some(rank => live.roles.cache.has(rank.roleId)))
+      || (target.approvals > 0 && serviceRankFromRoles(roleIds(live))?.roleId !== sourceRoleId)) return;
     const request = await prisma.promotionRequest.upsert({ where: { memberId_sourceRankRoleId_rankSince: { memberId: member.id, sourceRankRoleId: sourceRoleId, rankSince: started } }, create: { memberId: member.id, sourceRankRoleId: sourceRoleId, targetRankRoleId: target.roleId, rankSince: started, eligibleAt, approvalsRequired: target.approvals, status: target.approvals === 0 ? "APPROVED" : "REVIEW", ...(target.approvals === 0 ? { executeAfter: now() } : {}) }, update: {}, include: requestInclude });
     if (request.approvalsRequired === 0 && request.status === "APPROVED") await executeRequest(request.id);
     else if (request.status === "REVIEW") await refreshReview(request.id);
+  }
+
+  async function reconcileRsiMember(record) {
+    if (!record.applicationAcceptedAt || !record.membershipConfirmedAt || !record.rsiHandle || !record.membershipVerifiedBy) return;
+    const member = await liveMember(record.discordId);
+    if (member.user.bot) return;
+    const liveRanks = SERVICE_RANKS.filter(rank => member.roles.cache.has(rank.roleId));
+    const isOfficer = OFFICER_ROLE_IDS.some(id => member.roles.cache.has(id));
+    if (!record.currentRankRoleId && !liveRanks.length && !isOfficer) {
+      await considerMember(record); // Existing audited Foundling order and banner.
+      return;
+    }
+    const add = [PERSONNEL_ROLES.member, PERSONNEL_ROLES.houseWolf];
+    if (!isOfficer && !liveRanks.some(rank => rank.roleId !== PERSONNEL_ROLES.foundling) && record.currentRankRoleId === PERSONNEL_ROLES.foundling) add.push(PERSONNEL_ROLES.foundling);
+    const remove = [PERSONNEL_ROLES.visitor, config.buyerRoleId].filter(id => id && member.roles.cache.has(id));
+    const missing = add.filter(id => !member.roles.cache.has(id));
+    // Preflight the complete change before touching Discord. Never remove ranks.
+    const roles = await preflightRoles([...missing, ...remove]);
+    for (const id of missing) await member.roles.add(id, "House Wolf verified RSI membership reconciliation");
+    for (const id of remove) await member.roles.remove(id, "House Wolf verified RSI membership reconciliation");
+    const verified = await liveMember(record.discordId);
+    if (!add.every(id => verified.roles.cache.has(id)) || remove.some(id => verified.roles.cache.has(id))) throw new Error("RSI membership roles are incomplete; reconciliation will retry.");
+    await prisma.$transaction(async transaction => {
+      await syncWebsiteRank(transaction, record.discordId, null, { add, remove }, roles);
+      if (missing.length || remove.length) await audit("RSI_MEMBERSHIP_ROLES_RECONCILED", record.discordId, { add: missing, remove }, null, null, transaction);
+    });
   }
 
   async function ensureCommandsConfigured() {
@@ -477,7 +508,9 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     running = true;
     try {
       await reconcileCommandAssignments();
-      const pendingMembership = await prisma.personnelMember.findMany({ where: { guildId: config.guildId, applicationAcceptedAt: { not: null }, membershipConfirmedAt: null, rsiHandle: { not: null }, OR: [{ rsiCheckedAt: null }, { rsiCheckedAt: { lt: new Date(now().getTime() - 60_000) } }] }, take: 10 });
+      try { await membershipSync.poll(); }
+      catch (error) { logger.error("RSI membership discovery failed; existing personnel processing will continue:", error.message); }
+      const pendingMembership = await prisma.personnelMember.findMany({ where: { guildId: config.guildId, applicationAcceptedAt: { not: null }, membershipConfirmedAt: null, rsiHandle: { not: null }, OR: [{ rsiCheckedAt: null }, { rsiCheckedAt: { lt: new Date(now().getTime() - rsiInterval) } }] }, take: 10 });
       if (config.rsiApiKey) for (const candidate of pendingMembership) {
         try {
           await prisma.personnelMember.update({ where: { id: candidate.id }, data: { rsiCheckedAt: now() } });
@@ -514,11 +547,12 @@ export function createPersonnelService({ client, prisma, config, now = () => new
 
   function start() {
     if (!config.guildId || !config.buyerRoleId) throw new Error("Personnel worker requires DISCORD_GUILD_ID and BUYER_ROLE_ID.");
+    logger.log(config.rsiApiKey ? `RSI membership discovery enabled; recheck interval ${rsiInterval / 1000}s, up to 10 Discord members per pass.` : "RSI membership discovery disabled: RSI_MEMBERSHIP_API_KEY is not configured.");
     void poll();
     const timer = setInterval(() => void poll(), 60_000);
     timer.unref();
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, addApprovedSpecialistRole, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, addApprovedSpecialistRole, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, reconcileRsiMember, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }

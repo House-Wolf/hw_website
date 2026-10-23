@@ -1043,3 +1043,52 @@ test("RSI verifier refuses conflicting flat and nested primary organizations", a
   assert.equal(result.confirmed, false);
   assert.equal(result.reason, "CONFLICTING_ORGANIZATION_RESPONSE");
 });
+
+test("verified RSI membership repairs Foundling and both base roles without changing tenure", async () => {
+  const state = fixture({ websiteUser: true });
+  state.candidate.roles.cache.delete(PERSONNEL_ROLES.foundling);
+  state.candidate.roles.cache.delete(PERSONNEL_ROLES.member);
+  state.candidate.roles.cache.delete(PERSONNEL_ROLES.houseWolf);
+  state.candidate.roles.cache.set(PERSONNEL_ROLES.visitor, {});
+  const since = state.member.rankSince;
+  await state.service.reconcileRsiMember(state.member);
+  for (const id of [PERSONNEL_ROLES.foundling, PERSONNEL_ROLES.member, PERSONNEL_ROLES.houseWolf]) assert.ok(state.candidate.roles.cache.has(id));
+  assert.equal(state.candidate.roles.cache.has(PERSONNEL_ROLES.visitor), false);
+  assert.equal(state.member.rankSince, since);
+  assert.equal(state.sent.length, 0);
+});
+test("RSI role repair preserves higher service and officer ranks without adding Foundling", async () => {
+  for (const role of [PERSONNEL_ROLES.rallyMaster, PERSONNEL_ROLES.captain]) {
+    const state = fixture(); state.candidate.roles.cache.clear(); state.candidate.roles.cache.set(role, {});
+    await state.service.reconcileRsiMember(state.member);
+    assert.ok(state.candidate.roles.cache.has(role));
+    assert.ok(state.candidate.roles.cache.has(PERSONNEL_ROLES.member));
+    assert.ok(state.candidate.roles.cache.has(PERSONNEL_ROLES.houseWolf));
+    assert.equal(state.candidate.roles.cache.has(PERSONNEL_ROLES.foundling), false);
+  }
+});
+test("RSI role repair refuses unconfirmed membership and preflights all missing roles", async () => {
+  const unverified = fixture({ unverified: true }); await unverified.service.reconcileRsiMember(unverified.member);
+  assert.equal(unverified.roleCalls.length, 0);
+  const state = fixture(); state.candidate.roles.cache.delete(PERSONNEL_ROLES.member);
+  state.roleDefinitions.get(PERSONNEL_ROLES.member).editable = false;
+  await assert.rejects(state.service.reconcileRsiMember(state.member), /cannot manage/);
+  assert.equal(state.roleCalls.length, 0);
+});
+test("new RSI members use the existing Foundling order and announcement", async () => {
+  const state = fixture({ founding: true }); await state.service.reconcileRsiMember(state.member);
+  assert.equal(state.request.status, "COMPLETED");
+  for (const id of [PERSONNEL_ROLES.foundling, PERSONNEL_ROLES.member, PERSONNEL_ROLES.houseWolf]) assert.ok(state.candidate.roles.cache.has(id));
+  assert.equal(state.candidate.roles.cache.has(PERSONNEL_ROLES.visitor), false);
+  assert.equal(state.candidate.roles.cache.has("buyer"), false);
+  assert.equal(state.sent.length, 1);
+});
+test("an unrecorded higher live rank never queues a Foundling order", async () => {
+  const state = fixture({ founding: true }); state.candidate.roles.cache.set(PERSONNEL_ROLES.rallyMaster, {});
+  await state.service.considerMember(state.member);
+  assert.equal(state.options.createdRequest, undefined); assert.equal(state.roleCalls.length, 0);
+});
+test("a nonexistent RSI name is unconfirmed rather than a transient provider failure", async () => {
+  const result = await checkPublicRsiMembership("unknown", { apiKey: "test", fetcher: async () => new Response(null, { status: 404 }) });
+  assert.equal(result.confirmed, false); assert.equal(result.reason, "RSI_HANDLE_NOT_FOUND");
+});

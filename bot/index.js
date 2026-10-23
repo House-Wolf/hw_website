@@ -69,6 +69,7 @@ const personnelConfig = {
   guildId: process.env.DISCORD_GUILD_ID,
   buyerRoleId: BUYER_ROLE_ID,
   rsiApiKey: process.env.RSI_MEMBERSHIP_API_KEY,
+  rsiCheckIntervalMs: process.env.RSI_MEMBERSHIP_CHECK_INTERVAL_MS,
 };
 const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
 const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: (runtimeClient, guildId) => registerPersonnelCommand(runtimeClient, guildId, personnel), guildId: personnelConfig.guildId });
