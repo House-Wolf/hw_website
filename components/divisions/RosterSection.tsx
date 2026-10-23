@@ -20,10 +20,12 @@ export function RosterSection({
         {title}
       </h2>
 
-      {/* GRID */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+      {/* Center every row, including an incomplete final row. */}
+      <div className="flex flex-wrap items-stretch justify-center gap-6">
         {members.map((m) => (
-          <MemberCard key={m.id} member={m} />
+          <div key={m.id} className="w-full min-w-0 sm:w-[calc((100%_-_1.5rem)/2)] lg:w-[calc((100%_-_3rem)/3)]">
+            <MemberCard member={m} />
+          </div>
         ))}
       </div>
     </section>

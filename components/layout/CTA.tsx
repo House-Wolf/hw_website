@@ -105,10 +105,10 @@ export default function EpicCTA() {
           </div>
 
           {/* Values are supporting text; the actions sit below. */}
-          <ul aria-label="House Wolf values" className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-5 gap-y-3 border-y border-white/15 bg-black/65 px-5 py-4 text-xs font-mono font-medium uppercase tracking-[0.15em] text-white sm:text-sm">
+          <ul aria-label="House Wolf values" className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-black/20 px-5 py-2.5 text-[11px] font-mono font-normal uppercase tracking-[0.12em] text-white/85 [text-shadow:0_1px_4px_rgb(0_0_0/85%)] sm:text-xs">
             {["Elite operations", "Brotherhood", "Legacy"].map((value, index) => (
-              <li key={value} className="flex items-center gap-5">
-                {index > 0 && <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/80" />}
+              <li key={value} className="flex items-center gap-4">
+                {index > 0 && <span aria-hidden="true" className="h-0.5 w-0.5 rounded-full bg-white/45" />}
                 {value}
               </li>
             ))}
