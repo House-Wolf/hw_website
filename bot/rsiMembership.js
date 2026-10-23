@@ -10,7 +10,10 @@ export function discordRsiHandleCandidates(member) {
 export async function checkPublicRsiMembership(handle, { apiKey, fetcher = fetch, now = new Date() }) {
   if (!apiKey) return { confirmed: false, reason: "API_NOT_CONFIGURED" };
   if (!/^[a-zA-Z0-9_-]{3,60}$/.test(handle)) throw new Error("Invalid RSI handle");
-  const response = await fetcher(`https://apiv2.starcitizen-api.com/v2/users/${encodeURIComponent(handle)}?refresh=true`, {
+  // Normal polling uses the provider's automatically refreshed cache at no
+  // daily quota cost. Forced refreshes exhausted the key and blocked otherwise
+  // valid cached membership proof. The freshness checks below still apply.
+  const response = await fetcher(`https://apiv2.starcitizen-api.com/v2/users/${encodeURIComponent(handle)}`, {
     headers: { "x-api-key": apiKey }, signal: AbortSignal.timeout(10_000),
   });
   if (response.status === 404) return { confirmed: false, reason: "RSI_HANDLE_NOT_FOUND" };

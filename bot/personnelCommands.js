@@ -3,6 +3,7 @@ import { COMMAND_DEFINITIONS, SERVICE_RANKS } from "../lib/personnel/policy.js";
 
 export function divisionCommandDefinitions(roleChoicesByCommand = {}) {
   return COMMAND_DEFINITIONS.map((definition) => new SlashCommandBuilder()
+    .setDefaultMemberPermissions(0)
     .setName(definition.key).setDescription(`Captain: assign or remove ${definition.name} specialist roles`)
     .addUserOption((option) => option.setName("member").setDescription("House Wolf member").setRequired(true))
     .addStringOption((option) => {
@@ -17,12 +18,7 @@ export function divisionCommandDefinitions(roleChoicesByCommand = {}) {
 }
 
 export function personnelCommandDefinition() {
-  const command = new SlashCommandBuilder().setName("personnel").setDescription("House Wolf service records, promotions, and command assignments");
-  command.addSubcommand((subcommand) => subcommand.setName("accept-application").setDescription("Record accepted application and a verified Discord-to-RSI identity")
-    .addUserOption((option) => option.setName("member").setDescription("Discord member whose RSI identity you have verified").setRequired(true))
-    .addStringOption((option) => option.setName("rsi-handle").setDescription("Same-name suggestions appear after selecting a member; verify the RSI identity").setRequired(true).setMaxLength(60).setAutocomplete(true))
-    .addStringOption((option) => option.setName("evidence").setDescription("Application acceptance and identity verification evidence").setRequired(true).setMinLength(10).setMaxLength(1000))
-    .addBooleanOption((option) => option.setName("rsi-confirmed").setDescription("You have also confirmed actual CUTTERWOLF membership on RSI")));
+  const command = new SlashCommandBuilder().setName("personnel").setDescription("House Wolf service records and promotions").setDefaultMemberPermissions(0);
   command.addSubcommand((subcommand) => subcommand.setName("service-history").setDescription("Warlord: import a verified start date for a member's existing rank")
     .addUserOption((option) => option.setName("member").setDescription("Existing member").setRequired(true))
     .addStringOption((option) => option.setName("rank").setDescription("Must match their current Discord rank").setRequired(true).addChoices(...SERVICE_RANKS.map((rank) => ({ name: rank.name, value: rank.roleId }))))
@@ -51,7 +47,7 @@ export function attachPersonnelInteractions(client, service, config) {
     const division = COMMAND_DEFINITIONS.find((definition) => definition.key === interaction.commandName);
     if (interaction.isAutocomplete() && (interaction.commandName === "personnel" || division)) {
       try {
-        if (interaction.guildId !== config.guildId) {
+        if (interaction.guildId !== config.guildId || !await service.canUsePersonnelCommands(interaction.user.id)) {
           await interaction.respond([]);
           return;
         }
@@ -62,9 +58,6 @@ export function attachPersonnelInteractions(client, service, config) {
           // Accept cached legacy commands, but always scope choices to the live
           // actor and use the division command itself as the source of authority.
           choices = await service.commandRoleChoices(division?.key || interaction.options.getString("command"), focused.value, interaction.user.id);
-        } else if (subcommand === "accept-application" && focused.name === "rsi-handle") {
-          const member = interaction.options.getUser("member");
-          if (member) choices = await service.rsiHandleChoices(member.id, focused.value);
         }
         await interaction.respond(choices);
       } catch (error) {
@@ -79,6 +72,7 @@ export function attachPersonnelInteractions(client, service, config) {
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       if (interaction.guildId !== config.guildId) throw new Error("Personnel orders are restricted to the House Wolf server.");
+      if (personnelCommand && !await service.canUsePersonnelCommands(interaction.user.id)) throw new Error("Bot commands require Leadership Core, Fleet Commander, Captain, or Lieutenant.");
       if (promotionButton) {
         const match = /^hw:promotion:(APPROVE|REJECT):([0-9a-f-]{36})$/.exec(interaction.customId);
         if (!match) throw new Error("Invalid personnel order button.");
@@ -87,15 +81,14 @@ export function attachPersonnelInteractions(client, service, config) {
         return;
       }
       const action = division ? "assign-role" : interaction.options.getSubcommand();
-      if (action === "accept-application") {
-        const record = await service.acceptApplication({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, rsiHandle: interaction.options.getString("rsi-handle", true), evidence: interaction.options.getString("evidence", true), rsiConfirmed: interaction.options.getBoolean("rsi-confirmed") === true });
-        await interaction.editReply(record.membershipConfirmedAt ? `Acceptance and RSI identity/membership confirmation recorded for ${record.rsiHandle}. Foundling reconciliation is queued automatically; no officer ballot is required.` : "Application acceptance and RSI identity recorded. Foundling remains blocked until organization membership is confirmed. Configure the membership API or submit confirmed RSI evidence.");
-      } else if (action === "service-history") {
+      if (action === "service-history") {
         await service.recordHistory({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, rankRoleId: interaction.options.getString("rank", true), since: interaction.options.getString("since", true), evidence: interaction.options.getString("evidence", true) });
         await interaction.editReply("Verified time in rank recorded. If the required term is complete, the officer review is queued.");
       } else if (action === "assign-role") {
         const assignment = await service.assignCommandRole({ actorId: interaction.user.id, discordId: interaction.options.getUser("member", true).id, commandKey: division?.key || interaction.options.getString("command", true), roleId: interaction.options.getString("role", true), action: interaction.options.getString("action", true) });
         await interaction.editReply(assignment.status === "COMPLETED" ? "Specialist assignment confirmed and entered into the command log." : assignment.status === "CANCELLED" ? "Assignment cancelled because membership or command authority changed. The website has been reconciled with Discord." : "Specialist assignment saved. Discord and website reconciliation is pending and will retry automatically.");
+      } else {
+        await interaction.editReply("This personnel command has been removed. RSI applications are approved on the RSI website; membership synchronization runs automatically.");
       }
     } catch (error) {
       console.error("Personnel interaction failed:", error.message);

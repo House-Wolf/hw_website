@@ -2,10 +2,11 @@ import { discordRsiHandleCandidates, checkPublicRsiMembership } from "./rsiMembe
 import { PERSONNEL_ROLES, OFFICER_ROLE_IDS, SERVICE_RANKS } from "../lib/personnel/policy.js";
 
 export function rsiSyncInterval(value) {
-  if (value === undefined || value === "") return 60_000;
+  if (value === undefined || value === "") return 900_000;
   const interval = Number(value);
   if (!Number.isSafeInteger(interval) || interval < 60_000) throw new Error("RSI_MEMBERSHIP_CHECK_INTERVAL_MS must be an integer of at least 60000.");
-  return interval;
+  // Clamp the previous one-minute deployment setting to a production-safe floor.
+  return Math.max(900_000, interval);
 }
 
 /** Public membership discovery, not a scraper of private RSI applications. */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Collection, PermissionsBitField } from "discord.js";
-import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, formatVerseDate, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS } from "../lib/personnel/policy.js";
+import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, formatVerseDate, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_COMMAND_ROLE_IDS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS } from "../lib/personnel/policy.js";
 import { createPersonnelService } from "../bot/personnelService.js";
 import { attachPersonnelInteractions, divisionCommandDefinitions, personnelCommandDefinition, registerPersonnelCommand } from "../bot/personnelCommands.js";
 import { promotionReviewMessage } from "../bot/personnelMessages.js";
@@ -585,11 +585,14 @@ test("review cards carry persistent buttons, count votes, and disable terminal d
 test("slash command schema is valid and offers scoped Captain assignment", () => {
   const definition = personnelCommandDefinition();
   assert.equal(definition.name, "personnel");
+  assert.equal(definition.default_member_permissions, "0");
+  assert.deepEqual(definition.options.map(option => option.name), ["service-history"]);
   assert.equal(definition.options.some(option => option.name === "assign-role"), false);
   const choices = Object.fromEntries(COMMAND_DEFINITIONS.map(command => [command.key, command.roles.map((name, index) => ({ name, value: `${command.key}-role-${index}` }))]));
   const divisions = divisionCommandDefinitions(choices);
   assert.deepEqual(divisions.map(command => command.name), COMMAND_DEFINITIONS.map(command => command.key));
   for (const command of divisions) {
+    assert.equal(command.default_member_permissions, "0");
     assert.deepEqual(command.options.map(option => option.name), ["member", "role", "action"]);
     assert.ok(command.options.every(option => option.required));
     const role = command.options.find(option => option.name === "role");
@@ -873,7 +876,7 @@ test("division interactions hide unauthorized choices and refuse cross-command a
 test("database failures do not expose Prisma queries in Discord replies", async () => {
   let handler;
   const replies = [];
-  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { assignCommandRole: async () => { throw Object.assign(new Error("Invalid prisma.$queryRaw invocation with internal SQL details"), { name: "PrismaClientKnownRequestError", code: "P2010" }); } }, { guildId });
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { canUsePersonnelCommands: async () => true, assignCommandRole: async () => { throw Object.assign(new Error("Invalid prisma.$queryRaw invocation with internal SQL details"), { name: "PrismaClientKnownRequestError", code: "P2010" }); } }, { guildId });
   const interaction = {
     isAutocomplete: () => false, isButton: () => false, isChatInputCommand: () => true,
     commandName: "locops", guildId, user: { id: captainId },
@@ -889,7 +892,7 @@ test("cached personnel autocomplete scopes command roles to the actor without de
   let handler;
   const responses = [];
   const choices = [{ name: "LOCOPS - Mining", value: "mining" }];
-  const service = { commandRoleChoices: async (commandKey, search, actorId) => {
+  const service = { canUsePersonnelCommands: async () => true, commandRoleChoices: async (commandKey, search, actorId) => {
     assert.equal(commandKey, "locops"); assert.equal(search, "min"); assert.equal(actorId, captainId); return choices;
   } };
   attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, service, { guildId });
@@ -984,25 +987,28 @@ test("a name suggestion cannot overwrite an existing RSI identity", async () => 
   assert.equal(state.roleCalls.length, 0);
 });
 
-test("accept-application autocomplete uses the selected member and stays separate from specialist roles", async () => {
+test("removed accept-application autocomplete cannot look up RSI identities", async () => {
   let handler;
   const responses = [];
-  const choices = [{ name: "wolf (Discord name; verify identity)", value: "wolf" }];
-  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { rsiHandleChoices: async (discordId, query) => {
-    assert.equal(discordId, candidateId);
-    assert.equal(query, "wo");
-    return choices;
-  } }, { guildId });
-  const interaction = { isAutocomplete: () => true, commandName: "personnel", guildId,
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { canUsePersonnelCommands: async () => true, rsiHandleChoices: async () => { assert.fail("Removed command must not look up identities"); } }, { guildId });
+  const interaction = { isAutocomplete: () => true, commandName: "personnel", guildId, user: { id: officerId },
     options: { getSubcommand: () => "accept-application", getFocused: () => ({ name: "rsi-handle", value: "wo" }), getUser: () => ({ id: candidateId }) },
     respond: async value => responses.push(value),
   };
   await handler(interaction);
   interaction.options.getUser = () => null;
   await handler(interaction);
-  assert.deepEqual(responses, [choices, []]);
-  const handle = personnelCommandDefinition().options.find(option => option.name === "accept-application").options.find(option => option.name === "rsi-handle");
-  assert.equal(handle.autocomplete, true);
+  assert.deepEqual(responses, [[], []]);
+  assert.equal(personnelCommandDefinition().options.some(option => option.name === "accept-application"), false);
+});
+
+test("a cached removed accept-application command cannot change membership or roles", async () => {
+  let handler;
+  const replies = [];
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, { canUsePersonnelCommands: async () => true, acceptApplication: async () => { assert.fail("Removed command must not accept applications"); } }, { guildId });
+  await handler({ isAutocomplete: () => false, isButton: () => false, isChatInputCommand: () => true, commandName: "personnel", guildId, user: { id: officerId },
+    options: { getSubcommand: () => "accept-application" }, deferReply: async () => {}, editReply: async message => replies.push(message) });
+  assert.match(replies[0], /removed/);
 });
 
 test("RSI checks require exact linked identity, fresh data, and CUTTERWOLF", async () => {
@@ -1091,4 +1097,47 @@ test("an unrecorded higher live rank never queues a Foundling order", async () =
 test("a nonexistent RSI name is unconfirmed rather than a transient provider failure", async () => {
   const result = await checkPublicRsiMembership("unknown", { apiKey: "test", fetcher: async () => new Response(null, { status: 404 }) });
   assert.equal(result.confirmed, false); assert.equal(result.reason, "RSI_HANDLE_NOT_FOUND");
+});
+
+test("routine RSI verification uses the free cache endpoint with all freshness and identity checks intact", async () => {
+  const now = new Date("2026-10-23T01:35:00Z");
+  let requested;
+  const result = await checkPublicRsiMembership("talon_graves", { apiKey: "test-only-key", now, fetcher: async (url, options) => {
+    requested = new URL(url);
+    assert.equal(options.headers["x-api-key"], "test-only-key");
+    return Response.json({ success: true, updatedAt: "2026-10-23T01:21:19Z", data: { profile: { handle: "Talon_Graves" }, organization: { organization: { info: { sid: "CUTTERWOLF" } } } } });
+  } });
+  assert.equal(requested.pathname, "/v2/users/talon_graves");
+  assert.equal(requested.search, "");
+  assert.equal(result.confirmed, true);
+});
+
+test("only the four configured command roles qualify, using live roles and excluding bots", async () => {
+  assert.deepEqual(PERSONNEL_COMMAND_ROLE_IDS, ["1182799457650233465", "1318668938854273077", "1308253899357950034", "1318673103424852092"]);
+  const state = fixture();
+  for (const id of PERSONNEL_COMMAND_ROLE_IDS) {
+    state.candidate.roles.cache.clear(); state.candidate.roles.cache.set(id, {});
+    assert.equal(await state.service.canUsePersonnelCommands(candidateId), true);
+  }
+  for (const id of [...Object.values(PERSONNEL_ROLES).filter(id => !PERSONNEL_COMMAND_ROLE_IDS.includes(id)), "cosmetic"]) {
+    state.candidate.roles.cache.clear(); state.candidate.roles.cache.set(id, {});
+    assert.equal(await state.service.canUsePersonnelCommands(candidateId), false);
+  }
+  state.candidate.roles.cache.set(PERSONNEL_ROLES.captain, {}); state.candidate.user.bot = true;
+  assert.equal(await state.service.canUsePersonnelCommands(candidateId), false);
+});
+
+test("cached commands and autocomplete cannot bypass the live command-role gate", async () => {
+  let handler;
+  const replies = [], responses = [];
+  attachPersonnelInteractions({ on: (_event, callback) => { handler = callback; } }, {
+    canUsePersonnelCommands: async () => false,
+    assignCommandRole: async () => assert.fail("Unauthorized command must not reach assignments"),
+    commandRoleChoices: async () => assert.fail("Unauthorized autocomplete must not disclose roles"),
+  }, { guildId });
+  const interaction = { isAutocomplete: () => false, isButton: () => false, isChatInputCommand: () => true, commandName: "locops", guildId,
+    user: { id: candidateId }, deferReply: async () => { interaction.deferred = true; }, editReply: async message => replies.push(message), respond: async choices => responses.push(choices) };
+  await handler(interaction); assert.match(replies[0].content, /Leadership Core, Fleet Commander, Captain, or Lieutenant/);
+  interaction.isAutocomplete = () => true;
+  await handler(interaction); assert.deepEqual(responses, [[]]);
 });

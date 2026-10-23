@@ -41,9 +41,12 @@ try {
     console.log("Verification only: Discord slash-command registrations were not changed.");
   }
   const registered = await (await client.guilds.fetch(process.env.DISCORD_GUILD_ID)).commands.fetch();
+  const personnel = registered.find(item => item.name === "personnel");
+  if (!personnel || personnel.options.some(item => item.name === "accept-application") || personnel.defaultMemberPermissions?.bitfield !== 0n) throw new Error("Published personnel command has an obsolete acceptance command or unsafe default visibility.");
   for (const definition of COMMAND_DEFINITIONS) {
     const command = registered.find(item => item.name === definition.key);
     const option = command?.options.find(item => item.name === "role");
+    if (command?.defaultMemberPermissions?.bitfield !== 0n) throw new Error(`Published /${definition.key} must be hidden by default until officer role overrides are configured.`);
     const expected = await service.commandRoleChoices(definition.key);
     if (option?.autocomplete || JSON.stringify(option?.choices) !== JSON.stringify(expected)) {
       throw new Error(`Published /${definition.key} role menu does not match its approved mapping.`);
@@ -51,6 +54,7 @@ try {
     console.log(`Verified published /${definition.key}: ${expected.length} specialist choices`);
   }
   console.log("All four division mappings and specialist role choices are ready. No member roles were changed.");
+  console.log("Command defaults are restricted. Server Settings > Integrations > HouseWolf-MP must allow only Leadership Core, Fleet Commander, Captain and Lieutenant; Discord requires an administrator or authorized OAuth bearer token for role-specific overrides.");
 } finally {
   client.destroy();
   await prisma.$disconnect();

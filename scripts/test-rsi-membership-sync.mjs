@@ -58,9 +58,9 @@ test("provider failures never count as approval", async () => {
   assert.equal(state.records[0].membershipConfirmedAt, undefined); assert.equal(state.reconciled.length, 0);
 });
 test("cooldown persists across a worker restart and then permits another lookup", async () => {
-  const state = fixture({ interval: 120000, lookup: async () => ({ confirmed: false }) });
+  const state = fixture({ interval: 900000, lookup: async () => ({ confirmed: false }) });
   await state.worker.poll(); await state.create().poll(); assert.equal(state.calls.length, 1);
-  state.advance(120000); await state.create().poll(); assert.equal(state.calls.length, 2);
+  state.advance(900000); await state.create().poll(); assert.equal(state.calls.length, 2);
 });
 test("duplicate Discord display names cannot claim the same RSI account", async () => {
   const state = fixture(); state.people.push(state.member("other", "Talon_Graves"));
@@ -125,10 +125,10 @@ test("periodic reconciliation retries after roles were applied but website synch
   const state = fixture({ people: [seed.member("talon", "Talon_Graves", roles)], records: [{ id: "existing", guildId: "guild", discordId: "talon", rsiHandle: "talon_graves", membershipConfirmedAt: new Date(), applicationAcceptedAt: new Date(), membershipVerifiedBy: "OFFICER", currentRankRoleId: PERSONNEL_ROLES.foundling }] });
   await state.worker.poll(); assert.equal(state.reconciled.length, 1);
   await state.worker.poll(); assert.equal(state.reconciled.length, 1);
-  state.advance(60000); await state.create().poll(); assert.equal(state.reconciled.length, 2);
+  state.advance(900000); await state.create().poll(); assert.equal(state.reconciled.length, 2);
   assert.equal(state.calls.length, 0);
 });
 test("invalid intervals cannot create a rapid API polling loop", () => {
   for (const value of [0, 1, -1, "abc", "Infinity", 60000.1]) assert.throws(() => rsiSyncInterval(value));
-  assert.equal(rsiSyncInterval(undefined), 60000); assert.equal(rsiSyncInterval("21600000"), 21600000);
+  assert.equal(rsiSyncInterval(undefined), 900000); assert.equal(rsiSyncInterval("60000"), 900000); assert.equal(rsiSyncInterval("21600000"), 21600000);
 });

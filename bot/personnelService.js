@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { PermissionsBitField } from "discord.js";
-import { addCalendarMonths, canLeadCommand, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
+import { addCalendarMonths, canLeadCommand, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_COMMAND_ROLE_IDS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS, serviceRankFromRoles } from "../lib/personnel/policy.js";
 import { promotionAnnouncement, promotionReviewMessage } from "./personnelMessages.js";
 import { checkPublicRsiMembership, discordRsiHandleCandidates } from "./rsiMembership.js";
 import { createRsiMembershipSync, rsiSyncInterval } from "./rsiMembershipSync.js";
@@ -29,6 +29,10 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return client.guilds.fetch(config.guildId);
   }
   async function liveMember(discordId) { return (await guild()).members.fetch({ user: discordId, force: true }); }
+  async function canUsePersonnelCommands(discordId) {
+    const member = await liveMember(discordId);
+    return !member.user.bot && PERSONNEL_COMMAND_ROLE_IDS.some(id => member.roles.cache.has(id));
+  }
   function roleIds(member) { return [...member.roles.cache.keys()]; }
   async function officer(discordId, warlordOnly = false) {
     const member = await liveMember(discordId);
@@ -554,5 +558,5 @@ export function createPersonnelService({ client, prisma, config, now = () => new
     return () => clearInterval(timer);
   }
 
-  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, addApprovedSpecialistRole, commandRoleChoices, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, reconcileRsiMember, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
+  return { castVote, executeRequest, acceptApplication, rsiHandleChoices, recordHistory, ensureCommandsConfigured, addApprovedSpecialistRole, commandRoleChoices, canUsePersonnelCommands, assignCommandRole, executeCommandAssignment, reconcileCommandAssignments, reconcileRsiMember, considerMember, refreshReview, publishAnnouncement, remindReview, poll, start };
 }
