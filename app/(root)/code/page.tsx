@@ -86,12 +86,12 @@ export default function DragoonCodePage() {
           <a href="#resolnare" className="inline-flex min-h-11 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50 focus-visible:outline-white">The six principles</a>
         </nav>
 
-        <section id="creed" aria-labelledby="creed-heading" className="scroll-mt-44 overflow-hidden rounded-xl border border-white/15 bg-background-base">
-          <header className="border-b border-white/10 p-6 sm:p-8">
+        <section id="creed" aria-labelledby="creed-heading" className="scroll-mt-44">
+          <header className="mb-6">
             <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">01 / The creed</p>
             <h2 id="creed-heading" className="text-3xl font-bold text-white sm:text-4xl">Code of Honor</h2>
           </header>
-          <blockquote className="grid divide-y divide-white/10 md:grid-cols-3 md:divide-x md:divide-y-0">
+          <blockquote className="grid overflow-hidden rounded-xl border border-white/15 bg-background-base divide-y divide-white/10 md:grid-cols-3 md:divide-x md:divide-y-0">
             {pillars.map((pillar) => (
               <div key={pillar.title} className="p-6 sm:p-8">
                 <p className="mb-2 text-xl font-semibold text-white">{pillar.creed}</p>
