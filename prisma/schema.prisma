@@ -62,6 +62,45 @@ model OnboardingProfile {
   @@index([completedAt, welcomeMessageId])
 }
 
+model DiscordActivityState {
+  guildId           String   @id @map("guild_id")
+  trackingStartedAt DateTime @default(now()) @map("tracking_started_at") @db.Timestamptz(6)
+  periodStartedAt   DateTime @default(now()) @map("period_started_at") @db.Timestamptz(6)
+  nextReportAt      DateTime @map("next_report_at") @db.Timestamptz(6)
+
+  @@map("discord_activity_states")
+}
+
+model DiscordMemberActivity {
+  guildId      String   @map("guild_id")
+  discordId    String   @map("discord_id")
+  periodStartedAt DateTime @map("period_started_at") @db.Timestamptz(6)
+  lastActiveAt DateTime @map("last_active_at") @db.Timestamptz(6)
+  source       String
+
+  @@id([guildId, discordId, periodStartedAt])
+  @@map("discord_member_activity")
+}
+
+model DiscordActivityDelivery {
+  id              String    @id @default(uuid()) @db.Uuid
+  guildId         String    @map("guild_id")
+  recipientId     String    @map("recipient_id")
+  periodStartedAt DateTime  @map("period_started_at") @db.Timestamptz(6)
+  periodEndedAt   DateTime  @map("period_ended_at") @db.Timestamptz(6)
+  report          Json
+  sentAt          DateTime? @map("sent_at") @db.Timestamptz(6)
+  messageId       String?   @map("message_id")
+  nextAttemptAt   DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  processingUntil DateTime? @map("processing_until") @db.Timestamptz(6)
+  processingToken String?   @map("processing_token")
+  lastError       String?   @map("last_error")
+
+  @@unique([guildId, recipientId, periodEndedAt])
+  @@index([guildId, sentAt, nextAttemptAt])
+  @@map("discord_activity_deliveries")
+}
+
 model PersonnelMember {
   id                    String   @id @default(uuid()) @db.Uuid
   guildId               String   @map("guild_id")

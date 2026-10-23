@@ -11,6 +11,7 @@ import { createPersonnelService } from "./personnelService.js";
 import { attachPersonnelInteractions, registerPersonnelCommand } from "./personnelCommands.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 import { createPersonnelStartup, validateBotEnvironment } from "./runtime.js";
+import { createDiscordActivityService } from "./discordActivity.js";
 import { captureRawBody, createBotServiceAuth, createGithubWebhookAuth } from "./httpSecurity.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +49,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers, // Required for role fetching
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.MessageContent, // For reading messages if needed
   ],
@@ -72,6 +75,7 @@ const personnelConfig = {
   rsiCheckIntervalMs: process.env.RSI_MEMBERSHIP_CHECK_INTERVAL_MS,
 };
 const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
+const activityReports = createDiscordActivityService({ client, prisma, guildId: personnelConfig.guildId });
 const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: (runtimeClient, guildId) => registerPersonnelCommand(runtimeClient, guildId, personnel), guildId: personnelConfig.guildId });
 if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
 
@@ -85,6 +89,7 @@ client.once("ready", async () => {
 
   // Reschedule pending marketplace guest removals from database
   marketplaceGuests.start();
+  if (process.env.DISCORD_ACTIVITY_ENABLED !== "false") activityReports.start();
   if (process.env.PERSONNEL_ENABLED === "true") {
     void personnelStartup.start();
   }
