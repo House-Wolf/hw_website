@@ -46,6 +46,8 @@ Current F02 code is lib/fleetyards/normalization.ts plus shared public component
 
 All new operational models are in prisma/schema.prisma and migration 20261024010000_command_native_events; migration 20261023235900_reconcile_user_theme repairs the existing user-field migration gap. No schema-only feature is marked complete. GitHub Actions is written but has not run remotely; full browser/staging acceptance remains open. Detailed local commands/results are in PROGRESS.md.
 
+N09 cover follow-up: operations/cover API, coverSelection.js and cover.ts accept bounded 4 MiB binary uploads, return validated/compressed JPEGs and prevent rejected uploads becoming coverless publications. Cover tests verify actual large-PNG normalization into the native payload; HTTP tests verify officer denial before decoding. No schema/configuration change. Status: verified locally; browser/live delivery unverified.
+
 - https://www.youtube.com/watch?v=FKXzqo2IXiA: tool fetch failed (cache miss), 2026-10-23. No transcript or frames verified. V01-V07 source is the contract's supplied description.
 - https://orgdeck.app/: official description retrieved 2026-10-23; operations, fleet, recruitment, economy, analytics and alliances corroborated. Product wording is reference, not copied implementation/artwork. Automatic attendance rank claims do not override House Wolf promotion policy.
 - https://docs.discord.com/developers/resources/guild-scheduled-event and https://docs.discord.com/developers/topics/permissions retrieved 2026-10-23. Native event hosting channel differs from announcement text channel. Further endpoint/state/ACL validation required before Phase 3.

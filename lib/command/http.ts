@@ -22,16 +22,19 @@ export async function commandHttp(request: NextRequest, write: boolean, callback
     return NextResponse.json({ error: known ? error.message : "Operation service is unavailable. Please retry.", code: known ? error.code : "SERVICE_UNAVAILABLE", correlationId }, { status: known ? error.status : 503 });
   }
 }
-export async function commandBody(request: NextRequest) {
+export async function boundedCommandBytes(request: NextRequest, limit: number) {
   const reader = request.body?.getReader();
   const chunks: Uint8Array[] = []; let size = 0;
   if (reader) for (;;) {
     const { value, done } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > 800000) { await reader.cancel(); throw new CommandError(400, "BODY_TOO_LARGE", "Request is too large."); }
+    if (size > limit) { await reader.cancel(); throw new CommandError(400, "BODY_TOO_LARGE", "Request is too large."); }
     chunks.push(value);
   }
-  const raw = Buffer.concat(chunks).toString("utf8");
+  return Buffer.concat(chunks);
+}
+export async function commandBody(request: NextRequest) {
+  const raw = (await boundedCommandBytes(request, 800000)).toString("utf8");
   try { return JSON.parse(raw); } catch { throw new CommandError(400, "INVALID_JSON", "Submit valid JSON."); }
 }

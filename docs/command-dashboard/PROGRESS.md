@@ -1,5 +1,15 @@
 ﻿# Command dashboard progress
 
+## 2026-10-24 — Selected cover missing from native event
+
+The user supplied the rejection screenshot after selecting test.png. A read-only, guild-scoped metadata lookup of the reported test operation confirmed imageData absent, imageBehavior PRESERVE and no native cover hash. No configured database or Discord record was changed. The old form rejected files above 500 KB or nonstandard MIME declarations, retained the file picker label, and still allowed publishing without the rejected cover.
+
+Fixed the complete upload path: live-officer/origin/rate-limited `POST /api/command/operations/cover` streams at most 4 MiB, validates magic bytes and actual decoded format/pixel limits, strips metadata, resizes proportionally and compresses to JPEG at most 500 KB. The client waits, previews the normalized cover on info/review, blocks progression/publishing on pending or rejected uploads, clears misleading failed picker values, and requires an explicit remove/preserve choice to discard an error. Generic/empty browser MIME no longer rejects a valid PNG. Existing native PATCH mapping is reused; no new migration.
+
+The cap stays below Vercel's 4.5 MB function request limit (https://vercel.com/docs/functions/limitations checked 2026-10-24); an earlier progress comment proposing 10 MB was revised before completion. No new configuration is required. The previously rejected image was not stored: reselect it, wait for the preview and save published event changes.
+
+Verification: `pnpm test:command` **71 passed, 0 failed**, including an actual >500 KB PNG with generic MIME, delayed processing, bounded JPEG output sent to mocked native Discord, decode/network/size failures and cover-endpoint officer denial before decoding. Explicit TypeScript and targeted lint passed. Full Prisma/Next production build passed in the isolated test-only source copy and includes the new cover route. Browser/live Discord verification remains unclaimed. No deployment, live event/message update or production mutation occurred; other working-tree changes were preserved.
+
 ## 2026-10-23 — Phase 0 inventory/design
 
 Branch feature/command-dashboard created from clean current main 69101c24531ac356527813f765f2f15910ebbf7a after fetching origin/main. Reviewed baseline adc6afd3a4aa2a60889db4505e910b3f6830e3d1. One intervening commit contains the user's cleanup and specialty UI; preserved. Root/nested AGENTS absent on main; baseline root guidance read. Complete user contract saved verbatim from this thread at docs/house-wolf-dashboard-cli-instructions.md.

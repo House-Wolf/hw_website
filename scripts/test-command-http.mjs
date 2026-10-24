@@ -46,3 +46,22 @@ test("streaming JSON body bound, malformed JSON and successful responses", async
   const response = await f.commandHttp(f.request(), true, async () => ({ nativeEventId: "mapped" }));
   assert.equal(response.status, 200); assert.match(response.headers.get("cache-control"), /no-store/); assert.deepEqual((await response.json()).data, { nativeEventId: "mapped" });
 });
+
+test("cover endpoint checks live officer authority before decoding and returns the normalized image", async () => {
+  const f = fixture(); let officer = false, checks = 0, decoded = 0;
+  const loaded = { exports: {} };
+  const source = ts.transpileModule(readFileSync(new URL("../app/api/command/operations/cover/route.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(source, { module: loaded, exports: loaded.exports, require(name) {
+    if (name === "@/lib/command/http") return f;
+    if (name === "@/lib/command/server") return { authorize: async (userId, options) => {
+      checks++; assert.equal(userId, f.state.session.user.id); assert.equal(options.officer, true);
+      if (!officer) throw new access.CommandError(403, "OFFICER_REQUIRED", "Officer required");
+    } };
+    if (name === "@/lib/command/cover") return { normalizeEventCoverBytes: async (bytes) => { decoded++; assert.equal(bytes.toString(), "image bytes"); return "data:image/jpeg;base64,dGVzdA=="; } };
+    throw new Error("Unexpected dependency " + name);
+  } });
+  assert.equal((await loaded.exports.POST(f.request({ body: "image bytes" }))).status, 403); assert.equal(decoded, 0);
+  officer = true; const response = await loaded.exports.POST(f.request({ body: "image bytes" }));
+  assert.equal(response.status, 200); assert.equal((await response.json()).data.imageData, "data:image/jpeg;base64,dGVzdA==");
+  assert.equal(decoded, 1); assert.equal(checks, 3);
+});
