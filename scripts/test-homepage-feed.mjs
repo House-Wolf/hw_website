@@ -116,7 +116,8 @@ const render = (props = {}) => renderToStaticMarkup(React.createElement(Hero, {
 test("the empty events section has no heading, background strip or placeholder in rendered HTML", () => {
   const html = render();
   assert.doesNotMatch(html, /events-heading|No upcoming events|Rally with the pack|SentinelWolfBoomTube/);
-  assert.match(html, /announcements-heading/);
+  assert.doesNotMatch(html, /announcements-heading/);
+  assert.match(html, /All caught up/);
 });
 
 test("scheduled events render a UTC date and direct Discord event link", () => {
@@ -126,10 +127,30 @@ test("scheduled events render a UTC date and direct Discord event link", () => {
   assert.match(html, /href="https:\/\/discord.com\/events\/guild\/soon"/);
 });
 
-test("upcoming events retain their original image backdrop and readable dark overlay", () => {
-  const html = render({ events: prepareEvents([event("soon", "2026-10-22T20:00:00Z")], "guild", now) });
-  assert.match(html, /background-image:linear-gradient\(rgb\(0 0 0 \/ 70%\), rgb\(0 0 0 \/ 70%\)\), url\(&#x27;\/images\/global\/SentinelWolfBoomTube\.png&#x27;\)/);
-  assert.ok(readFileSync(new URL("../public/images/global/SentinelWolfBoomTube.png", import.meta.url)).length > 0);
+test("events and announcements share the updates panel with counts and no separate event strip", () => {
+  const html = render({
+    events: prepareEvents([event("soon", "2026-10-22T20:00:00Z")], "guild", now),
+    announcements: prepareAnnouncements([message("Fleet update\n\nBring your gear.")], now),
+  });
+  assert.match(html, /News &amp; events/i);
+  assert.ok(html.indexOf('id="events-heading"') < html.indexOf('id="announcements-heading"'));
+  assert.match(html, /<details open=""[^>]*group\/announcements/);
+  assert.match(html, /aria-label="1 announcement"/);
+  assert.match(html, /aria-label="1 event"/);
+  assert.match(html, /<details[^>]*group\/announcements/);
+  assert.match(html, /<details[^>]*group\/events/);
+  assert.doesNotMatch(html, /Upcoming events|SentinelWolfBoomTube|Rally with the pack/);
+});
+
+test("only populated dropdowns appear and live events are visibly indicated", () => {
+  const eventHtml = render({ events: prepareEvents([event("live", "2026-10-21T20:00:00Z", 2)], "guild", now) });
+  assert.match(eventHtml, /events-heading/);
+  assert.match(eventHtml, /Live now/);
+  assert.match(eventHtml, /<details open=""[^>]*group\/events/);
+  assert.doesNotMatch(eventHtml, /announcements-heading/);
+  const newsHtml = render({ announcements: prepareAnnouncements([message("Fleet update\n\nBring your gear.")], now) });
+  assert.match(newsHtml, /announcements-heading/);
+  assert.doesNotMatch(newsHtml, /events-heading/);
 });
 
 test("news renders native expandable full text, without GIF URLs or duplicate headings", () => {

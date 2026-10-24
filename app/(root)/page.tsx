@@ -113,13 +113,13 @@ export default async function Home(): Promise<JSX.Element> {
 
   return (
     <main>
+      <CTA />
       <Hero
         events={events}
         announcements={announcements}
         featuredPhotos={featuredPhotos}
         featuredVideo={featuredVideo}
       />
-      <CTA />
     </main>
   );
 }

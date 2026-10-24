@@ -107,10 +107,10 @@ export default function OriginsPage(): JSX.Element {
           </div>
         </section>
 
-        <section aria-labelledby="legacy-heading" className="mt-10 flex flex-col gap-6 rounded-xl border border-white/10 bg-background-base p-6 sm:mt-12 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+        <section aria-labelledby="legacy-heading" className="mt-10 flex scroll-mt-44 flex-col gap-6 border-t border-white/10 pt-10 sm:mt-12 sm:pt-12 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
           <div className="max-w-xl">
             <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">03 / The pack today</p>
-            <h2 id="legacy-heading" className="mb-3 text-2xl font-bold text-white sm:text-3xl">Our legacy continues</h2>
+            <h2 id="legacy-heading" className="mb-3 text-3xl font-bold text-white sm:text-4xl">Our legacy continues</h2>
             <p className="text-base leading-relaxed text-foreground-muted">
               House Wolf carries the Dragoon legacy forward—honoring tradition while forging its own future in the ’Verse.
             </p>
