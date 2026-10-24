@@ -14,7 +14,7 @@ export type ChatOption = {
   kind?: "primary" | "secondary";
 };
 
-export type LoreTopic = "house-wolf" | "kampos" | "dragoon-code";
+export type LoreTopic = "house-wolf" | "kampos" | "dragoon-code" | "ranks" | "training" | "recruitment" | "resol'nare";
 
 export type CommandResult =
   | { type: "navigate"; path: string }
