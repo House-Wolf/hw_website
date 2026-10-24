@@ -8,6 +8,13 @@ datasource db {
 }
 
 model User {
+  operationTemplates CommandOperationTemplate[]
+  operationPlans CommandOperationPlan[]
+  operationWaitlist CommandOperationWaitlist[]
+  operationReserves CommandReserveCrew[] @relation("ReserveMember")
+  assignedReserves CommandReserveCrew[] @relation("ReserveAssigner")
+  operationReminders CommandOperationReminder[]
+
   commandOperations         CommandOperation[]
   commandSignups            CommandSignup[]
   commandDeliveries         CommandDelivery[]
@@ -55,6 +62,15 @@ model User {
 }
 
 model CommandOperation {
+  plan CommandOperationPlan?
+  waitlist CommandOperationWaitlist[]
+  wings CommandWing[]
+  wingSeats CommandWingSeat[]
+  reserves CommandReserveCrew[]
+  reminders CommandOperationReminder[]
+  seriesOccurrences CommandSeriesOccurrence[] @relation("SeriesRoot")
+  seriesMembership CommandSeriesOccurrence? @relation("SeriesOccurrence")
+
   id             String @id @default(uuid()) @db.Uuid
   guildId        String
   creatorId      String @db.Uuid
@@ -158,6 +174,9 @@ model CommandOperationShip {
 }
 
 model CommandSeat {
+  wingSeat CommandWingSeat?
+  reserveCrew CommandReserveCrew[]
+
   id              String @id @default(uuid()) @db.Uuid
   operationId     String @db.Uuid
   operation       CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
@@ -1391,4 +1410,127 @@ enum ProfileAction {
   APPROVED
   REJECTED
   REVERTED
+}
+
+model CommandOperationPlan {
+  operationId     String           @id @db.Uuid
+  operation       CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  revision        Int              @default(0)
+  capacity        Int?
+  waitlistEnabled Boolean          @default(true)
+  reminderMinutes Int[]            @default([])
+  updatedById     String           @db.Uuid
+  updatedBy       User             @relation(fields: [updatedById], references: [id], onDelete: Restrict)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+
+  @@map("command_operation_plans")
+}
+
+model CommandOperationTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  guildId   String
+  creatorId String   @db.Uuid
+  creator   User     @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  name      String
+  input     Json
+  revision  Int      @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([guildId, name])
+  @@map("command_operation_templates")
+}
+
+model CommandOperationWaitlist {
+  operationId String           @db.Uuid
+  operation   CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  userId      String           @db.Uuid
+  user        User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  queuedAt    DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@id([operationId, userId])
+  @@index([operationId, queuedAt, userId])
+  @@map("command_operation_waitlist")
+}
+
+model CommandWing {
+  id          String               @id @default(uuid()) @db.Uuid
+  operationId String               @db.Uuid
+  operation   CommandOperation     @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  name        String
+  seats       CommandWingSeat[]
+  reserves    CommandReserveCrew[]
+
+  @@unique([id, operationId])
+  @@unique([operationId, name])
+  @@map("command_wings")
+}
+
+model CommandWingSeat {
+  seatId      String           @id @db.Uuid
+  operationId String           @db.Uuid
+  operation   CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  seat        CommandSeat      @relation(fields: [seatId, operationId], references: [id, operationId], onDelete: Restrict)
+  wingId      String           @db.Uuid
+  wing        CommandWing      @relation(fields: [wingId, operationId], references: [id, operationId], onDelete: Restrict)
+
+  @@unique([seatId, operationId])
+  @@map("command_wing_seats")
+}
+
+model CommandReserveCrew {
+  id            String           @id @default(uuid()) @db.Uuid
+  operationId   String           @db.Uuid
+  operation     CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  userId        String           @db.Uuid
+  user          User             @relation("ReserveMember", fields: [userId], references: [id], onDelete: Restrict)
+  seatId        String?          @db.Uuid
+  seat          CommandSeat?     @relation(fields: [seatId, operationId], references: [id, operationId], onDelete: Restrict)
+  wingId        String?          @db.Uuid
+  wing          CommandWing?     @relation(fields: [wingId, operationId], references: [id, operationId], onDelete: Restrict)
+  assignedById  String           @db.Uuid
+  assignedBy    User             @relation("ReserveAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  reason        String
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6)
+  releasedAt    DateTime?        @db.Timestamptz(6)
+  releaseReason String?
+
+  @@index([operationId, releasedAt])
+  @@index([userId, releasedAt])
+  @@map("command_reserve_crew")
+}
+
+model CommandSeriesOccurrence {
+  operationId  String           @id @db.Uuid
+  operation    CommandOperation @relation("SeriesOccurrence", fields: [operationId], references: [id], onDelete: Restrict)
+  seriesId     String           @db.Uuid
+  series       CommandOperation @relation("SeriesRoot", fields: [seriesId], references: [id], onDelete: Restrict)
+  ordinal      Int
+  intervalDays Int
+
+  @@unique([seriesId, ordinal])
+  @@map("command_series_occurrences")
+}
+
+model CommandOperationReminder {
+  id          String           @id @default(uuid()) @db.Uuid
+  operationId String           @db.Uuid
+  operation   CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  actorId     String           @db.Uuid
+  actor       User             @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  revision    Int
+  minutes     Int
+  dueAt       DateTime         @db.Timestamptz(6)
+  status      String           @default("PENDING")
+  attempts    Int              @default(0)
+  availableAt DateTime         @default(now()) @db.Timestamptz(6)
+  leaseUntil  DateTime?        @db.Timestamptz(6)
+  leaseToken  String?
+  sendingAt   DateTime?        @db.Timestamptz(6)
+  messageId   String?
+  errorCode   String?
+
+  @@unique([operationId, revision, minutes])
+  @@index([status, dueAt, availableAt, leaseUntil])
+  @@map("command_operation_reminders")
 }

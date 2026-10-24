@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { authorize, discordRead } from "./server";
 import { createOperationService } from "./operations.js";
 import { nativePreflight, validateGuildVoiceChannel } from "./nativePreflight.js";
+import { createCommitmentPolicy, scheduleReminders, assertReserveSchedule } from "./planningPolicy.js";
+const advanced = (process.env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && process.env.COMMAND_STAFFING_ENABLED === "true");
 export const operationService = createOperationService({ prisma, authorize,
+  commitmentPolicy: advanced ? createCommitmentPolicy({ authorize }) : null,
+  operationChanged: advanced ? scheduleReminders : null,
+  reserveScheduleCheck: advanced ? assertReserveSchedule : null,
   staffingEnabled: process.env.COMMAND_STAFFING_ENABLED === "true",
   preflight: (guildId: string, input: Parameters<typeof nativePreflight>[1]) => nativePreflight(guildId, input, discordRead),
   baseUrl: process.env.NEXTAUTH_URL || process.env.AUTH_URL,

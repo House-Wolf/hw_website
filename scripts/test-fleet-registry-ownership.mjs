@@ -25,13 +25,14 @@ test("ambiguous identities and hidden owners cannot assign a ship; loaners and d
   assert.equal(matchRegistryOwners([{ ...vehicle, loaner: true }], personnel, users).length, 0);
   assert.equal(matchRegistryOwners([vehicle, vehicle], personnel, users).length, 1);
 });
-function fixture({ officer = false, sourceStatus = "complete", accountId = "member", priorOwner = null, deny = false, identityChanged = false } = {}) {
-  const ships = priorOwner ? [{ guildId: "guild", externalRef: `fleetyards:${id}`, ownerId: priorOwner }] : [];
+function fixture({ officer = false, sourceStatus = "complete", accountId = "member", priorOwner = null, priorShip = null, deny = false, identityChanged = false } = {}) {
+  const ships = priorShip ? [{ id: "prior-ship", guildId: "guild", externalRef: `fleetyards:${id}`, ownerId: "member", model: "100i", revision: 1, ...priorShip }] : priorOwner ? [{ guildId: "guild", externalRef: `fleetyards:${id}`, ownerId: priorOwner }] : [];
   const audit = [], calls = [];
   const actor = { id: accountId, guildId: "guild", roleIds: [officer ? PERSONNEL_ROLES.lieutenant : PERSONNEL_ROLES.member] };
   const tx = { $queryRaw: async () => [], commandShip: {
     findUnique: async ({ where }) => ships.find(s => s.guildId === where.guildId_externalRef.guildId && s.externalRef === where.guildId_externalRef.externalRef),
     create: async ({ data }) => { const ship = { id: "new-ship", ...data }; ships.push(ship); return ship; },
+    update: async ({ where, data }) => { const ship = ships.find((row) => row.id === where.id); Object.assign(ship, { ...data, revision: ship.revision + data.revision.increment }); return ship; },
   }, auditLog: { create: async row => audit.push(row) } };
   tx.personnelMember = { findMany: async () => identityChanged ? [] : personnel };
   tx.user = { findMany: async () => users };
@@ -39,16 +40,49 @@ function fixture({ officer = false, sourceStatus = "complete", accountId = "memb
   const service = createFleetRegistryService({ prisma, authorize: async user => { if (deny) throw new CommandError(403, "DENIED", "Denied"); return { ...actor, id: user }; }, loadFleet: async () => { calls.push("fleet"); return { vehicles: [vehicle], sourceStatus }; } });
   return { service, ships, audit, calls };
 }
-test("registry import assigns the individual owner, preserves pending verification, and is idempotent", async () => {
+test("a matching FleetYards listing verifies ownership without declaring model readiness or consent", async () => {
   const f = fixture();
   assert.equal((await f.service.sync("member")).imported, 1);
   assert.equal(f.ships[0].ownerId, "member");
   assert.equal(f.ships[0].model, "100i");
-  assert.equal(f.ships[0].verifiedAt, undefined);
+  assert.ok(f.ships[0].verifiedAt instanceof Date);
+  assert.equal(f.ships[0].verifiedById, null);
+  assert.match(f.ships[0].evidence, /FleetYards ownership:.*RSI handle: RSIWolf/);
   assert.equal(f.ships[0].availability, undefined);
-  assert.equal(f.audit[0].data.metadata.verification, "PENDING");
+  assert.equal(f.ships[0].readiness, undefined);
+  assert.equal(f.ships[0].productionState, undefined);
+  assert.equal(f.ships[0].capacity, undefined);
+  assert.equal(f.audit[0].data.metadata.verification, "FLEETYARDS");
   assert.equal((await f.service.sync("member")).existing, 1);
   assert.equal(f.ships.length, 1);
+});
+
+test("existing pending imports gain FleetYards ownership verification and invalidate stale form revisions", async () => {
+  const f = fixture({ priorShip: { verifiedAt: null, availability: "UNAVAILABLE", readiness: "UNKNOWN", productionState: "UNKNOWN", capacity: 1 } });
+  const result = await f.service.sync("member");
+  assert.equal(result.verified, 1);
+  assert.equal(result.existing, 1);
+  assert.equal(f.ships[0].revision, 2);
+  assert.ok(f.ships[0].verifiedAt instanceof Date);
+  assert.equal(f.ships[0].availability, "UNAVAILABLE");
+  assert.equal(f.ships[0].readiness, "UNKNOWN");
+  assert.equal(f.ships[0].productionState, "UNKNOWN");
+  assert.equal(f.audit[0].data.action, "COMMAND_FLEET_REGISTRY_VERIFIED");
+  assert.equal((await f.service.sync("member")).verified, 0);
+  assert.equal(f.ships[0].revision, 2);
+});
+
+test("registry sync preserves prior officer verification and does not verify mismatched models", async () => {
+  const verifiedAt = new Date("2026-10-24T12:00:00Z");
+  const reviewed = fixture({ priorShip: { verifiedAt, verifiedById: "officer", evidence: "Reviewed model", capacity: 3 } });
+  assert.equal((await reviewed.service.sync("member")).verified, 0);
+  assert.equal(reviewed.ships[0].verifiedAt, verifiedAt);
+  assert.equal(reviewed.ships[0].verifiedById, "officer");
+  assert.equal(reviewed.ships[0].capacity, 3);
+  assert.equal(reviewed.audit.length, 0);
+  const mismatch = fixture({ priorShip: { verifiedAt: null, model: "Different model" } });
+  assert.equal((await mismatch.service.sync("member")).conflicts, 1);
+  assert.equal(mismatch.ships[0].verifiedAt, null);
 });
 test("members import only their own ships while officers can import matched member ships", async () => {
   const member = fixture({ accountId: "other" });

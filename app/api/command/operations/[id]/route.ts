@@ -6,7 +6,7 @@ import { authorize } from "@/lib/command/server";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
 export function GET(request: NextRequest, context: Context) {
-  return commandHttp(request, false, async (userId) => ({ ...await operationService.detail(userId, (await context.params).id), staffingEnabled: process.env.COMMAND_STAFFING_ENABLED === "true" }));
+  return commandHttp(request, false, async (userId) => ({ ...await operationService.detail(userId, (await context.params).id), staffingEnabled: process.env.COMMAND_STAFFING_ENABLED === "true", advancedEnabled: (process.env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && process.env.COMMAND_STAFFING_ENABLED === "true") }));
 }
 export function PATCH(request: NextRequest, context: Context) {
   return commandHttp(request, true, async (userId) => {
