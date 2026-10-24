@@ -2,6 +2,16 @@
 
 ## Current operator-approved scope
 
+### Public fleet owner labels deployed, 2026-10-24
+
+Operator reported the live fleet still lacked owner names. Public production API returned 278 ships with only id/model keys and no owner key, while the direct FleetYards public first page exposed username/userRsiHandle on all 25 rows. Confirmed production deployment dpl_2HZ5Y8gCLtjr6cCqhuyrVekJQih2 was built from Git commit `1c09ef63181c0494fa5706c9cfd8bbac91f6506b` (PR65 merge), which predates the owner-label changes in feature commit `e022a0b`.
+
+Under the existing explicit production-fix authorization, exported the exact deployed commit to an isolated release directory and applied only four files from e022a0b: components/fleet/FleetShipCard.tsx, lib/fleetyards/normalization.ts, lib/fleetyards/types.ts and scripts/test-fleet-normalization.mjs (31 added lines). The broader internal registry-import feature was not included. No schema/configuration change was needed. Eight fleet fixtures passed; actual public first-page data normalized and rendered 25 owner labels, and a hidden-owner fixture retained the anonymous fallback. A fixture-only local full production build passed.
+
+Published targeted deployment **dpl_6j4WoVfQJjHvAnPUqLJpWjjGBQo4**, `https://hw-website-p8azb15ns-brokkrforgemasters-projects.vercel.app`. Vercel production compilation/TypeScript/44 static pages and configured container build completed, status Ready, www.housewolf.co and housewolf.co aliased. Deployment metadata records baselineCommit=1c09ef63181c0494fa5706c9cfd8bbac91f6506b and ownerFixCommit=e022a0b. Vercel rebuilt its configured bot daemon from unchanged production bot source; no new Discord test operation or delivery job was created by this repair.
+
+Live verification: /api/fleetyards/fleet200, 278/278 ships contain public owner names; first25/25 contain owners. /fleet200 and its served JavaScript contains the Registry owner label. Source render tests cover owner labels and Not publicly shared fallback; no browser screenshot verification is claimed. Existing review findings, including the 14 unrelated onboarding auth-harness test failures, remain unresolved; this targeted patch is not a claim of full-suite success. Ensure future main deployments retain the public changes from e022a0b; the production artifact is the documented four-file patch over the prior main source, not the full feature branch.
+
 ### Production diagnosis and authorized repair, 2026-10-24
 
 Operator reported live `/dashboard/fleet-readiness` and `/dashboard/operations?view=operations` failures. Read-only Vercel inspection confirmed a ready production deployment; production environment was fetched into a temporary file for diagnostics and deleted afterward without printing secrets. Confirmed its DATABASE_URL matches the configured remote development datasource. Read-only production transactions show migration history ends at `20261024010000_command_native_events`; `command_operations.crewRevision` and all five staffing tables are absent. A real read-only Prisma operation-model query reproduces **P2022 / command_operations.crewRevision**. Production has dashboard/delivery enabled but COMMAND_STAFFING_ENABLED is unset. Thus Operations has a proven schema/client mismatch, and Fleet Readiness remains intentionally disabled; this is separate from the earlier preview-cookie issue.
