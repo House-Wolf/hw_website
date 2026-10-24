@@ -6,7 +6,7 @@ const FLEETYARDS_BASE_URL = "https://api.fleetyards.net/v1";
 export async function getPublicFleetData(fleetSlug: string): Promise<HouseWolfFleetPayload> {
   return loadPublicFleet(fleetSlug, async (path) => {
     const response = await fetch(`${FLEETYARDS_BASE_URL}${path}`, {
-      cache: "no-store", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
+      cache: "force-cache", next: { revalidate: 1800 }, headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error("Fleet source unavailable");
     return response.json();

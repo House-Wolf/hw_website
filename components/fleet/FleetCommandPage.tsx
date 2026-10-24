@@ -11,54 +11,33 @@ export default function FleetCommandPage() {
   const [data, setData] = useState<HouseWolfFleetPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [search, setSearch] = useState("");
   const [classification, setClassification] = useState("All");
   const [manufacturer, setManufacturer] = useState("All");
 
   useEffect(() => {
     const controller = new AbortController();
-    let inFlight = false;
     async function loadFleet() {
-      if (inFlight || controller.signal.aborted) return;
-      inFlight = true;
-      setRefreshing(true);
       try {
-        const res = await fetch("/api/fleetyards/fleet", { cache: "no-store", signal: controller.signal });
-        if (!res.ok) throw new Error("The public fleet source is unavailable. Please retry.");
+        const res = await fetch("/api/fleetyards/fleet", { signal: controller.signal });
+        if (!res.ok) throw new Error("The public fleet source is unavailable. Please try again later.");
         const json = await res.json();
         if (controller.signal.aborted) return;
         setData(json);
-        setLastUpdated(new Date());
         setError(null);
       } catch (error) {
         if (controller.signal.aborted) return;
         setError(error instanceof Error ? error.message : "The public fleet could not be loaded.");
       } finally {
-        inFlight = false;
         if (!controller.signal.aborted) {
           setLoading(false);
-          setRefreshing(false);
         }
       }
     }
 
     void loadFleet();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void loadFleet();
-    }, 5 * 60 * 1000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void loadFleet();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      controller.abort();
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [attempt]);
+    return () => controller.abort();
+  }, []);
 
   const vehicles = useMemo(() => data?.vehicles ?? [], [data]);
 
@@ -132,7 +111,6 @@ export default function FleetCommandPage() {
     return (
       <main className="min-h-screen bg-[#090706] p-8 text-white">
         <p role="alert">{error || "Failed to load fleet data."}</p>
-        <button className="btn btn-secondary mt-4" onClick={() => { setError(null); setLoading(true); setAttempt((value) => value + 1); }}>Retry fleet source</button>
       </main>
     );
   }
@@ -141,15 +119,6 @@ export default function FleetCommandPage() {
     <main className="min-h-screen bg-[#090706] text-white">
       <section className="mx-auto max-w-7xl px-6 py-10">
         <FleetHero totalShips={vehicles.length} />
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <p role="status" className="text-sm text-white/60">
-            {refreshing ? "Updating fleet from FleetYards..." : lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}. Refreshes every 5 minutes.` : "Waiting for FleetYards."}
-          </p>
-          <button className="btn btn-secondary" disabled={refreshing} onClick={() => setAttempt((value) => value + 1)}>
-            {refreshing ? "Refreshing..." : "Refresh fleet"}
-          </button>
-        </div>
-        {error && <p role="alert" className="mb-6 rounded-xl border border-red-800/40 p-4">{error} Showing the last successfully loaded fleet.</p>}
         {data.sourceStatus === "partial" && <p role="status" className="mb-6 rounded-xl border border-white/20 p-4">The fleet source is incomplete. Counts below include only the records received; they do not establish operational readiness.</p>}
 
         <FleetStats data={data} />

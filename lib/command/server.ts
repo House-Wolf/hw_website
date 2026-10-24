@@ -8,18 +8,10 @@ import { CommandError, createAuthorizer } from "./access.js";
 import { validateTextDestination } from "./channels.js";
 import { createSettingsService } from "./settings.js";
 import { createSettingsRepository } from "./settingsRepository";
+import { readDiscord } from "./discordRead";
 
 export async function discordRead(path: string) {
-  const token = process.env.DISCORD_BOT_TOKEN;
-  if (!token) throw new CommandError(503, "DISCORD_UNCONFIGURED", "Discord verification is not configured.");
-  try {
-    const response = await fetch(`https://discord.com/api/v10${path}`, {
-      headers: { Authorization: `Bot ${token}` }, cache: "no-store", signal: AbortSignal.timeout(8_000),
-    });
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error("Provider unavailable");
-    return await response.json();
-  } catch { throw new CommandError(503, "DISCORD_UNAVAILABLE", "Discord verification is unavailable. Please retry."); }
+  return readDiscord(path, process.env.DISCORD_BOT_TOKEN);
 }
 
 export const authorize = createAuthorizer({

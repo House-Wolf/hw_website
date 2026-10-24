@@ -14,7 +14,7 @@ function load(path, globals = {}, dependencies = {}) {
   return loaded.exports;
 }
 
-test("FleetYards reads fresh pages and reflects additions and removals", async () => {
+test("FleetYards pages share a 30-minute cache across visitors", async () => {
   const normalization = load("../lib/fleetyards/normalization.ts");
   const requests = [];
   let ids = ["a", "b"];
@@ -30,13 +30,13 @@ test("FleetYards reads fresh pages and reflects additions and removals", async (
   assert.equal(updated.vehicles.map(({ id }) => id).join(","), "b,c,d");
   assert.equal(updated.sourceStatus, "complete");
   for (const { url, options } of requests) {
-    assert.equal(options.cache, "no-store");
-    assert.equal(options.next, undefined);
+    assert.equal(options.cache, "force-cache");
+    assert.equal(options.next.revalidate, 1800);
     assert.equal(new URL(url).searchParams.get("per_page"), "240");
   }
 });
 
-test("fleet API prevents caching successful, partial, and unavailable responses", async () => {
+test("fleet API shares complete responses but does not cache partial or failed responses", async () => {
   for (const sourceStatus of ["complete", "partial", "unavailable"]) {
     const { GET } = load("../app/api/fleetyards/fleet/route.ts", {
       process: { env: { NEXT_PUBLIC_FLEETYARDS_FLEET_SLUG: "hw-flt-001" } },
@@ -45,24 +45,22 @@ test("fleet API prevents caching successful, partial, and unavailable responses"
       "@/lib/fleetyards/client": { getPublicFleetData: async () => ({ sourceStatus, vehicles: [] }) },
     });
     const response = await GET();
-    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("cache-control"), sourceStatus === "complete" ? "public, max-age=60, s-maxage=1800, stale-while-revalidate=300" : "no-store");
     assert.equal(response.status, sourceStatus === "unavailable" ? 503 : 200);
   }
 });
 
-test("fleet page refreshes on timer and tab return, preserves data on errors, and cleans up", async () => {
-  const states = [], effects = [], intervals = [], listeners = new Map();
-  let index = 0, fail = false, calls = 0, cleared;
+test("fleet page loads once without polling or tab-return requests and aborts on unmount", async () => {
+  const states = [], effects = [];
+  let index = 0, calls = 0, signal;
   const payload = { vehicles: [], sourceStatus: "complete" };
   const { default: FleetPage } = load("../components/fleet/FleetCommandPage.tsx", {
     AbortController,
-    window: { setInterval(fn, ms) { intervals.push({ fn, ms }); return 42; }, clearInterval(id) { cleared = id; } },
-    document: { visibilityState: "visible", addEventListener(name, fn) { listeners.set(name, fn); }, removeEventListener(name) { listeners.delete(name); } },
     fetch: async (_url, options) => {
       calls++;
-      assert.equal(options.cache, "no-store");
-      assert.ok(options.signal);
-      return fail ? new Response(null, { status: 503 }) : Response.json(payload);
+      assert.equal(options.cache, undefined);
+      signal = options.signal;
+      return Response.json(payload);
     },
   }, {
     react: {
@@ -74,23 +72,11 @@ test("fleet page refreshes on timer and tab return, preserves data on errors, an
   });
   FleetPage();
   const cleanup = effects[0]();
-  const settle = () => new Promise((resolve) => setImmediate(resolve));
-  await settle();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(calls, 1);
   assert.equal(states[0].sourceStatus, "complete");
-  assert.equal(intervals[0].ms, 300_000);
-  fail = true;
-  intervals[0].fn();
-  await settle();
-  assert.equal(calls, 2);
-  assert.equal(states[0].sourceStatus, "complete");
-  assert.match(states[2], /unavailable/);
-  fail = false;
-  listeners.get("visibilitychange")();
-  await settle();
-  assert.equal(calls, 3);
-  assert.equal(states[2], null);
+  assert.equal(states[1], false);
+  assert.equal(signal.aborted, false);
   cleanup();
-  assert.equal(cleared, 42);
-  assert.equal(listeners.size, 0);
+  assert.equal(signal.aborted, true);
 });
