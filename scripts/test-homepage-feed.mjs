@@ -115,7 +115,7 @@ const render = (props = {}) => renderToStaticMarkup(React.createElement(Hero, {
 
 test("the empty events section has no heading, background strip or placeholder in rendered HTML", () => {
   const html = render();
-  assert.doesNotMatch(html, /events-heading|No upcoming events|Rally with the pack/);
+  assert.doesNotMatch(html, /events-heading|No upcoming events|Rally with the pack|SentinelWolfBoomTube/);
   assert.match(html, /announcements-heading/);
 });
 
@@ -124,6 +124,12 @@ test("scheduled events render a UTC date and direct Discord event link", () => {
   assert.match(html, /events-heading/);
   assert.match(html, /8:00 PM.*UTC/);
   assert.match(html, /href="https:\/\/discord.com\/events\/guild\/soon"/);
+});
+
+test("upcoming events retain their original image backdrop and readable dark overlay", () => {
+  const html = render({ events: prepareEvents([event("soon", "2026-10-22T20:00:00Z")], "guild", now) });
+  assert.match(html, /background-image:linear-gradient\(rgb\(0 0 0 \/ 70%\), rgb\(0 0 0 \/ 70%\)\), url\(&#x27;\/images\/global\/SentinelWolfBoomTube\.png&#x27;\)/);
+  assert.ok(readFileSync(new URL("../public/images/global/SentinelWolfBoomTube.png", import.meta.url)).length > 0);
 });
 
 test("news renders native expandable full text, without GIF URLs or duplicate headings", () => {

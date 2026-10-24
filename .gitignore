@@ -16,6 +16,7 @@
 next-env.d.ts
 /lib/query_engine-*
 /prisma/schema.backup.prisma
+/docs
 
 # Local environment and credentials
 .env*
