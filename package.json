@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "concurrently \"pnpm:dev:next\" \"pnpm:dev:bot\"",
     "dev:next": "next dev",
+    "dev:preview": "node scripts/dev-command-local.mjs",
     "build": "prisma generate && next build",
     "start": "next start",
     "start:bot": "node ./bot/index.js",
