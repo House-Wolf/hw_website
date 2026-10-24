@@ -18,7 +18,7 @@ Object.assign(environment, {
   DISCORD_CLIENT_ID: "fixture-not-a-live-id", DISCORD_CLIENT_SECRET: "fixture-not-a-live-secret",
   DISCORD_BOT_TOKEN: "fixture-not-a-live-token", DISCORD_GUILD_ID: "fixture-not-a-live-guild",
   BUYER_ROLE_ID: "fixture-not-a-live-role", MARKETPLACE_CHANNEL_ID: "fixture-not-a-live-channel",
-  R2_ACCOUNT_ID: "fixture", R2_ACCESS_KEY_ID: "fixture", R2_SECRET_ACCESS_KEY: "fixture", R2_BUCKET: "fixture", R2_BUCKET_NAME: "fixture", R2_PUBLIC_URL: "https://example.invalid",
+  R2_ACCOUNT_ID: "fixture", R2_ACCESS_KEY_ID: "fixture", R2_SECRET_ACCESS_KEY: "fixture", R2_BUCKET: "fixture", R2_PUBLIC_URL: "https://example.invalid",
   NODE_OPTIONS: `--import=${new URL("./command-build-fixtures.mjs", import.meta.url).href}`,
 });
 const groups = {

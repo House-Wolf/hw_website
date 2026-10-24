@@ -124,7 +124,8 @@ export default function Hero({ events, announcements, featuredPhotos, featuredVi
       </div>
 
       {events.length > 0 && (
-        <section aria-labelledby="events-heading" className="border-b border-border-default bg-background-elevated px-5 py-10 sm:px-8 sm:py-12">
+        <section aria-labelledby="events-heading" className="border-b border-border-default bg-background-elevated bg-cover bg-center bg-no-repeat px-5 py-10 sm:px-8 sm:py-12"
+          style={{ backgroundImage: "linear-gradient(rgb(0 0 0 / 70%), rgb(0 0 0 / 70%)), url('/images/global/SentinelWolfBoomTube.png')" }}>
           <div className="mx-auto max-w-7xl">
             <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
               <div>

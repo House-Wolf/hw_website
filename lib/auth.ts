@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import { hasOnboardingJoinConsent, joinDiscordForOnboarding } from "@/lib/onboardingDiscordJoin";
+import { previewSessionCookies } from "@/lib/authPreview.js";
 
 type DiscordGuild = {
   id: string;
@@ -85,6 +86,7 @@ async function syncGuildRolesMetadata(guildId: string, botToken?: string) {
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  cookies: previewSessionCookies(process.env),
 
   providers: [
     Discord({

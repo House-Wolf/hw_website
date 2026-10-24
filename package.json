@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "concurrently \"pnpm:dev:next\" \"pnpm:dev:bot\"",
     "dev:next": "next dev",
+    "dev:preview": "node scripts/dev-command-local.mjs",
     "build": "prisma generate && next build",
     "start": "next start",
     "start:bot": "node ./bot/index.js",
@@ -26,8 +27,8 @@
     "postinstall": "prisma generate",
     "test": "node --test scripts/test-*.mjs",
     "typecheck": "tsc --noEmit",
-    "test:command": "node --test scripts/test-command-foundation.mjs scripts/test-fleet-normalization.mjs scripts/test-discord-formatting.mjs scripts/test-native-events.mjs scripts/test-command-http.mjs scripts/test-command-cover.mjs",
-    "test:command:db": "node --test scripts/integration-command-settings.mjs scripts/integration-native-events.mjs"
+    "test:command": "node --test scripts/test-command-foundation.mjs scripts/test-fleet-normalization.mjs scripts/test-discord-formatting.mjs scripts/test-native-events.mjs scripts/test-command-http.mjs scripts/test-command-cover.mjs scripts/test-command-staffing.mjs",
+    "test:command:db": "node --test scripts/integration-command-settings.mjs scripts/integration-native-events.mjs scripts/integration-command-staffing.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

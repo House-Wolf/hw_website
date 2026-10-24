@@ -4,9 +4,14 @@ import { authorize, discordRead } from "./server";
 import { createOperationService } from "./operations.js";
 import { nativePreflight, validateGuildVoiceChannel } from "./nativePreflight.js";
 export const operationService = createOperationService({ prisma, authorize,
+  staffingEnabled: process.env.COMMAND_STAFFING_ENABLED === "true",
   preflight: (guildId: string, input: Parameters<typeof nativePreflight>[1]) => nativePreflight(guildId, input, discordRead),
   baseUrl: process.env.NEXTAUTH_URL || process.env.AUTH_URL,
   announcementChannel: process.env.DISCORD_EVENTS_CHANNEL_ID || "",
+  resolveVoiceChannelName: async (guildId: string, channelId: string) => {
+    const channel = await validateGuildVoiceChannel(guildId, channelId, discordRead);
+    return typeof channel.name === "string" ? channel.name : null;
+  },
   readNative: (guildId: string) => discordRead(`/guilds/${guildId}/scheduled-events`),
   validateVoice: (guildId: string, channelId: string) => validateGuildVoiceChannel(guildId, channelId, discordRead),
 });
