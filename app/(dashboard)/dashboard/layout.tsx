@@ -65,6 +65,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Command Center", icon: Home, href: "/dashboard" },
+    { name: "Operations", icon: Swords, href: "/dashboard/operations" },
     { name: "PackTracker", icon: PackageSearch, href: "/dashboard/packtracker" },
     { name: "Marketplace", icon: Store, href: "/dashboard/marketplace" },
     { name: "Mercenary Bio", icon: IdCard, href: "/dashboard/profile" },

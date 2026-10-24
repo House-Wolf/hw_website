@@ -1,0 +1,30 @@
+# Operator handoff — native event slice
+
+This is a procedure, not deployment authorization. Nothing in this work creates live events, registers commands, migrates production or publishes the website.
+
+1. Review branch changes and the incomplete requirements in traceability.md. Back up PostgreSQL and verify restoration in staging. Retain operation/audit/outbox history; the FKs intentionally restrict deletion.
+2. Leave `COMMAND_DASHBOARD_ENABLED=false` and `COMMAND_DISCORD_DELIVERY_ENABLED=false` on web and worker during migration. Apply migrations with the existing operator deployment process. New migrations: `20261023235900_reconcile_user_theme` adds the pre-existing schema field if absent; `20261024010000_command_native_events` adds operations, deliveries and explicit signups with keys, indexes, checks and retention FKs. Do not use db push as a migration substitute.
+3. Deploy compatible web and bot worker code after migrations. The bot image now includes `lib/command`. Older workers ignore these new jobs; new workers with flags false do not claim them. Avoid two incompatible application revisions creating/dispatching jobs during rollback.
+4. Confirm server-only `DATABASE_URL`, existing Auth.js secret/OAuth, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, and canonical HTTPS `NEXTAUTH_URL` (or AUTH_URL for web). Worker requires NEXTAUTH_URL for stable signup/reconciliation links; keep it identical between web and worker. Do not change this URL while pending ambiguous jobs exist. Never expose tokens through NEXT_PUBLIC variables.
+5. Give the bot Create Events at guild level for external events. For a selected voice channel, effective Create Events, View Channel and Connect are required. Manage Events is needed only to manage events not created by this bot; this implementation operates on its own mappings. It neither needs nor grants Administrator. Verify the bot and user are members of the configured guild, and that the seven officer role IDs still match the authoritative policy. Display labels cannot change that list.
+6. Native events need **no** DISCORD_EVENTS_CHANNEL_ID. Optionally configure that ID (or the validated Organization Settings events text destination) for an additional announcement. It must be a text channel in the guild; effective View Channel, Send Messages and Embed Links are checked. It is never substituted with personnel/officer channel constants. The optional default voice setting is not a substitute for selecting and validating the actual event channel. Reminder/AAR settings are reserved for later phases.
+7. In isolated staging, enable dashboard access first and verify lower-rank denial, active officer creation, draft preservation and privacy rejection. Enabling worker delivery is itself a production/staging action requiring explicit operator approval. Enable both flags on the worker only after configuration review. A queued publish remains Pending while delivery is off; do not mistake the HTTP response for Discord confirmation.
+
+## Explicitly authorized staging smoke checklist
+
+- Eligible Lieutenant creates a harmless voice operation; also create an external operation with location/end. Leave text-channel ID unset for one. Confirm native link, one resource, correct times, and the exact missing-announcement notice.
+- Member uses dashboard signup/preferences. Confirm Interested remains independent and no attendance/crew record is claimed.
+- Edit title/time, repeat the request, restart worker, and confirm one mapped resource. Cancel a scheduled event and check its Discord cancellation. Test active cancellation on a separate record and expect native COMPLETED with website CANCELLED.
+- Remove the officer role after login and verify draft/publish/edit denial; restore only through the operator's normal procedures. Do not use actual promotions or payouts for smoke testing.
+- Edit a native title in Discord; wait for conflict, review then adopt/reapply. Delete a different native event; verify DELETED and no automatic recreation. Check optional message failure produces Partial while native remains posted.
+- Run phone/keyboard/zoom checks. These browser/staging checks are not yet evidence of this local implementation.
+
+## Monitor, retry and rollback
+
+Monitor delivery status/attempt/errorCode and lease expiry in the operation detail/database. Job UUID is the correlation identifier; provider payloads, tokens and private brief text are not logged. Failed/blocked jobs may be retried by a currently authorized manager after correcting the cause. Revoked initiating officers remain blocked; create a freshly authorized operation revision to take responsibility for a material change. AMBIGUOUS is deliberately not a blind retry: inspect native events for the operation link, then use Reconcile to link one match and review the conflict. A missing unique match remains blocked for operator investigation; do not delete history or manufacture a Discord ID. Externally deleted mapped events require the explicit Recreate action.
+
+For rollback, disable both flags and stop/drain new workers before rolling back web/worker code that depends on these tables. Wait for in-flight requests and lease expiry. Keep additive tables and data; prefer forward fixes over destructive down migrations. Do not run an older worker against jobs whose payload contract it does not understand. Back up before any operator-approved corrective SQL. Preserve existing personnel/onboarding/marketplace services and their narrower policies.
+
+## Remaining launch gates
+
+The native slice has local mocked/domain/DB evidence, not live Discord or staging evidence. Broader operation templates/occurrences/calendar/crew/reminders/attendance/AAR, remaining privileged-write freshness, personnel/awards/logistics/recruiting/solver/treasury/alliances, complete browser acceptance and production config review remain mandatory. The broader command dashboard must not be described as complete or launch-ready.

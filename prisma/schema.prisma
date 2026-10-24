@@ -8,6 +8,9 @@ datasource db {
 }
 
 model User {
+  commandOperations         CommandOperation[]
+  commandSignups            CommandSignup[]
+  commandDeliveries         CommandDelivery[]
   id                        String                            @id @default(uuid()) @db.Uuid
   discordId                 String                            @unique @map("discord_id")
   discordUsername           String                            @map("discord_username")
@@ -42,6 +45,64 @@ model User {
   onboardingProfile         OnboardingProfile?
 
   @@map("users")
+}
+
+model CommandOperation {
+  id             String @id @default(uuid()) @db.Uuid
+  guildId        String
+  creatorId      String @db.Uuid
+  creator        User @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  managerIds     String[] @default([])
+  input          Json
+  state          String @default("DRAFT")
+  revision       Int @default(1)
+  requestKey     String
+  nativeEventId  String? @unique
+  nativeSnapshot Json?
+  remoteSnapshot Json?
+  syncState      String @default("CLEAN")
+  announcementId String?
+  announcementChannelId String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  deliveries     CommandDelivery[]
+  signups        CommandSignup[]
+  @@unique([guildId, creatorId, requestKey])
+  @@index([guildId, state, updatedAt])
+  @@map("command_operations")
+}
+
+model CommandDelivery {
+  id          String @id @default(uuid()) @db.Uuid
+  operationId String @db.Uuid
+  operation   CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  revision    Int
+  kind        String
+  actorId     String @db.Uuid
+  actor       User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  status      String @default("PENDING")
+  attempts    Int @default(0)
+  availableAt DateTime @default(now()) @db.Timestamptz(6)
+  leaseUntil  DateTime? @db.Timestamptz(6)
+  leaseToken  String?
+  sendingAt   DateTime? @db.Timestamptz(6)
+  errorCode   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  @@unique([operationId, revision, kind])
+  @@index([status, availableAt, leaseUntil])
+  @@map("command_deliveries")
+}
+
+model CommandSignup {
+  operationId String @db.Uuid
+  operation   CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  userId      String @db.Uuid
+  user        User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status      String
+  preferences String @default("")
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  @@id([operationId, userId])
+  @@map("command_signups")
 }
 
 model OnboardingProfile {

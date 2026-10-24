@@ -13,6 +13,7 @@ import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 import { createPersonnelStartup, validateBotEnvironment } from "./runtime.js";
 import { createDiscordActivityService } from "./discordActivity.js";
 import { captureRawBody, createBotServiceAuth, createGithubWebhookAuth } from "./httpSecurity.js";
+import { createCommandWorker } from "./commandOperations.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,6 +58,11 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message],
 });
 
+const commandWorker = createCommandWorker({ prisma, client });
+for (const signal of ["SIGTERM", "SIGINT"]) process.once(signal, () => {
+  void commandWorker.stop().finally(() => { client.destroy(); void prisma.$disconnect().finally(() => process.exit(0)); });
+});
+
 const marketplaceGuests = createMarketplaceGuestService({
   client,
   prisma,
@@ -80,6 +86,7 @@ const personnelStartup = createPersonnelStartup({ client, personnel, registerCom
 if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
 
 client.once("ready", async () => {
+  commandWorker.start();
   startOnboardingWelcomes(client, prisma);
   console.log(`🤖 Bot logged in as ${client.user.tag}`);
   console.log(`🔧 DISCORD_INVITE_URL configured: ${process.env.DISCORD_INVITE_URL ? 'YES ✅' : 'NO ❌'}`);
