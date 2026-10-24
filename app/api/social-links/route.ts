@@ -1,3 +1,4 @@
+import { CommandError } from "@/lib/command/access.js";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -68,6 +69,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(socialLinks);
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error fetching social links:", error);
     return NextResponse.json(
       { error: "Failed to fetch social links" },
@@ -157,6 +159,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(socialLink, { status: 201 });
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error creating social link:", error);
     return NextResponse.json(
       { error: "Failed to create social link" },

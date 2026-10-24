@@ -136,3 +136,17 @@ test("news renders native expandable full text, without GIF URLs or duplicate he
   assert.equal((html.match(/Fleet update/g) ?? []).length, 1);
   assert.doesNotMatch(html, /tenor\.com|Discover &amp; Share/);
 });
+
+
+test("banner cards preserve announcement text and gallery images on the homepage", () => {
+  const [result] = prepareAnnouncements([message("", { components: [{ type: 17, components: [
+    { type: 12, items: [{ media: { url: "https://cdn.discordapp.com/banner.png" } }] },
+    { type: 10, content: "### A NEW DRAGOON\n\nMeet **Wolf**." },
+    { type: 10, content: "**STAR CITIZEN**\nBunker Running" },
+  ] }] })], now);
+  assert.equal(result.title, "A NEW DRAGOON");
+  assert.match(result.content, /Meet \*\*Wolf\*\*/);
+  assert.match(result.content, /Bunker Running/);
+  assert.equal(result.imageUrl, "https://cdn.discordapp.com/banner.png");
+  assert.equal(prepareAnnouncements([message("", { components: [{ type: 12, items: [{ media: { url: "https://example.com/reaction.gif" } }] }] })], now).length, 0);
+});

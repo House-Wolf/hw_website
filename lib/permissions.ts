@@ -1,87 +1,34 @@
-import { auth } from "@/lib/auth";
+﻿import { auth } from "@/lib/auth";
+import { getFreshCommandActor } from "@/lib/command/server";
+import { CommandError } from "@/lib/command/access.js";
+import type { Permission } from "./permissionKeys";
+export { PERMISSIONS, type Permission } from "./permissionKeys";
 
-/**
- * @component permissions constants
- * @description Defines the various permissions available in the system.
- * Each permission corresponds to a specific capability within the application.
- * @author House Wolf Dev Team
- */
-export const PERMISSIONS = {
-  SITE_ADMIN: "SITE_ADMIN",
-  MERCENARY_APPROVE: "MERCENARY_APPROVE",
-  MARKETPLACE_ADMIN: "MARKETPLACE_ADMIN",
-  MARKETPLACE_MODERATOR: "MARKETPLACE_MODERATOR",
-  DIVISION_CONFIG: "DIVISION_CONFIG",
-  DOSSIER_ADMIN: "DOSSIER_ADMIN",
-} as const;
+async function currentPermissions() {
+  try { return (await getFreshCommandActor()).permissions; }
+  catch (error) {
+    if (error instanceof CommandError && [401, 403].includes(error.status)) return [];
+    throw error;
+  }
+}
 
-export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
-
-/**
- * @component Permission Check Functions
- * @description Functions to check user permissions within the application.
- * These functions utilize the authentication context to verify if the
- * current user has the required permissions to perform certain actions.
- * @author House Wolf Dev Team
- */
 export async function hasPermission(permission: Permission): Promise<boolean> {
-  const session = await auth();
-  if (!session?.user) return false;
-  return session.user.permissions.includes(permission);
+  return (await currentPermissions()).includes(permission);
 }
-
-/**
- * @component hasAnyPermission
- * @description Check if the current user has ANY of the specified permissions
- * @param permissions - An array of permissions to check against the current user
- * @returns A promise that resolves to true if the user has at least one of the specified permissions, false otherwise
- * @author House Wolf Dev Team
- */
-export async function hasAnyPermission(
-  permissions: Permission[]
-): Promise<boolean> {
-  const session = await auth();
-  if (!session?.user) return false;
-  return permissions.some((p) => session.user!.permissions.includes(p));
+export async function hasAnyPermission(permissions: Permission[]): Promise<boolean> {
+  const current = await currentPermissions();
+  return permissions.some((permission) => current.includes(permission));
 }
-
-/**
- * @component hasAllPermissions
- * @description Check if the current user has ALL of the specified permissions
- * @param permissions - An array of permissions to check against the current user
- * @returns A promise that resolves to true if the user has all of the specified permissions, false otherwise
- * @author House Wolf Dev Team
- */
-export async function hasAllPermissions(
-  permissions: Permission[]
-): Promise<boolean> {
-  const session = await auth();
-  if (!session?.user) return false;
-  return permissions.every((p) => session.user!.permissions.includes(p));
+export async function hasAllPermissions(permissions: Permission[]): Promise<boolean> {
+  const current = await currentPermissions();
+  return permissions.every((permission) => current.includes(permission));
 }
-
-/**
- * @component requireAuth
- * @description Require authentication or throw an error
- * @author House Wolf Dev Team
- */
 export async function requireAuth() {
   const session = await auth();
-  if (!session?.user) {
-    throw new Error("Authentication required");
-  }
-  return session;
+  const actor = await getFreshCommandActor();
+  if (!session?.user) throw new CommandError(401, "UNAUTHENTICATED", "Sign in with Discord first.");
+  return { ...session, user: { ...session.user, isActive: true, permissions: [...actor.permissions] } };
 }
-
-/**
- * @component requirePermission
- * @description Require a specific permission or throw an error
- * @param permission - The permission to check
- * @author House Wolf Dev Team
- */
 export async function requirePermission(permission: Permission) {
-  const ok = await hasPermission(permission);
-  if (!ok) {
-    throw new Error(`Permission required: ${permission}`);
-  }
+  if (!await hasPermission(permission)) throw new CommandError(403, "PERMISSION_REQUIRED", "Your current roles do not grant this action.");
 }

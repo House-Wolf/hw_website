@@ -1,0 +1,11 @@
+﻿# Configuration inventory and deployment boundary
+
+Inspected 2026-10-23; names only, no production secrets read/copied. Existing .env.example is authoritative for database/Auth.js/Discord/R2/UEX configuration. DISCORD_GUILD_ID and DISCORD_BOT_TOKEN remain server-only. Existing personnel channel constants are NOT events-channel defaults.
+
+New placeholders: DISCORD_EVENTS_CHANNEL_ID is optional for a separate text announcement and is never a native-event prerequisite. DISCORD_OPERATION_REMINDERS_CHANNEL_ID, DISCORD_AAR_CHANNEL_ID and DISCORD_OPERATIONS_VOICE_CHANNEL_ID are reserved for later/default routing. Native voice events use their explicitly selected server voice ID; external events use location/end time and no channel. COMMAND_DASHBOARD_ENABLED and COMMAND_DISCORD_DELIVERY_ENABLED default false. Nonempty destinations require guild/type/effective bot permission validation; no ID may be guessed from a name.
+
+Development: never run pnpm dev (starts the live bot). Use web-only pnpm dev:next only with a safe local/disposable DB and mock adapters. Do not run migration/seed/configure-commands scripts against .env.local: existing configured database may be production. Build and tests need safe explicit environment injection, not a change to production settings.
+
+Phase 1 reuses SiteSetting/AuditLog. Additive operation and theme-gap migrations have been tested on disposable PostgreSQL, never production. Back up production first; see deployment.md for ordering, compatibility, minimum bot permissions and rollback. Flags remain disabled in the example configuration. No operator secrets or events-channel ID are needed to run mocks/local implementation.
+
+Discord official resources retrieved 2026-10-23: https://docs.discord.com/developers/resources/guild-scheduled-event and https://docs.discord.com/developers/topics/permissions . Before worker code, additionally verify interaction initial-response deadline, component/embed limits, message nonce guarantees, rate limits and installed discord.js APIs. Native external meetings require location/end time; voice event hosting channel is distinct from the events TEXT destination. Restricted native visibility must never be misrepresented.

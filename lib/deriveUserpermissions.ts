@@ -1,5 +1,5 @@
 // lib/derive-permissions.ts
-import { PERMISSIONS } from "./permissions";
+import { PERMISSIONS } from "./permissionKeys";
 import { ROLE_IDS, DOSSIER_ADMIN_RANKS } from "./role-constants";
 
 type UserRole = {

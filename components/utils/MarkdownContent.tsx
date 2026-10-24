@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import DOMPurifyLib from "dompurify";
+import { formatDiscordMarkdown } from "@/lib/discord/formatMentions";
 
 interface MarkdownContentProps {
   content: string;
@@ -32,8 +33,9 @@ export default function MarkdownContent({
   }, []);
 
   const sanitized = useMemo(() => {
-    if (!DOMPurify) return content; // SSR fallback (raw)
-    return DOMPurify.sanitize(content);
+    const markdown = formatDiscordMarkdown(content);
+    if (!DOMPurify) return markdown; // ReactMarkdown + rehypeSanitize handle SSR escaping.
+    return DOMPurify.sanitize(markdown);
   }, [content, DOMPurify]);
 
   return (

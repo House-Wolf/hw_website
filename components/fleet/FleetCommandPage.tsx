@@ -10,6 +10,8 @@ import FleetShipCard from "./FleetShipCard";
 export default function FleetCommandPage() {
   const [data, setData] = useState<HouseWolfFleetPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [search, setSearch] = useState("");
   const [classification, setClassification] = useState("All");
   const [manufacturer, setManufacturer] = useState("All");
@@ -18,15 +20,18 @@ export default function FleetCommandPage() {
     async function loadFleet() {
       try {
         const res = await fetch("/api/fleetyards/fleet");
+        if (!res.ok) throw new Error("The public fleet source is unavailable. Please retry.");
         const json = await res.json();
         setData(json);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "The public fleet could not be loaded.");
       } finally {
         setLoading(false);
       }
     }
 
     loadFleet();
-  }, []);
+  }, [attempt]);
 
   const vehicles = data?.vehicles ?? [];
 
@@ -99,7 +104,8 @@ export default function FleetCommandPage() {
   if (!data) {
     return (
       <main className="min-h-screen bg-[#090706] p-8 text-white">
-        Failed to load fleet data.
+        <p role="alert">{error || "Failed to load fleet data."}</p>
+        <button className="btn btn-secondary mt-4" onClick={() => { setError(null); setLoading(true); setAttempt((value) => value + 1); }}>Retry fleet source</button>
       </main>
     );
   }
@@ -108,6 +114,7 @@ export default function FleetCommandPage() {
     <main className="min-h-screen bg-[#090706] text-white">
       <section className="mx-auto max-w-7xl px-6 py-10">
         <FleetHero totalShips={vehicles.length} />
+        {data.sourceStatus === "partial" && <p role="status" className="mb-6 rounded-xl border border-white/20 p-4">The fleet source is incomplete. Counts below include only the records received; they do not establish operational readiness.</p>}
 
         <FleetStats data={data} />
 

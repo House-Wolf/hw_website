@@ -13,17 +13,21 @@
     "start:bot": "node ./bot/index.js",
     "dev:bot": "node ./bot/index.js",
     "lint": "eslint",
-    "test:bot": "node --test scripts/test-bot-http-security.mjs scripts/test-bot-deployment.mjs scripts/test-personnel.mjs scripts/test-rsi-membership-sync.mjs scripts/test-discord-activity.mjs scripts/test-marketplace-guests.mjs scripts/test-onboarding.mjs scripts/test-onboarding-join.mjs scripts/test-marketplace-messaging.mjs",
+    "test:bot": "node --test scripts/test-bot-http-security.mjs scripts/test-bot-deployment.mjs scripts/test-personnel.mjs scripts/test-rsi-membership-sync.mjs scripts/test-discord-activity.mjs scripts/test-activity-commands.mjs scripts/test-marketplace-guests.mjs scripts/test-onboarding.mjs scripts/test-onboarding-join.mjs scripts/test-marketplace-messaging.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "node scripts/prisma-env.mjs migrate deploy",
     "db:status": "node scripts/prisma-env.mjs migrate status",
     "db:verify:personnel": "node scripts/verify-personnel-migration.mjs",
     "bot:configure-commands": "node scripts/configure-personnel-commands.mjs",
+    "bot:configure-history": "node scripts/configure-history-command.mjs",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "node --test scripts/test-*.mjs"
+    "test": "node --test scripts/test-*.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:command": "node --test scripts/test-command-foundation.mjs scripts/test-fleet-normalization.mjs scripts/test-discord-formatting.mjs scripts/test-native-events.mjs scripts/test-command-http.mjs scripts/test-command-cover.mjs",
+    "test:command:db": "node --test scripts/integration-command-settings.mjs scripts/integration-native-events.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

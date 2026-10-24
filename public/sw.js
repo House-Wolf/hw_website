@@ -1,4 +1,4 @@
-const CACHE_VERSION = "house-wolf-pwa-v1";
+const CACHE_VERSION = "house-wolf-pwa-v2";
 const STATIC_CACHE = `${CACHE_VERSION}:static`;
 const OFFLINE_URL = "/offline.html";
 
@@ -58,7 +58,6 @@ self.addEventListener("fetch", (event) => {
 function isStaticAsset(pathname) {
   return (
     pathname === "/manifest.webmanifest" ||
-    pathname.startsWith("/_next/static/") ||
     pathname.startsWith("/images/") ||
     pathname.startsWith("/fonts/")
   );

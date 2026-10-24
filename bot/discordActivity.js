@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { addCalendarMonths, OFFICER_ROLE_IDS, PERSONNEL_ROLES, SERVICE_RANKS } from "../lib/personnel/policy.js";
+import { addActivityMembership } from "./activityMembership.js";
 
 export const ACTIVITY_RECIPIENTS = ["486733578483269652", "371697279704236043"];
 const memberRoles = new Set([PERSONNEL_ROLES.member, PERSONNEL_ROLES.houseWolf, ...OFFICER_ROLE_IDS, ...SERVICE_RANKS.map(rank => rank.roleId)]);
@@ -37,23 +38,34 @@ function csvCell(value) {
 export function activityReportMessage(delivery) {
   const report = delivery.report;
   const inactive = report.members.filter(member => member.inactive).length;
-  const csv = "\uFEFF" + [["Discord name", "Discord ID", "Last observed activity (UTC)", "Activity type", "Period status", "Server join date (UTC)"],
+  const manual = report.mode === "ON_DEMAND";
+  const timestamp = value => `<t:${Math.floor(new Date(value).getTime() / 1000)}:f>`;
+  const safeName = value => String(value).replace(/[\\`*_{}[\]()<>#+.!|~]/g, "\\$&").replace(/@/g, "＠");
+  const reviewNames = report.members.filter(member => member.inactive).slice(0, 8).map(member => `• ${safeName(member.name).slice(0, 80)}`);
+  const confirmed = report.members.filter(member => member.rsiMembership?.status === "Confirmed CUTTERWOLF").length;
+  const other = report.members.filter(member => member.rsiMembership?.status === "Other/no primary organization").length;
+  const csv = "\uFEFF" + [["Discord name", "Discord ID", "Last observed activity (UTC)", "Activity type", "Period status", "Server join date (UTC)", "RSI handle", "RSI membership", "RSI review reason", "Primary organization", "RSI identity source", "RSI checked at (UTC)", "Provider snapshot (UTC)", "RSI profile"],
     ...report.members.map(member => [member.name, member.discordId, member.lastActiveAt || "No activity recorded since tracking began", member.source || "Unknown",
-      member.inactive ? "No recorded activity in this period" : "Activity observed in this period", member.joinedAt || "Unknown"])]
+      member.inactive ? "No recorded activity in this period" : "Activity observed in this period", member.joinedAt || "Unknown",
+      member.rsiMembership?.handle || "Unknown", member.rsiMembership?.status || "Not checked", member.rsiMembership?.reason?.replaceAll("_", " ").toLowerCase() || "",
+      member.rsiMembership?.primaryOrganization || "Unknown", member.rsiMembership?.identity || "Unknown", member.rsiMembership?.checkedAt || "", member.rsiMembership?.snapshotAt || "", member.rsiMembership?.evidence || ""])]
     .map(row => row.map(csvCell).join(",")).join("\r\n");
   const file = Buffer.from(csv, "utf8");
   const large = file.length > 7_000_000;
   return {
     allowedMentions: { parse: [] },
     nonce: createHash("sha256").update(`activity:${delivery.id}`).digest("hex").slice(0, 24), enforceNonce: true,
-    embeds: [{ color: 0x114e62, author: { name: "HOUSE WOLF  /  OFFICER CORPS" }, title: "QUARTERLY MUSTER · ACTIVITY REVIEW",
-      description: "Commanders, the three-month activity review is ready. The attached roster lists each member's last observed activity, with inactive members first.",
+    embeds: [{ color: 0x114e62, author: { name: "HOUSE WOLF  /  OFFICER CORPS" }, title: manual ? "COMMAND MUSTER · ACTIVITY HISTORY" : "QUARTERLY MUSTER · ACTIVITY REVIEW",
+      description: `Commanders, ${manual ? "your on-demand activity review" : "the three-month activity review"} is ready. Start with the summary below; the attached roster contains every member, with those needing review first.`,
       thumbnail: { url: "https://www.housewolf.co/images/global/HWiconnew.png" },
       fields: [
-        { name: "REVIEW PERIOD · UTC", value: `${report.start.slice(0, 10)} to ${report.end.slice(0, 10)} (end exclusive)` },
+        { name: "REVIEW WINDOW", value: `${timestamp(report.start)} → ${timestamp(report.end)}\nActivity before the end time is included. Dates display in your local timezone.` },
         { name: "MEMBERS", value: String(report.members.length), inline: true },
         { name: "ACTIVITY OBSERVED", value: String(report.members.length - inactive), inline: true },
         { name: "NO RECORDED ACTIVITY", value: String(inactive), inline: true },
+        { name: "MEMBERS TO REVIEW", value: reviewNames.length ? `${reviewNames.join("\n")}${inactive > reviewNames.length ? `\n…and ${inactive - reviewNames.length} more in the attached roster.` : ""}` : "Activity was observed for every member in this review." },
+        { name: "RSI · CUTTERWOLF MEMBERSHIP", value: `**${confirmed}** confirmed · **${other}** other/no primary organization · **${report.members.length - confirmed - other}** need verification\nA new lookup checks public primary membership through the RSI data provider. Accepted snapshots are at most one hour old. Missing handles, ambiguous identities and provider failures need manual review; they do not prove a member left. See the CSV for evidence and timestamps.` },
+        ...(manual ? [{ name: "COMMAND RECORD", value: `Requested by <@${report.requestedBy}>. The automatic quarterly schedule remains unchanged.` }] : []),
         { name: "WHAT THIS MEASURES", value: "Last server message, command/button interaction, or observed voice participation. Message contents and counts are not stored. AFK channels, bots and private DMs are excluded." },
         { name: "COVERAGE", value: `Tracking began ${report.trackingStartedAt.slice(0, 10)}. Only activity visible to the bot while it is connected is included. No recorded activity does not prove absence; review leave and recent join dates before taking action.` },
       ], footer: { text: "Strength, Honor, Death · House Wolf Command" }, timestamp: report.generatedAt }],
@@ -61,7 +73,7 @@ export function activityReportMessage(delivery) {
   };
 }
 
-export function createDiscordActivityService({ client, prisma, guildId, logger = console, now = () => new Date() }) {
+export function createDiscordActivityService({ client, prisma, guildId, rsiApiKey, membershipLookup, logger = console, now = () => new Date() }) {
   let running = false, timer, started = false;
   let scheduleLogged = false;
   const handlers = [];
@@ -81,7 +93,8 @@ export function createDiscordActivityService({ client, prisma, guildId, logger =
   async function prepareReport(settings) {
     const people = await (await client.guilds.fetch(guildId)).members.fetch();
     const activity = await prisma.discordMemberActivity.findMany({ where: { guildId, periodStartedAt: { lt: settings.nextReportAt } } });
-    const report = activitySnapshot(settings, people, activity, now());
+    const report = await addActivityMembership(activitySnapshot(settings, people, activity, now()), people,
+      { prisma, guildId, apiKey: rsiApiKey, lookup: membershipLookup, now });
     await prisma.$transaction(async transaction => {
       const lock = `discord-activity:${guildId}`;
       await transaction.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtextextended(${lock}, 0))`;
@@ -107,6 +120,48 @@ export function createDiscordActivityService({ client, prisma, guildId, logger =
       await prisma.discordActivityDelivery.updateMany({ where: { id: delivery.id, processingToken: token }, data: { processingToken: null, processingUntil: null, nextAttemptAt: new Date(now().getTime() + (Number(error.code) === 50007 ? 86_400_000 : 3_600_000)), lastError: String(error.message).slice(0, 450) } });
       logger.error(`Quarterly activity DM pending for ${delivery.recipientId}:`, error.message);
     }
+  }
+  async function requestReport({ actorId, requestedAt = now() }) {
+    if (!client.isReady()) throw new Error("The bot is reconnecting. Please try again shortly.");
+    const server = await client.guilds.fetch(guildId);
+    // Force a fresh role check; neither cached interaction roles nor Administrator bypass this allowlist.
+    const actor = await server.members.fetch({ user: actorId, force: true });
+    if (actor.user.bot || ![PERSONNEL_ROLES.warlord, PERSONNEL_ROLES.hand].some(roleId => actor.roles.cache.has(roleId))) {
+      throw new Error("Only the Clan Warlord or Hand of the Clan can request activity history.");
+    }
+    const end = new Date(requestedAt);
+    if (!Number.isFinite(end.getTime()) || end > now()) throw new Error("Invalid activity review time.");
+    const settings = await state();
+    // A rolling three-calendar-month review, bounded by the start of actual tracking.
+    const start = new Date(end);
+    const day = start.getUTCDate();
+    start.setUTCDate(1);
+    start.setUTCMonth(start.getUTCMonth() - 3);
+    const monthEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
+    start.setUTCDate(Math.min(day, monthEnd));
+    if (start < new Date(settings.trackingStartedAt)) start.setTime(new Date(settings.trackingStartedAt).getTime());
+    // The first request can initialize tracking after the interaction was created.
+    if (start > end) start.setTime(end.getTime());
+    const people = await server.members.fetch();
+    const activity = await prisma.discordMemberActivity.findMany({ where: { guildId, periodStartedAt: { lt: end } } });
+    const report = await addActivityMembership({ ...activitySnapshot({ ...settings, periodStartedAt: start, nextReportAt: end }, people, activity, now()),
+      mode: "ON_DEMAND", requestedBy: actorId }, people, { prisma, guildId, apiKey: rsiApiKey, lookup: membershipLookup, now });
+    const latestActor = await server.members.fetch({ user: actorId, force: true });
+    if (![PERSONNEL_ROLES.warlord, PERSONNEL_ROLES.hand].some(roleId => latestActor.roles.cache.has(roleId))) {
+      throw new Error("Only the Clan Warlord or Hand of the Clan can request activity history.");
+    }
+    const deliveries = await prisma.$transaction(async transaction => {
+      const results = [];
+      for (const recipientId of ACTIVITY_RECIPIENTS) {
+        const key = { guildId, recipientId, periodEndedAt: end };
+        results.push(await transaction.discordActivityDelivery.upsert({ where: { guildId_recipientId_periodEndedAt: key },
+          create: { ...key, periodStartedAt: start, report, nextAttemptAt: now() }, update: {} }));
+      }
+      return results;
+    });
+    for (const delivery of deliveries) await deliver(delivery);
+    const pending = await prisma.discordActivityDelivery.findMany({ where: { guildId, periodEndedAt: end, sentAt: null }, take: 2 });
+    return { pendingRecipientIds: pending.map(delivery => delivery.recipientId), nextReportAt: settings.nextReportAt };
   }
   async function poll() {
     if (running || !client.isReady()) return;
@@ -149,5 +204,5 @@ export function createDiscordActivityService({ client, prisma, guildId, logger =
   function stop() {
     clearInterval(timer); for (const [event, handler] of handlers) client.off(event, handler); handlers.length = 0; started = false;
   }
-  return { start, stop, poll, record };
+  return { start, stop, poll, record, requestReport };
 }

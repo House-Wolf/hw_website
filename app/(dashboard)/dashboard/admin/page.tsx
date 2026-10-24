@@ -4,7 +4,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { deriveUserPermissions } from "@/lib/deriveUserpermissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Ban, CheckCircle2, FileText, Shield, UserCog, Link2, Video } from "lucide-react";
+import { Ban, CheckCircle2, FileText, UserCog, Link2 } from "lucide-react";
 import ApprovedDossiersSection from "./components/ApprovedDossiersSection";
 import SocialLinksSection from "./components/SocialLinksSection";
 import FeaturedVideoSection from "./components/FeaturedVideoSection";
@@ -329,7 +329,7 @@ export default async function AdminPanelPage({
             href="/dashboard/admin?tab=users"
             className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "users"
-                ? "border-[#a92222] text-[#a92222]"
+                ? "border-[var(--accent-primary)] text-[var(--accent-primary)]"
                 : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasUserAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "users" ? "page" : undefined}
@@ -341,7 +341,7 @@ export default async function AdminPanelPage({
             href="/dashboard/admin?tab=dossiers"
             className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "dossiers"
-                ? "border-[#a92222] text-[#a92222]"
+                ? "border-[var(--accent-primary)] text-[var(--accent-primary)]"
                 : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "dossiers" ? "page" : undefined}
@@ -353,7 +353,7 @@ export default async function AdminPanelPage({
             href="/dashboard/admin?tab=social"
             className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "social"
-                ? "border-[#a92222] text-[#a92222]"
+                ? "border-[var(--accent-primary)] text-[var(--accent-primary)]"
                 : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasDossierAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "social" ? "page" : undefined}
@@ -365,7 +365,7 @@ export default async function AdminPanelPage({
             href="/dashboard/admin?tab=video"
             className={`flex-1 px-6 py-4 text-base font-semibold cursor-pointer transition-colors border-b-2 text-center ${
               activeTab === "video"
-                ? "border-[#a92222] text-[#a92222]"
+                ? "border-[var(--accent-primary)] text-[var(--accent-primary)]"
                 : "border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
             } ${!hasUserAdmin ? "pointer-events-none opacity-50" : ""}`}
             aria-current={activeTab === "video" ? "page" : undefined}

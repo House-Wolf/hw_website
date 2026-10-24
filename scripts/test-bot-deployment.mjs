@@ -187,10 +187,11 @@ test("all bot relative JavaScript dependencies are included in the container", a
     const source = await readFile(url, "utf8");
     for (const match of source.matchAll(/from\s+["'](\.[^"']+\.js)["']/g)) {
       const dependency = new URL(match[1], url);
-      assert.match(dependency.pathname, /\/(bot\/|lib\/personnel\/|lib\/marketplace\/guestRecords\.js$)/);
+      assert.match(dependency.pathname, /\/(bot\/|lib\/command\/|lib\/personnel\/|lib\/marketplace\/guestRecords\.js$)/);
       await inspect(dependency);
     }
   }
   await inspect(new URL("../bot/index.js", import.meta.url));
+  assert.match(await readFile(new URL("../Dockerfile.discord", import.meta.url), "utf8"), /COPY lib\/command \.\/lib\/command/);
   assert.ok(visited.size > 5);
 });

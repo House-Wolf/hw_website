@@ -1,9 +1,17 @@
 import { normalizeDiscordMentions } from "./formatMentions";
 
+interface AnnouncementComponent {
+  type: number;
+  content?: string;
+  components?: AnnouncementComponent[];
+  items?: Array<{ media: { url?: string } }>;
+}
+
 export interface AnnouncementMessage {
   id: string;
   content: string;
   timestamp: string;
+  components?: AnnouncementComponent[];
   embeds?: Array<{
     type?: string;
     url?: string;
@@ -52,6 +60,21 @@ function plainText(text: string) {
 /** Keep authored news, without promoting automatic GIF previews into news items. */
 export function prepareAnnouncements(messages: AnnouncementMessage[], now = Date.now()): HomepageAnnouncement[] {
   return messages.flatMap((message): HomepageAnnouncement[] => {
+    const componentText: string[] = [];
+    const componentImages: string[] = [];
+    const readComponents = (components: AnnouncementComponent[]) => {
+      for (const component of components) {
+        if (component.type === 10 && component.content) componentText.push(component.content);
+        if (component.type === 12) {
+          for (const item of component.items ?? []) {
+            const url = safeStillImage(item.media.url);
+            if (url) componentImages.push(url);
+          }
+        }
+        if (component.components) readComponents(component.components);
+      }
+    };
+    readComponents(message.components ?? []);
     const richEmbeds = (message.embeds ?? []).filter((embed) =>
       (!embed.type || embed.type === "rich") &&
       !/tenor|giphy/i.test(embed.provider?.name ?? "") && !isGif(embed.url ?? "")
@@ -62,7 +85,7 @@ export function prepareAnnouncements(messages: AnnouncementMessage[], now = Date
     );
     const embedImage = richEmbeds.flatMap((embed) => [embed.image?.url, embed.thumbnail?.url])
       .map(safeStillImage).find(Boolean);
-    let imageUrl = safeStillImage(stillAttachment?.url) ?? embedImage ?? null;
+    let imageUrl = safeStillImage(stillAttachment?.url) ?? embedImage ?? componentImages[0] ?? null;
 
     const cleanText = (text: string) => normalizeDiscordMentions(text)
       // Remove GIF links (including Markdown labels) and promote still-image links to thumbnails.
@@ -84,10 +107,10 @@ export function prepareAnnouncements(messages: AnnouncementMessage[], now = Date
       })
       .split("\n")
       // Discord ping-only/spoiler lines aren't useful announcement headings.
-      .filter((line) => !/^(?:\s|[|*_~]|@Member|@everyone|@here)+$/i.test(line))
+      .filter((line) => !/^(?:\s|[|*_~]|@Member|@Role|#channel|@everyone|@here)+$/i.test(line))
       .join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
-    const sections = [message.content, ...richEmbeds.map((embed) =>
+    const sections = [message.content, ...componentText, ...richEmbeds.map((embed) =>
       [embed.title, embed.description, ...(embed.fields ?? []).map((field) => `**${field.name}**\n${field.value}`)]
         .filter(Boolean).join("\n\n")
     )].map(cleanText).filter(Boolean);

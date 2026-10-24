@@ -8,6 +8,7 @@ COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build pnpm exec prisma generate
 COPY bot ./bot
 COPY lib/personnel ./lib/personnel
+COPY lib/command ./lib/command
 COPY lib/marketplace/guestRecords.js ./lib/marketplace/guestRecords.js
 COPY public/images/global/Websitebgnew.png public/images/global/HWiconnew.png ./public/images/global/
 ENV NODE_ENV=production

@@ -1,3 +1,4 @@
+import { CommandError } from "@/lib/command/access.js";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error fetching featured video:", error);
     return NextResponse.json(
       { error: "Failed to fetch featured video" },
@@ -148,6 +150,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error updating featured video:", error);
     return NextResponse.json(
       { error: "Failed to update featured video" },

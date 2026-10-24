@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { bannerMessage } from "./bannerMessage.js";
 
 const backgroundPath = fileURLToPath(new URL("../public/images/global/Websitebgnew.png", import.meta.url));
 const logoPath = fileURLToPath(new URL("../public/images/global/HWiconnew.png", import.meta.url));
@@ -56,15 +57,13 @@ export function createWelcomeMessage(profile, discordId, displayName = "New Drag
   if (interests.length) fields.push({ name: "STAR CITIZEN", value: interests.map((interest) => `▸ ${interest}`).join("\n"), inline: true });
   if (profile.otherGame) fields.push({ name: "BEYOND THE ’VERSE", value: `▸ ${escapeMarkdown(profile.otherGame)}`, inline: true });
   fields.push({ name: "\u200b", value: "Say hello, invite them to your next session, and help our newest member find their crew.", inline: false });
-  return {
+  return bannerMessage({
     allowedMentions: { parse: [], users: [discordId] },
     nonce: createHash("sha256").update(`onboarding:${profile.userId}:${profile.completedAt ? new Date(profile.completedAt).toISOString() : "initial"}`).digest("hex").slice(0, 24),
     enforceNonce: true,
-    embeds: [
-      { color: 0x470000, image: { url: "attachment://house-wolf-welcome.png", width: 1200, height: 520 } },
-      { color: 0x114e62, author: { name: "HOUSE WOLF  /  COMMUNITY WELCOME" }, title: "A NEW DRAGOON · THE NEXT CHAPTER", description: `Meet **${escapeMarkdown(displayName)}**. A few shared interests are the beginning of a good squad.`, fields, footer: { text: "This is the Way!" } },
-    ],
-  };
+    image: { url: "attachment://house-wolf-welcome.png" },
+    body: { color: 0x114e62, author: { name: "HOUSE WOLF  /  COMMUNITY WELCOME" }, title: "A NEW DRAGOON · THE NEXT CHAPTER", description: `Meet **${escapeMarkdown(displayName)}**. A few shared interests are the beginning of a good squad.`, fields, footer: { text: "This is the Way!" } },
+  });
 }
 
 export async function publishPendingWelcomes(client, prisma) {

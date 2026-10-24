@@ -34,6 +34,7 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
       "/api/marketplace/update",
       "/api/marketplace/upload",
       "/api/packtracker",
+      "/api/command",
       "/api/social-links",
       "/api/user",
     ];

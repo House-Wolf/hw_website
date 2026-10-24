@@ -1,0 +1,12 @@
+import "server-only";
+import { prisma } from "@/lib/prisma";
+import { authorize, discordRead } from "./server";
+import { createOperationService } from "./operations.js";
+import { nativePreflight, validateGuildVoiceChannel } from "./nativePreflight.js";
+export const operationService = createOperationService({ prisma, authorize,
+  preflight: (guildId: string, input: Parameters<typeof nativePreflight>[1]) => nativePreflight(guildId, input, discordRead),
+  baseUrl: process.env.NEXTAUTH_URL || process.env.AUTH_URL,
+  announcementChannel: process.env.DISCORD_EVENTS_CHANNEL_ID || "",
+  readNative: (guildId: string) => discordRead(`/guilds/${guildId}/scheduled-events`),
+  validateVoice: (guildId: string, channelId: string) => validateGuildVoiceChannel(guildId, channelId, discordRead),
+});
