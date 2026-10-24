@@ -44,6 +44,8 @@ export interface FleetYardsVehicle {
   id?: string;
   name?: string | null;
   serial?: string | null;
+  owner?: { username?: string; displayName?: string; rsiHandle?: string } | null;
+  loaner?: boolean;
   model?: FleetYardsModel | null;
 }
 
