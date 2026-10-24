@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import { previewSessionCookies } from "../lib/authPreview.js";
 
 function load(path, dependencies, globals) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
@@ -42,6 +43,7 @@ function fixture(options = {}) {
     "@/lib/prisma": { prisma: { user: { findUnique: async () => options.inactive ? { isActive: false } : null } } },
     "@/lib/deriveUserpermissions": {},
     "@/lib/onboardingDiscordJoin": join,
+    "@/lib/authPreview.js": { previewSessionCookies },
   }, globals);
   return {
     calls,
