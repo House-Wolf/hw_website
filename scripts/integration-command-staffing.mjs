@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { createAuthorizer, CommandError } from "../lib/command/access.js";
 import { createOperationService } from "../lib/command/operations.js";
 import { createFleetService } from "../lib/command/fleetService.js";
+import { createFleetRegistryService } from "../lib/command/fleetRegistryService.js";
 import { createCrewService } from "../lib/command/crewService.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 const database = process.env.COMMAND_TEST_DATABASE_URL;
@@ -45,7 +46,29 @@ after(async () => {
   await prisma.commandSignup.deleteMany({ where: { operationId: { in: opIds } } });
   await prisma.auditLog.deleteMany({ where: { OR: [{ actorId: { in: ids } }, { targetId: { in: opIds } }] } });
   await prisma.commandOperation.deleteMany({ where: { guildId } });
+  await prisma.personnelMember.deleteMany({ where: { guildId } });
   await prisma.user.deleteMany({ where: { id: { in: ids } } }); await prisma.$disconnect();
+});
+
+test("FleetYards verifies an existing owner's ship for attachment without officer ownership review", async () => {
+  const vehicleId = randomUUID();
+  await prisma.personnelMember.create({ data: { guildId, discordId: `test-${owner}`, rsiHandle: "RegistryOwner", membershipConfirmedAt: new Date() } });
+  const declared = await declareShip(owner, { name: "Registry ship", model: "Registry model", externalRef: `fleetyards:${vehicleId}` });
+  const registry = createFleetRegistryService({ prisma, authorize, loadFleet: async () => ({ sourceStatus: "complete", vehicles: [{ id: vehicleId, model: { name: "Registry model" }, owner: { rsiHandle: "registryowner" } }] }) });
+  const result = await registry.sync(owner);
+  assert.equal(result.verified, 1);
+  const row = await prisma.commandShip.findUnique({ where: { id: declared.id } });
+  assert.ok(row.verifiedAt);
+  assert.equal(row.verifiedById, null);
+  assert.equal(row.productionState, "UNKNOWN");
+  assert.equal(row.availability, "UNAVAILABLE");
+  assert.equal(row.readiness, "UNKNOWN");
+  assert.equal((await fleet.list(owner)).ships.find((ship) => ship.id === row.id).verificationSource, "FLEETYARDS");
+  const op = await operation();
+  assert.ok((await crew.view(officer, op.id)).availableShips.some((ship) => ship.id === row.id));
+  const attached = await attach(op.id, row.id);
+  assert.equal(attached.shipId, row.id);
+  await assert.rejects(change(op.id, "consent", { operationShipId: attached.id }, owner), (error) => error.code === "SHIP_NOT_READY");
 });
 test("only eligible owners declare; only live officers verify; no admin/self-verification bypass", async () => {
   await assert.rejects(declareShip(visitor, { name: "Visitor", model: "Test" }), (e) => e.status === 403);

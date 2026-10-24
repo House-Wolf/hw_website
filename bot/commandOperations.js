@@ -4,6 +4,11 @@ import { createAuthorizer, CommandError, mayManageOperation } from "../lib/comma
 import { nativePreflight } from "../lib/command/nativePreflight.js";
 import { validateTextDestination } from "../lib/command/channels.js";
 import { deliverNative, reconcileNative } from "../lib/command/nativeDelivery.js";
+import { createOperationService } from "../lib/command/operations.js";
+import { createCommitmentPolicy } from "../lib/command/planningPolicy.js";
+import { commitmentComponents } from "../lib/command/commitmentComponents.js";
+import { createOperationReminderWorker } from "./operationReminders.js";
+import { createOperationCommitmentHandler } from "./operationCommitments.js";
 import { lockOperation } from "../lib/command/operations.js";
 
 export function createCommandWorker({ prisma, client, env = process.env }) {
@@ -26,6 +31,11 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
     loadAccount: (id) => prisma.user.findUnique({ where: { id }, select: { id: true, discordId: true, isActive: true } }),
     async loadMember(guild, user) { const member = await discord.get(`/guilds/${guild}/members/${user}`); return member ? { guildId: guild, userId: member.user.id, roleIds: member.roles } : null; },
   });
+  const advanced = env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && env.COMMAND_STAFFING_ENABLED === "true";
+  const reminderWorker = createOperationReminderWorker({ prisma, authorize, discord, guildId, env });
+  const commitments = createOperationService({ prisma, authorize, staffingEnabled: env.COMMAND_STAFFING_ENABLED === "true", commitmentPolicy: advanced ? createCommitmentPolicy({ authorize }) : null });
+  const handleCommitment = createOperationCommitmentHandler({ prisma, operations: commitments, guildId });
+  if (advanced && env.COMMAND_DASHBOARD_ENABLED === "true" && client.on) client.on("interactionCreate", (interaction) => { void handleCommitment(interaction).catch(() => console.error("command.commitment.unavailable")); });
   async function claim() {
     return prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw`SELECT d.id FROM command_deliveries d JOIN command_operations o ON o.id=d."operationId" WHERE o."guildId"=${guildId} AND ((d.status='PENDING' AND d."availableAt" <= now()) OR (d.status='PROCESSING' AND d."leaseUntil" < now())) ORDER BY d."createdAt" FOR UPDATE OF d SKIP LOCKED LIMIT 1`;
@@ -68,6 +78,7 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
           const marker = new URL(`/dashboard/operations/${op.id}`, env.NEXTAUTH_URL).href;
           let messageId = op.announcementId;
           const body = { content: `${op.input.title}\nStatus: ${op.state}\n${marker}${op.nativeEventId ? `\nhttps://discord.com/events/${guildId}/${op.nativeEventId}` : ""}\nInterested is not a confirmed commitment. Sign up on the dashboard.`, allowed_mentions: { parse: [] } };
+          if (advanced) body.components = commitmentComponents(op, env.NEXTAUTH_URL || env.AUTH_URL);
           await authorize(job.actorId, { officer: true });
           if (messageId) await discord.patch(`/channels/${channelId}/messages/${messageId}`, body);
           else {
@@ -109,7 +120,7 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   async function tick() {
     if (running || stopped) return;
     running = true;
-    try { for (let i = 0; i < 10 && !stopped; i++) { const job = await claim(); if (!job) break; await processJob(job); } await reconcile(); }
+    try { for (let i = 0; i < 10 && !stopped; i++) { const job = await claim(); if (!job) break; await processJob(job); } await reconcile(); if (advanced) await reminderWorker.tick(); }
     catch { console.error("command.worker.unavailable"); }
     finally { running = false; }
   }

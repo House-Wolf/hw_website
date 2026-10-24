@@ -2,11 +2,11 @@ import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { createAuthorizer } from "../lib/command/access.js";
-import { matchRegistryOwners } from "../lib/command/fleetRegistryService.js";
+import { matchRegistryOwners, registryOwnershipVerification } from "../lib/command/fleetRegistryService.js";
 import { crewMember, lockSchedule } from "../lib/command/staffingPolicy.js";
 
 // Explicit maintenance command: dry-run unless --apply is supplied. Imports are
-// system-audited declarations, never ownership verification or owner consent.
+// system-audited FleetYards ownership verification, never owner readiness or consent.
 const args = process.argv.slice(2);
 const option = (name) => args.includes(name) ? args[args.indexOf(name) + 1] : null;
 const envFile = option("--env");
@@ -52,20 +52,29 @@ try {
       await lockSchedule(tx, guildId);
       const current = new Map((await matches(tx, fleet.vehicles)).map((row) => [row.vehicle.id, row.ownerId]));
       if (selected.some((row) => current.get(row.vehicle.id) !== row.ownerId)) throw new Error("Owner identities changed; no import was applied.");
-      let imported = 0, existing = 0, conflicts = 0;
+      let imported = 0, existing = 0, conflicts = 0, verified = 0;
       for (const { vehicle, ownerId } of selected) {
         const externalRef = `fleetyards:${vehicle.id}`;
         const prior = await tx.commandShip.findUnique({ where: { guildId_externalRef: { guildId, externalRef } } });
-        if (prior) { if (prior.ownerId === ownerId) existing++; else conflicts++; continue; }
         const model = vehicle.model.name.trim();
-        const ship = await tx.commandShip.create({ data: { guildId, ownerId, externalRef, name: (vehicle.name?.trim() || model).slice(0, 100), model } });
-        await tx.auditLog.create({ data: { action: "COMMAND_FLEET_REGISTRY_BOOTSTRAPPED", targetType: "CommandShip", targetId: ship.id, metadata: { source: "FleetYards public registry", authorization: "Operator-requested fleet setup", externalRef, ownerId, verification: "PENDING" } } });
+        if (prior) {
+          if (prior.ownerId !== ownerId || prior.model.trim().toLowerCase() !== model.toLowerCase()) { conflicts++; continue; }
+          existing++;
+          if (!prior.verifiedAt) {
+            await tx.commandShip.update({ where: { id: prior.id }, data: { ...registryOwnershipVerification(vehicle), revision: { increment: 1 } } });
+            await tx.auditLog.create({ data: { action: "COMMAND_FLEET_REGISTRY_VERIFIED", targetType: "CommandShip", targetId: prior.id, metadata: { source: "FleetYards public registry", authorization: "Operator-requested FleetYards ownership verification", externalRef, ownerId, verification: "FLEETYARDS" } } });
+            verified++;
+          }
+          continue;
+        }
+        const ship = await tx.commandShip.create({ data: { guildId, ownerId, externalRef, name: (vehicle.name?.trim() || model).slice(0, 100), model, ...registryOwnershipVerification(vehicle) } });
+        await tx.auditLog.create({ data: { action: "COMMAND_FLEET_REGISTRY_BOOTSTRAPPED", targetType: "CommandShip", targetId: ship.id, metadata: { source: "FleetYards public registry", authorization: "Operator-requested fleet setup", externalRef, ownerId, verification: "FLEETYARDS" } } });
         imported++;
       }
       for (const ownerId of new Set(selected.map((row) => row.ownerId))) {
         if (!crewMember(await authorize(ownerId))) throw new Error("Owner membership changed; no import was applied.");
       }
-      return { imported, existing, conflicts, verification: "PENDING" };
+      return { imported, existing, verified, conflicts, verification: "FLEETYARDS" };
     }, { timeout: 25000 });
     console.log(JSON.stringify(result));
   }

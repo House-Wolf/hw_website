@@ -5,7 +5,7 @@ import { localInstant } from "@/lib/command/eventInput.js";
 import { uploadEventCover } from "@/lib/command/coverSelection.js";
 
 export type EventInput = { title: string; description: string; entityType: string; channelId: string; location: string; timezone: string; startLocal: string; endLocal: string; startChoice: string; endChoice: string; recurrence: string; visibility: string; imageData: string | null; imageBehavior: string };
-export type Operation = { id: string; input: EventInput & { start: string; end: string | null }; state: string; revision: number; guildId: string; nativeEventId: string | null; voiceChannelName?: string | null; announcementChannelId?: string | null; syncState: string; canManage?: boolean; staffingEnabled?: boolean; remoteSnapshot?: { name: string; description: string; start: string; end: string | null; location: string | null; channel_id: string | null; status: number }; deliveries?: { id: string; revision: number; kind: string; status: string; errorCode: string | null }[]; signups?: { status: string; preferences: string }[] };
+export type Operation = { id: string; input: EventInput & { start: string; end: string | null }; state: string; revision: number; guildId: string; nativeEventId: string | null; voiceChannelName?: string | null; announcementChannelId?: string | null; syncState: string; canManage?: boolean; staffingEnabled?: boolean; advancedEnabled?: boolean; remoteSnapshot?: { name: string; description: string; start: string; end: string | null; location: string | null; channel_id: string | null; status: number }; deliveries?: { id: string; revision: number; kind: string; status: string; errorCode: string | null }[]; signups?: { status: string; preferences: string }[] };
 export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const response = await fetch(`/api/command/${path}`, { method, cache: "no-store", headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
   const result = await response.json();
@@ -14,8 +14,8 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
 }
 const empty: EventInput = { title: "", description: "", entityType: "EXTERNAL", channelId: "", location: "", timezone: "UTC", startLocal: "", endLocal: "", startChoice: "reject", endChoice: "reject", recurrence: "NONE", visibility: "GUILD", imageData: null, imageBehavior: "PRESERVE" };
 const control = "mt-1 w-full rounded-lg border border-[var(--border-default)] bg-[var(--background-card)] p-3 text-[var(--text-primary)] disabled:opacity-50";
-export default function EventWizard({ operation, onSaved }: { operation?: Operation; onSaved: (operation: Operation) => void }) {
-  const [input, setInput] = useState<EventInput>(() => operation ? { ...empty, ...Object.fromEntries(Object.keys(empty).map((key) => [key, operation.input[key as keyof EventInput]])) } : empty);
+export default function EventWizard({ operation, initialValues, onSaved }: { operation?: Operation; initialValues?: Partial<EventInput>; onSaved: (operation: Operation) => void }) {
+  const [input, setInput] = useState<EventInput>(() => operation ? { ...empty, ...Object.fromEntries(Object.keys(empty).map((key) => [key, operation.input[key as keyof EventInput]])) } : { ...empty, ...initialValues });
   const [step, setStep] = useState(0), [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState(""), [pending, setPending] = useState(false), [key] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState(operation);

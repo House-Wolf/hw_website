@@ -8,6 +8,7 @@ test("local preview overrides remote datasource and delivery flags without remov
   assert.equal(new URL(result.DATABASE_URL).hostname, "127.0.0.1");
   assert.equal(result.COMMAND_DISCORD_DELIVERY_ENABLED, "false");
   assert.equal(result.COMMAND_STAFFING_ENABLED, "true");
+  assert.equal(result.COMMAND_ADVANCED_OPERATIONS_ENABLED, "true");
   assert.equal(result.DISCORD_CLIENT_SECRET, source.DISCORD_CLIENT_SECRET);
   assert.equal(result.NEXTAUTH_URL, "http://localhost:3000");
   assert.equal(source.COMMAND_DISCORD_DELIVERY_ENABLED, "true");

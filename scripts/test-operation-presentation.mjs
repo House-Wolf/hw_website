@@ -37,7 +37,7 @@ function renderDetail(voiceChannelName) {
     react: { ...React, useState: initial => [initial === null ? { ...operation, voiceChannelName } : initial, () => {}], useEffect() {}, useCallback: callback => callback },
     "react/jsx-runtime": awaitlessJsx,
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children), __esModule: true },
-    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": {},
+    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": {}, "./OperationsBrowser": {}, "./PlanningPanel": {},
   };
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(code, { exports: loaded.exports, module: loaded, require(name) { assert.ok(name in dependencies, name); return dependencies[name]; } });
@@ -53,4 +53,43 @@ test("an unavailable voice channel uses a readable fallback without exposing its
   const html = renderDetail(null);
   assert.ok(html.includes("Voice channel: Channel unavailable"));
   assert.ok(!html.includes(operation.input.channelId));
+});
+
+function planningTree(canManage, requests = []) {
+  const plan = { canManage, state: "PUBLISHED", revision: 2, crewRevision: 5, timezone: "UTC", capacity: 12, waitlistEnabled: true, reminderMinutes: [60], committed: 3, waiting: 1, waitlistPosition: 1, seats: [], assignments: [], candidates: [], wings: [], reserves: [], reminders: [], occurrences: [] };
+  let stateIndex = 0;
+  const dependencies = {
+    react: { ...React, useState(initial) { const index = stateIndex++; return [index === 0 ? plan : index === 4 ? { capacity: "12", waitlistEnabled: true, offsets: "60" } : initial, () => {}]; }, useRef: value => ({ current: value }), useEffect() {}, useCallback: callback => callback },
+    "react/jsx-runtime": awaitlessJsx,
+    "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children), __esModule: true },
+    "lucide-react": new Proxy({}, { get: () => () => null }),
+    "./EventWizard": { api: async (...args) => { requests.push(args); return plan; } },
+  };
+  const source = readFileSync(new URL("../app/(dashboard)/dashboard/operations/PlanningPanel.tsx", import.meta.url), "utf8");
+  const loaded = { exports: {} };
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(code, { exports: loaded.exports, module: loaded, require(name) { assert.ok(name in dependencies, name); return dependencies[name]; } });
+  return loaded.exports.default({ operationId: id, revisionKey: "2", onChanged() {} });
+}
+function descendants(node) {
+  if (!node || typeof node !== "object") return [];
+  return [node, ...React.Children.toArray(node.props?.children).flatMap(descendants)];
+}
+test("planning renders member counts and queue position while restricting management controls", () => {
+  const member = renderToStaticMarkup(planningTree(false));
+  assert.ok(member.includes("Your waitlist position:"));
+  assert.ok(!member.includes("Save places"));
+  assert.ok(!member.includes("Preview assignments"));
+  const manager = renderToStaticMarkup(planningTree(true));
+  assert.ok(manager.includes("Save places"));
+  assert.ok(manager.includes("Preview assignments"));
+});
+test("capacity form submits the supported planning fields without crew mutation metadata", async () => {
+  const requests = [], tree = planningTree(true, requests);
+  const form = descendants(tree).find(node => node.type === "form");
+  await form.props.onSubmit({ preventDefault() {} });
+  // The form starts an async mutation; wait until its API request is observable.
+  const request = requests.find(([, method]) => method === "POST");
+  assert.equal(request[2].action, "savePlan");
+  assert.deepEqual(JSON.parse(JSON.stringify(request[2].input)), { capacity: 12, waitlistEnabled: true, reminderMinutes: [60] });
 });
