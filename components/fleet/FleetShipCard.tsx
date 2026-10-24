@@ -60,6 +60,12 @@ export default function FleetShipCard({ vehicle }: FleetShipCardProps) {
           <p className="mt-1 text-sm text-white/50">Callsign: {vehicle.name}</p>
         )}
 
+        <p className="mt-3 text-sm text-white/70">
+          Registry owner: <span className="font-semibold text-white">{vehicle.owner?.displayName || vehicle.owner?.username || vehicle.owner?.rsiHandle || "Not publicly shared"}</span>
+          {vehicle.owner?.rsiHandle && <span className="block text-xs text-white/50">RSI: {vehicle.owner.rsiHandle}</span>}
+          {vehicle.loaner && <span className="ml-2 rounded border border-white/20 px-2 py-0.5 text-xs">Loaner</span>}
+        </p>
+
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <Info label="Role" value={model?.focus} />
           <Info label="Size" value={model?.sizeLabel ?? model?.size} />

@@ -38,14 +38,30 @@ export default function FleetReadiness() {
   const [search, setSearch] = useState(""), [members, setMembers] = useState<{ id: string; name: string }[]>([]);
   const [qualification, setQualification] = useState({ userId: "", code: "", evidence: "", expiresAt: "" });
   const [reason, setReason] = useState("");
+  const [importMessage, setImportMessage] = useState("");
   const refresh = useCallback(async () => { const result = await api<Fleet>("fleet"); setData(result); }, []);
   useEffect(() => { api<Fleet>("fleet").then(setData).catch((e) => setError(e.message)); }, []);
   async function write(path: string, body: unknown, after?: () => void) {
     if (pending) return; setPending(true); setError("");
     try { await api(path, "POST", body); after?.(); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : "Save failed."); } finally { setPending(false); }
   }
+  async function importRegistry() {
+    if (pending) return; setPending(true); setError(""); setImportMessage("");
+    try {
+      const result = await api<{ imported: number; existing: number; conflicts: number; unmatched: number }>("fleet/registry", "POST", {});
+      setImportMessage(`${result.imported} ships imported · ${result.existing} already linked · ${result.unmatched} without a unique member match · ${result.conflicts} ownership conflicts left unchanged.`);
+      await refresh();
+    } catch (e) { setError(e instanceof Error ? e.message : "FleetYards import failed."); }
+    finally { setPending(false); }
+  }
   return <div className="space-y-6"><div className="dash-page-heading"><div><p className="dash-eyebrow">HOUSE WOLF FLEET</p><h1>Fleet readiness</h1><p>Declare your own ships, verify ownership and consent to individual operations.</p></div><Link className="dash-button dash-button-secondary" href="/fleet">Browse FleetYards registry</Link></div>
     {error && <p role="alert" className="dash-notice">{error}</p>}{!data ? <p role="status">{error ? "Fleet unavailable. Reload to retry." : "Loading verified fleet..."}</p> : <>
+      <section className="dash-panel space-y-4"><h2 className="text-xl font-bold">Import ships from FleetYards</h2>
+        <p>{data.officer ? "Link registry ships to their individual owners using each member’s confirmed RSI handle." : "Import registry ships matching your confirmed RSI handle."} Hidden owners, loaners and ambiguous matches are skipped. Existing ship records are kept.</p>
+        <button disabled={pending} className={buttonClass} onClick={() => void importRegistry()}>{pending ? "Please wait..." : data.officer ? "Import member ships" : "Import my ships"}</button>
+        <p className="text-sm">Imported ships await ownership/model verification and owner readiness before being used in an operation. You can still declare a missing ship below.</p>
+        {importMessage && <p role="status">{importMessage}</p>}
+      </section>
       <form className="dash-panel space-y-4" onSubmit={(e) => { e.preventDefault(); void write("fleet", { ...newShip, requestKey: declarationKey }, () => { setNewShip({ name: "", model: "", externalRef: "" }); setDeclarationKey(crypto.randomUUID()); }); }}><h2 className="text-xl font-bold">Declare a ship you own</h2><fieldset disabled={pending} className="grid gap-4 md:grid-cols-3">{(["name", "model", "externalRef"] as const).map((key) => <label className="block" key={key}>{key === "name" ? "Ship name" : key === "model" ? "Model" : "FleetYards vehicle / ownership reference (optional)"}<input required={key !== "externalRef"} maxLength={key === "externalRef" ? 200 : 100} className={inputClass} value={newShip[key]} onChange={(e) => setNewShip({ ...newShip, [key]: e.target.value })} /></label>)}<button className={buttonClass}>{pending ? "Saving..." : "Declare ship"}</button></fieldset><p className="text-sm">New declarations are unverified and unavailable until reviewed and attested. Public registry entries are not imported as proof of ownership.</p></form>
       <div className="grid gap-5 xl:grid-cols-2">{data.ships.map((ship) => <ShipCard key={ship.id} ship={ship} owner={ship.ownerId === data.userId} officer={data.officer} refresh={refresh} />)}</div>{!data.ships.length && <p>No operational ships declared yet.</p>}
       {data.officer && <section className="dash-panel space-y-4"><h2 className="text-xl font-bold">Manual verified qualifications</h2><p>Another current officer verifies evidence. Qualifications do not change ranks or Discord roles.</p>

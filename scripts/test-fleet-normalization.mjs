@@ -8,6 +8,23 @@ const loaded = { exports: {} }; vm.runInNewContext(source, { module: loaded, exp
 const { normalizeFleetVehicles, fleetStatistics, loadPublicFleet } = loaded.exports;
 const vehicle = (id, modelId = "model") => ({ id, model: { id: modelId, name: modelId, manufacturer: { name: "Maker" }, classification: "transport" } });
 
+test("registry owners survive normalization in either provider naming format", () => {
+  for (const fields of [{ username: "wolf", userDisplayName: "Wolf", userRsiHandle: "RSIWolf" }, { username: "wolf", user_display_name: "Wolf", user_rsi_handle: "RSIWolf" }]) {
+    const [ship] = normalizeFleetVehicles([{ ...vehicle("owner-ship"), ...fields, privateEmail: "not-for-public-cards" }]);
+    assert.equal(ship.owner.username, "wolf");
+    assert.equal(ship.owner.displayName, "Wolf");
+    assert.equal(ship.owner.rsiHandle, "RSIWolf");
+    assert.ok(!JSON.stringify(ship).includes("not-for-public-cards"));
+  }
+});
+test("hidden or absent registry owners stay anonymous and loaners remain identifiable", () => {
+  for (const hidden of [{ hide_owner: true }, { hideOwner: true }]) {
+    assert.equal(normalizeFleetVehicles([{ ...vehicle("hidden"), username: "wolf", userRsiHandle: "Wolf", ...hidden }])[0].owner, null);
+  }
+  const [ship] = normalizeFleetVehicles([{ ...vehicle("private"), loaner: true }]);
+  assert.equal(ship.owner, null); assert.equal(ship.loaner, true);
+});
+
 test("arrays and nested provider envelopes normalize without inventing metadata rows", () => {
   for (const input of [[vehicle("one")], { vehicles: [vehicle("one")] }, { data: { results: [vehicle("one")] } }, { items: [null, vehicle("one")] }]) assert.equal(normalizeFleetVehicles(input).length, 1);
   for (const input of [null, {}, { total: 12, meta: { size: 30 } }, { model: { name: "metadata" } }]) assert.equal(normalizeFleetVehicles(input).length, 0);
