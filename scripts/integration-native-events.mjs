@@ -133,6 +133,15 @@ test("Interested never creates signups; explicit member preferences upsert one e
   await Promise.all([service.signup(memberId, op.id, "COMMITTED", "Pilot"), service.signup(memberId, op.id, "TENTATIVE", "Medic")]);
   assert.equal(await prisma.commandSignup.count({ where: { operationId: op.id } }), 1);
 });
+test("network failure updating a known native ID is safely retried without creating another event", async () => {
+  let op = await publish(await newDraft()); await makeWorker().tick();
+  op = await service.mutate(actorId, op.id, "save", op.revision, { ...input, title: "Retry mapped PATCH" });
+  const before = sends.filter(([verb, path]) => verb === "POST" && path.includes("scheduled-events")).length;
+  remoteFailure = new Error("Mock disconnected PATCH"); await makeWorker().tick(); remoteFailure = null;
+  const job = await latestJob(op); assert.equal(job.status, "PENDING");
+  await prisma.commandDelivery.update({ where: { id: job.id }, data: { availableAt: new Date(0) } }); await makeWorker().tick();
+  assert.equal((await latestJob(op)).status, "POSTED"); assert.equal(sends.filter(([verb, path]) => verb === "POST" && path.includes("scheduled-events")).length, before);
+});
 test("member cannot read drafts or restricted briefs and other guild cannot mutate records", async () => {
   const draft = await newDraft(); await assert.rejects(service.detail(memberId, draft.id), (e) => e.status === 404);
   const restricted = await service.create(actorId, { ...input, visibility: "OFFICERS" }, randomUUID());

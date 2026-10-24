@@ -44,6 +44,7 @@ test("revoked authority rolls back both settings and audit before commit", async
   assert.equal(await prisma.auditLog.count({ where: { actorId } }), before);
 });
 test("simultaneous writes cannot overwrite the same revision", async () => {
+  for (let iteration = 0; iteration < 10; iteration++) {
   const current = await repository.read(guild);
   const outcomes = await Promise.allSettled([
     repository.save(guild, { ...current, skillWeight: 30, preferenceWeight: 70 }, actorId, async () => {}),
@@ -52,4 +53,5 @@ test("simultaneous writes cannot overwrite the same revision", async () => {
   assert.equal(outcomes.filter((row) => row.status === "fulfilled").length, 1);
   assert.equal(outcomes.find((row) => row.status === "rejected").reason.status, 409);
   assert.equal((await repository.read(guild)).revision, current.revision + 1);
+  }
 });

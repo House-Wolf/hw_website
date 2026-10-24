@@ -12,6 +12,8 @@ export function createSettingsRepository(prisma: PrismaClient) {
       const key = `command:${guildId}:settings`;
       try {
         return await prisma.$transaction(async (tx) => {
+          // Serialize even the first insert, where SELECT FOR UPDATE has no row to lock.
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))::text`;
           await tx.$queryRaw`SELECT key FROM site_settings WHERE key = ${key} FOR UPDATE`;
           const row = await tx.siteSetting.findUnique({ where: { key } });
           const current = row ? validateCommandSettings(row.value) : defaultCommandSettings();
@@ -21,7 +23,7 @@ export function createSettingsRepository(prisma: PrismaClient) {
           await tx.auditLog.create({ data: { actorId, action: "COMMAND_SETTINGS_UPDATED", targetType: "COMMAND_SETTINGS", targetId: key, metadata: { revision: value.revision, fields: ["channels", "skillWeight", "preferenceWeight"] } } });
           await recheck();
           return value;
-        }, { isolationLevel: "Serializable", timeout: 15_000 });
+        }, { timeout: 15_000 });
       } catch (error) {
         if (error instanceof CommandError) throw error;
         if (error && typeof error === "object" && "code" in error && ["P2002", "P2034"].includes(String(error.code)))

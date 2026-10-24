@@ -35,11 +35,13 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   }
   async function processJob(job) {
     const recoveredSending = !!job.sendingAt;
+    let nativeCreate = job.kind === "NATIVE";
     try {
       // Commit intent BEFORE any remote write; loss after send cannot become a blind POST.
       await prisma.commandDelivery.updateMany({ where: { id: job.id, leaseToken: job.leaseToken }, data: { sendingAt: new Date() } });
       await prisma.$transaction(async (tx) => {
         const op = await lockOperation(tx, job.operationId, guildId);
+        nativeCreate = job.kind === "NATIVE" && !op.nativeEventId;
         if (op.revision !== job.revision) {
           // An interrupted older create may have succeeded before a newer revision was queued.
           if (recoveredSending && !op.nativeEventId && job.kind === "NATIVE") {
@@ -80,7 +82,7 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
     } catch (error) {
       const code = error.code || `DISCORD_${error.status || "UNAVAILABLE"}`;
       const blocked = [401, 403, 404, 409, 422].includes(error.status);
-      const ambiguous = code === "AMBIGUOUS" || (!error.status && job.kind === "NATIVE");
+      const ambiguous = code === "AMBIGUOUS" || (!error.status && nativeCreate);
       const rejected = (error instanceof CommandError && code !== "AMBIGUOUS") || [400, 401, 403, 404, 422, 429].includes(error.status);
       const status = ambiguous ? "AMBIGUOUS" : blocked ? "BLOCKED" : job.attempts >= 6 ? "FAILED" : "PENDING";
       // No brief, tokens or provider error payloads are logged/stored.
