@@ -44,9 +44,14 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [canManageCommand, setCanManageCommand] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/command/settings", { signal: controller.signal })
+      .then((response) => setCanManageCommand(response.ok))
+      .catch(() => { if (!controller.signal.aborted) setCanManageCommand(false); });
     fetch('/api/user/profile')
       .then(res => res.json())
       .then(data => {
@@ -55,6 +60,7 @@ export default function DashboardLayout({
       .catch(() => {
         // Silently fail, will show defaults
       });
+    return () => controller.abort();
   }, []);
 
   const navItems = [
@@ -63,6 +69,7 @@ export default function DashboardLayout({
     { name: "Marketplace", icon: Store, href: "/dashboard/marketplace" },
     { name: "Mercenary Bio", icon: IdCard, href: "/dashboard/profile" },
     { name: "Settings", icon: Settings, href: "/dashboard/settings" },
+    ...(canManageCommand ? [{ name: "Organization Settings", icon: Shield, href: "/dashboard/organization" }] : []),
   ];
 
   const externalLinks = [

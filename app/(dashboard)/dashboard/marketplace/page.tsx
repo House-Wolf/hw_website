@@ -33,7 +33,7 @@ import {
     COMPONENT_OPTIONS,
 } from "@/lib/marketplace/srp";
 import { searchWiki, isValidImageUrl, type WikiItem } from "@/lib/marketplace/wiki";
-import { PERMISSIONS } from "@/lib/permissions";
+import { PERMISSIONS } from "@/lib/permissionKeys";
 
 /**
  * @typedef {object} Listing

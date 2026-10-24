@@ -55,6 +55,8 @@ export interface FleetStatItem {
 }
 
 export interface HouseWolfFleetPayload {
+  sourceStatus?: "complete" | "partial" | "unavailable";
+  warnings?: string[];
   fleetSlug: string;
   vehicles: FleetYardsVehicle[];
   modelCounts: FleetStatItem[];

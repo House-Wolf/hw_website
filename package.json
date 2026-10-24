@@ -23,7 +23,10 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "node --test scripts/test-*.mjs"
+    "test": "node --test scripts/test-*.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:command": "node --test scripts/test-command-foundation.mjs scripts/test-fleet-normalization.mjs scripts/test-discord-formatting.mjs",
+    "test:command:db": "node --test scripts/integration-command-settings.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

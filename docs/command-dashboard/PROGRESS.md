@@ -8,6 +8,12 @@ Phase 0 inventory/design/configuration and all V/P/H/F requirement mappings writ
 
 Walkthrough fetch failed; transcript/frames not verified. Official OrgDeck description and Discord event/permission references retrieved. See traceability.md for source provenance and future acceptance evidence.
 
+## 2026-10-24 — Phase 1 foundation checkpoint
+
+Implemented reusable live officer/account/permission guards, Origin checks, transactional versioned settings API/form/audit, shared fleet normalization and honest readiness labels, safe Discord markdown formatting, and a disabled-by-default configuration/CI harness. Foundation evidence: 29 mocked authorization/settings tests, six fleet fixtures, three rendering fixtures and three real PostgreSQL settings transaction/audit/concurrency tests pass. This is a verified slice, not completion of Phase 1: direct-JWT privileged write sites still require migration. Personnel policy and marketplace listing categorization remain unchanged. See foundation.md.
+
+Native event clarification implementation is being committed separately; its events text-channel setting is optional, never a native-event prerequisite. No production migration, Discord sends/roles/commands, deployment or branch push has occurred.
+
 ## Next work
 
 Continue Phase 1: live officer authorization with injected Discord adapter, account suspension/permission freshness, real versioned command settings form/API and channel preflight; corrected shared fleet statistics/readiness labels; safe announcement formatting; negative tests. Keep direct JWT write sites explicitly incomplete until guarded. Phase 2-11 remain mandatory and not implemented.

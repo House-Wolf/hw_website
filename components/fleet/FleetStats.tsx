@@ -1,4 +1,5 @@
 import { HouseWolfFleetPayload } from "@/lib/fleetyards/types";
+import { fleetStatistics } from "@/lib/fleetyards/normalization";
 
 interface FleetStatsProps {
   data: HouseWolfFleetPayload;
@@ -6,13 +7,7 @@ interface FleetStatsProps {
 
 export default function FleetStats({ data }: FleetStatsProps) {
   const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
-  const modelCounts = Array.isArray(data.modelCounts) ? data.modelCounts : [];
-  const manufacturers = Array.isArray(data.manufacturers)
-    ? data.manufacturers
-    : [];
-  const classifications = Array.isArray(data.classifications)
-    ? data.classifications
-    : [];
+  const stats = fleetStatistics(vehicles);
 
   const cards = [
     {
@@ -20,16 +15,16 @@ export default function FleetStats({ data }: FleetStatsProps) {
       value: vehicles.length,
     },
     {
-      label: "Unique Models",
-      value: modelCounts.length || "—",
+      label: stats.unidentifiedModels ? "Known Unique Models" : "Unique Models",
+      value: stats.uniqueModels,
     },
     {
       label: "Manufacturers",
-      value: manufacturers.length || "—",
+      value: stats.manufacturers,
     },
     {
       label: "Classifications",
-      value: classifications.length || "—",
+      value: stats.classifications,
     },
   ];
 

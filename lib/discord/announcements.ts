@@ -84,7 +84,7 @@ export function prepareAnnouncements(messages: AnnouncementMessage[], now = Date
       })
       .split("\n")
       // Discord ping-only/spoiler lines aren't useful announcement headings.
-      .filter((line) => !/^(?:\s|[|*_~]|@Member|@everyone|@here)+$/i.test(line))
+      .filter((line) => !/^(?:\s|[|*_~]|@Member|@Role|#channel|@everyone|@here)+$/i.test(line))
       .join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
     const sections = [message.content, ...richEmbeds.map((embed) =>

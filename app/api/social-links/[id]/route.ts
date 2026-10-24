@@ -1,3 +1,4 @@
+import { CommandError } from "@/lib/command/access.js";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -119,6 +120,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedLink);
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error updating social link:", error);
     return NextResponse.json(
       { error: "Failed to update social link" },
@@ -181,6 +183,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof CommandError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     console.error("Error deleting social link:", error);
     return NextResponse.json(
       { error: "Failed to delete social link" },

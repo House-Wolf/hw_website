@@ -1,0 +1,43 @@
+name: Command dashboard verification
+on:
+  pull_request:
+  push:
+    branches: [main, feature/command-dashboard]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: housewolf_command_test
+          POSTGRES_USER: command_test
+          POSTGRES_PASSWORD: command_test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U command_test -d housewolf_command_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://command_test:command_test@127.0.0.1:5432/housewolf_command_test
+      COMMAND_TEST_DATABASE_URL: postgresql://command_test:command_test@127.0.0.1:5432/housewolf_command_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migration history to disposable PostgreSQL
+        run: node scripts/verify-command-local.mjs migrate
+      - name: Lint, types, Prisma schema, existing bot and all domain tests
+        run: node scripts/verify-command-local.mjs check
+      - name: PostgreSQL transaction and scope checks
+        run: node scripts/verify-command-local.mjs integration
+      - name: Production build with explicit external-service fixtures
+        run: node scripts/verify-command-local.mjs build

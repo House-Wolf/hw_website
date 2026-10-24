@@ -1,0 +1,11 @@
+# Foundation slice
+
+Phase 1's implemented foundation reuses active User, DiscordRole mappings, SiteSetting and AuditLog. `lib/command/access.js` enforces immutable live officer roles, management scope and Origin checks. `server.ts` reads current account state and uncached configured-guild member roles; it does not grant event authority from a JWT. `lib/permissions.ts` refreshes privileged helper checks while permissionKeys.ts remains safe for client constants. Existing direct-JWT write sites remain an explicit incomplete F01 item.
+
+Organization Settings has an actual authenticated form/API, optimistic revision checks, guild/channel preflight, transactional audit and live recheck before commit. It can reserve channel routing and assignment weights; it does not claim the future solver/reminder/AAR workflows are implemented. An events text destination is optional and is unrelated to Discord's native Events section.
+
+Shared fleet normalization now distinguishes recognized provider envelopes, successful empty fleets, failed/partial pages, stable model identities and ship instances. Model counts preserve instance totals; provider metrics supply size labels, otherwise Unknown. Public registry/source status is distinct from deployment readiness, which is unassessed until operational attestations exist. Official provider schema inspected: https://raw.githubusercontent.com/fleetyards/fleetyards/main/swagger/v1/schema.yaml (2026-10-23).
+
+Discord markdown uses only supplied public display-name maps, safe unknown/deleted fallbacks, concealed spoilers, readable subtext and the existing sanitized renderer; it never fetches a guild for each mention. The existing application field `theme_preference` lacked a migration; its additive IF NOT EXISTS migration makes a freshly migrated database match that field without assuming production drift state.
+
+Tests: 29 foundation authorization/settings tests, six fleet fixtures, three actual formatting/render fixtures, and three real PostgreSQL settings transaction/audit/concurrency tests. The full workspace regression and production build evidence is recorded in PROGRESS.md after the native slice. GitHub Actions is prepared; no remote run, production migration, deployment or Discord send has occurred.

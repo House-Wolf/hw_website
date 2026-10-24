@@ -23,8 +23,8 @@ export default function FleetHero({ totalShips }: FleetHeroProps) {
 
         {/* Description */}
         <p className="mt-5 max-w-2xl text-lg text-white/70">
-          Operational overview of all registered House Wolf vessels. Monitor fleet readiness,
-          analyze capabilities, and prepare for deployment across all operational theaters.
+          Public FleetYards registry of House Wolf vessels and model capabilities.
+          Ownership, owner availability and operation readiness require separate verification.
         </p>
 
         {/* Stats */}
@@ -42,20 +42,20 @@ export default function FleetHero({ totalShips }: FleetHeroProps) {
           {/* Status */}
           <div className="rounded-2xl border border-red-800/40 bg-red-950/30 px-5 py-4 backdrop-blur-sm">
             <p className="text-3xl font-black text-white">
-              ACTIVE
+              PUBLIC
             </p>
             <p className="text-xs uppercase tracking-widest text-white/50">
-              Fleet Status
+              Registry Source
             </p>
           </div>
 
           {/* Readiness */}
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm">
             <p className="text-3xl font-black text-white">
-              READY
+              UNASSESSED
             </p>
             <p className="text-xs uppercase tracking-widest text-white/50">
-              Deployment State
+              Deployment Readiness
             </p>
           </div>
         </div>
