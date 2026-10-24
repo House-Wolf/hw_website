@@ -4,7 +4,7 @@ import { CircleAlert, RefreshCw, Swords } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import EventWizard, { api, type Operation } from "./EventWizard";
 
-export function OperationsList({ canCreate }: { canCreate: boolean }) {
+export function OperationsList({ canCreate, embedded = false }: { canCreate: boolean; embedded?: boolean }) {
   const [rows, setRows] = useState<Operation[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export function OperationsList({ canCreate }: { canCreate: boolean }) {
   function retry() { setError(""); setLoading(true); load(); }
 
   return <div className="space-y-6">
-    <div className="dash-page-heading"><div><p className="dash-eyebrow">HOUSE WOLF COMMAND</p><h1>Operations</h1><p>Plan your next deployment and find your place in the pack.</p></div>{canCreate && !error && <Link className="dash-button" href="/dashboard/operations/new">Create event</Link>}</div>
+    {!embedded && <div className="dash-page-heading"><div><p className="dash-eyebrow">HOUSE WOLF COMMAND</p><h1>Operations</h1><p>Plan your next deployment and find your place in the pack.</p></div>{canCreate && !error && <Link className="dash-button" href="/dashboard/operations/new">Create event</Link>}</div>}
     {loading ? <div className="dash-panel flex items-center gap-3 text-foreground-muted" role="status"><RefreshCw size={17} className="animate-spin" />Loading operations...</div>
       : error ? <section className="dash-panel dash-empty" role="alert"><CircleAlert size={28} /><h2 className="text-xl font-semibold">Operations unavailable</h2><p>{error}</p><button className="dash-button dash-button-secondary" onClick={retry}><RefreshCw size={15} />Check again</button></section>
       : !rows.length ? <section className="dash-panel dash-empty"><Swords size={28} /><h2 className="text-xl font-semibold">No operations scheduled</h2><p>{canCreate ? "Create an event to begin coordinating your next deployment." : "Upcoming operations will appear here when command schedules them."}</p></section>

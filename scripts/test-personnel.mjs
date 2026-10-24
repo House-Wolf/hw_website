@@ -4,7 +4,7 @@ import { Collection, PermissionsBitField } from "discord.js";
 import { addCalendarMonths, canManageCommand, COMMAND_DEFINITIONS, evaluatePromotionVotes, formatVerseDate, nextServiceRank, OFFICER_ROLE_IDS, PERSONNEL_CHANNELS, PERSONNEL_COMMAND_ROLE_IDS, PERSONNEL_ROLES, promotionReviewDelay, promotionRoleChanges, SERVICE_RANKS } from "../lib/personnel/policy.js";
 import { createPersonnelService } from "../bot/personnelService.js";
 import { attachPersonnelInteractions, divisionCommandDefinitions, personnelCommandDefinition, registerPersonnelCommand } from "../bot/personnelCommands.js";
-import { promotionReviewMessage } from "../bot/personnelMessages.js";
+import { promotionAnnouncement, promotionReviewMessage } from "../bot/personnelMessages.js";
 import { checkPublicRsiMembership, discordRsiHandleCandidates } from "../bot/rsiMembership.js";
 
 const guildId = "100000000000000001";
@@ -14,6 +14,31 @@ const officerId = "100000000000000004";
 const warlordId = "100000000000000005";
 const requestId = "11111111-1111-4111-8111-111111111111";
 const memberId = "22222222-2222-4222-8222-222222222222";
+
+test("every rank announcement keeps the banner above its text in the same card", async () => {
+  const member = { id: candidateId, displayName: "Wolf @everyone", user: { displayAvatarURL() { throw new Error("Local fallback"); } } };
+  for (const [index, rank] of SERVICE_RANKS.entries()) {
+    const message = await promotionAnnouncement({ id: requestId, targetRankRoleId: rank.roleId,
+      sourceRankRoleId: SERVICE_RANKS[Math.max(0, index - 1)].roleId, completedAt: new Date("2026-10-23T12:00:00Z") }, member);
+    assert.equal(message.flags, 32768);
+    assert.equal(message.content, undefined);
+    assert.equal(message.embeds, undefined);
+    assert.match(message.components[0].content, new RegExp(`<@${candidateId}>`));
+    const card = message.components[1];
+    assert.equal(card.type, 17);
+    assert.equal(card.components[0].type, 12);
+    assert.equal(card.components[0].items[0].media.url, `attachment://${message.files[0].name}`);
+    assert.equal(message.files[0].attachment.subarray(1, 4).toString(), "PNG");
+    const text = card.components.slice(1).map(component => component.content).join("\n");
+    assert.ok(text.includes(rank.name.toUpperCase()));
+    assert.match(text, /THE CHARGE/);
+    assert.match(text, /THE OATH/);
+    assert.match(text, /Order .*Effective/);
+    assert.equal(text.includes("@everyone"), false);
+    assert.deepEqual(message.allowedMentions, { parse: [], users: [candidateId] });
+    assert.equal(message.enforceNonce, true);
+  }
+});
 
 function ballot(voterDiscordId, decision, isVeto = false) { return { voterDiscordId, decision, isVeto }; }
 

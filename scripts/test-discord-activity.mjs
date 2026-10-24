@@ -17,7 +17,7 @@ function matches(record, where) {
     return record[key] === value;
   });
 }
-function fixture() {
+function fixture(options = {}) {
   let clock = new Date("2026-10-23T00:00:00Z"), settings;
   const activity = [], deliveries = [], sent = [], errors = [], failures = new Map();
   const people = new Map();
@@ -26,7 +26,7 @@ function fixture() {
     people.set(id, member); return member;
   };
   addMember("active"); addMember("inactive");
-  const server = { afkChannelId: "afk", members: { fetch: async () => people }, voiceStates: { cache: new Map() } };
+  const server = { afkChannelId: "afk", members: { fetch: async options => options?.user ? people.get(options.user) : people }, voiceStates: { cache: new Map() } };
   const client = new EventEmitter(); client.isReady = () => true;
   client.guilds = { fetch: async () => server };
   client.users = { fetch: async id => ({ send: async payload => {
@@ -35,6 +35,7 @@ function fixture() {
   } }) };
   const db = {
     $queryRaw: async () => [{ locked: 1 }],
+    personnelMember: { findMany: async () => options.records || [] },
     discordActivityState: {
       upsert: async ({ create }) => { settings ||= clone(create); return clone(settings); },
       findUnique: async () => clone(settings),
@@ -53,7 +54,7 @@ function fixture() {
   };
   let transaction = Promise.resolve();
   db.$transaction = fn => { const next = transaction.then(() => fn(db)); transaction = next.catch(() => {}); return next; };
-  const create = () => createDiscordActivityService({ client, prisma: db, guildId: "guild", now: () => clock, logger: { log() {}, error: (...args) => errors.push(args) } });
+  const create = () => createDiscordActivityService({ client, prisma: db, guildId: "guild", rsiApiKey: options.rsiApiKey, membershipLookup: options.lookup, now: () => clock, logger: { log() {}, error: (...args) => errors.push(args) } });
   return { client, db, create, worker: create(), server, people, addMember, activity, deliveries, sent, errors, failures, settings: () => settings,
     setTime: value => { clock = new Date(value); }, time: () => clock };
 }
@@ -146,4 +147,68 @@ test("CSV output escapes formulas and includes every member without mentions or 
   const payload = state.sent[0].payload, csv = payload.files[0].attachment.toString("utf8");
   assert.ok(csv.includes("'=HYPERLINK")); assert.ok(csv.includes("inactive")); assert.deepEqual(payload.allowedMentions.parse, []);
   assert.equal(payload.embeds[0].color, 0x114e62); assert.ok(payload.embeds[0].footer.text.includes("Strength, Honor, Death"));
+});
+
+
+test("on-demand history checks both allowed roles, sends both DMs and preserves the quarterly schedule", async () => {
+  for (const role of [PERSONNEL_ROLES.warlord, PERSONNEL_ROLES.hand]) {
+    const state = fixture({ rsiApiKey: "test-key", records: [{ discordId: "active", rsiHandle: "ActiveWolf" }],
+      lookup: async () => ({ confirmed: true, reason: "PUBLIC_PRIMARY_ORGANIZATION", primaryOrganizationSid: "CUTTERWOLF", verifiedAt: new Date("2026-11-01"), evidence: "https://example.com/profile" }) });
+    state.addMember("commander", [role]);
+    await state.worker.poll();
+    const next = state.settings().nextReportAt.toISOString();
+    state.setTime("2026-11-01");
+    await state.worker.record("active", "MESSAGE", new Date("2026-10-31"));
+    const result = await state.worker.requestReport({ actorId: "commander" });
+    assert.deepEqual(result.pendingRecipientIds, []);
+    assert.deepEqual(state.sent.map(item => item.id), ACTIVITY_RECIPIENTS);
+    assert.equal(state.settings().nextReportAt.toISOString(), next);
+    const report = state.deliveries[0].report;
+    assert.equal(report.mode, "ON_DEMAND");
+    assert.equal(report.requestedBy, "commander");
+    assert.equal(report.members.find(member => member.discordId === "active").rsiMembership.status, "Confirmed CUTTERWOLF");
+    assert.match(state.sent[0].payload.embeds[0].title, /ACTIVITY HISTORY/);
+    assert.match(state.sent[0].payload.files[0].attachment.toString(), /RSI membership/);
+    await state.worker.requestReport({ actorId: "commander" });
+    assert.equal(state.sent.length, 2, "duplicate request at the same cutoff does not resend");
+    state.setTime("2027-01-23"); await state.worker.poll();
+    assert.equal(state.sent.length, 4, "scheduled report still sends after the manual report");
+  }
+});
+
+test("history denies ordinary officers and administrators without either allowed role", async () => {
+  const state = fixture();
+  state.addMember("captain", [PERSONNEL_ROLES.captain], { permissions: { has: () => true } });
+  await assert.rejects(state.worker.requestReport({ actorId: "captain" }), /Only the Clan Warlord or Hand/);
+  assert.equal(state.sent.length, 0);
+  assert.equal(state.deliveries.length, 0);
+});
+
+test("history reports closed DMs as pending and the worker retries without resetting the schedule", async () => {
+  const state = fixture(); state.addMember("commander", [PERSONNEL_ROLES.hand]);
+  await state.worker.poll(); state.setTime("2026-11-01");
+  state.failures.set(ACTIVITY_RECIPIENTS[1], Object.assign(new Error("DMs closed"), { code: 50007 }));
+  const result = await state.worker.requestReport({ actorId: "commander" });
+  assert.deepEqual(result.pendingRecipientIds, [ACTIVITY_RECIPIENTS[1]]);
+  state.failures.clear(); state.setTime("2026-11-02"); await state.worker.poll();
+  assert.equal(state.sent.length, 2);
+  assert.equal(state.settings().nextReportAt.toISOString(), "2027-01-23T00:00:00.000Z");
+});
+
+test("rolling history clamps month ends and cannot claim activity before tracking began", async () => {
+  const state = fixture(); state.addMember("commander", [PERSONNEL_ROLES.hand]);
+  await state.worker.poll(); state.setTime("2027-05-31T12:00:00Z");
+  await state.worker.requestReport({ actorId: "commander" });
+  assert.equal(state.deliveries[0].report.start, "2027-02-28T12:00:00.000Z");
+});
+
+test("membership lookup failures stay unknown and role revocation during lookup blocks dispatch", async () => {
+  let state;
+  state = fixture({ rsiApiKey: "test-key", records: [{ discordId: "active", rsiHandle: "ActiveWolf" }], lookup: async () => {
+    state.people.get("commander").roles.cache.clear(); throw new Error("provider down");
+  } });
+  state.addMember("commander", [PERSONNEL_ROLES.hand]);
+  await state.worker.poll(); state.setTime("2026-11-01");
+  await assert.rejects(state.worker.requestReport({ actorId: "commander" }), /Only the Clan Warlord/);
+  assert.equal(state.sent.length, 0);
 });

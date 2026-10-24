@@ -1,364 +1,139 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import "./dashboard.css";
+
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Menu,
-  Store,
-  Settings,
-  Home,
-  ExternalLink,
-  Globe,
-  IdCard,
-  PackageSearch,
-  Shield,
-  Swords,
-} from "lucide-react";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { signOut } from "next-auth/react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Compass, ExternalLink, Home, IdCard, LogOut, Menu, PackageSearch, Palette, Settings, Shield, Store, Swords, X, type LucideIcon } from "lucide-react";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { DashboardProfileProvider, useDashboardProfile } from "@/contexts/DashboardContext";
+import { getTheme } from "@/lib/theme-config";
 import { RANK_PRIORITY } from "@/lib/role-constants";
 
-type UserRole = {
-  discordRole: {
-    id: string;
-    name: string;
-    color: number | null;
-    position: number | null;
-  };
-};
+type NavItem = { name: string; href: string; icon: LucideIcon };
+const workspace: NavItem[] = [
+  { name: "Overview", href: "/dashboard", icon: Home },
+  { name: "Operations", href: "/dashboard/operations", icon: Swords },
+  { name: "PackTracker", href: "/dashboard/packtracker", icon: PackageSearch },
+  { name: "Marketplace", href: "/dashboard/marketplace", icon: Store },
+];
+const personal: NavItem[] = [
+  { name: "Mercenary bio", href: "/dashboard/profile", icon: IdCard },
+  { name: "Appearance", href: "/dashboard/settings", icon: Palette },
+];
+const community: NavItem[] = [
+  { name: "Fleet registry", href: "/fleet", icon: Compass },
+  { name: "Divisions", href: "/divisions", icon: Swords },
+  { name: "Public marketplace", href: "/marketplace", icon: ExternalLink },
+];
 
-type UserData = {
-  discordUsername: string;
-  discordDisplayName: string | null;
-  name: string | null;
-  avatarUrl: string | null;
-  image: string | null;
-  roles: UserRole[];
-};
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [canManageCommand, setCanManageCommand] = useState(false);
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useDashboardProfile();
+  const { theme } = useTheme();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [canManageCommand, setCanManageCommand] = useState(false);
+  const sidebar = useRef<HTMLElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const content = useRef<HTMLElement>(null);
+  const previousPath = useRef(pathname);
+  const displayName = user?.discordDisplayName || user?.name || user?.discordUsername || "Your workspace";
+  const roleNames = new Set(user?.roles.map(role => role.discordRole.name));
+  const rank = RANK_PRIORITY.find(name => roleNames.has(name)) || "House Wolf member";
+  const canAdmin = user?.permissions.some(permission => ["SITE_ADMIN", "DOSSIER_ADMIN"].includes(permission.key));
+  const administration: NavItem[] = [
+    ...(canManageCommand ? [{ name: "Discord", href: "/dashboard/organization", icon: Settings }] : []),
+    ...(canAdmin ? [{ name: "Administration", href: "/dashboard/admin", icon: Shield }] : []),
+  ];
+  const current = [...workspace, ...personal, ...administration].find(item => item.href === "/dashboard" ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/"));
+  const title = current?.name || "Command center";
+  const detail = pathname === "/dashboard/operations/new" ? "New operation" : pathname.startsWith("/dashboard/operations/") ? "Operation details" : null;
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/command/settings", { signal: controller.signal })
-      .then((response) => setCanManageCommand(response.ok))
+    fetch("/api/command/settings", { signal: controller.signal }).then(response => setCanManageCommand(response.ok))
       .catch(() => { if (!controller.signal.aborted) setCanManageCommand(false); });
-    fetch('/api/user/profile')
-      .then(res => res.json())
-      .then(data => {
-        setUserData(data);
-      })
-      .catch(() => {
-        // Silently fail, will show defaults
-      });
     return () => controller.abort();
   }, []);
 
-  const navItems = [
-    { name: "Command Center", icon: Home, href: "/dashboard" },
-    { name: "Operations", icon: Swords, href: "/dashboard/operations" },
-    { name: "PackTracker", icon: PackageSearch, href: "/dashboard/packtracker" },
-    { name: "Marketplace", icon: Store, href: "/dashboard/marketplace" },
-    { name: "Mercenary Bio", icon: IdCard, href: "/dashboard/profile" },
-    { name: "Settings", icon: Settings, href: "/dashboard/settings" },
-    ...(canManageCommand ? [{ name: "Organization Settings", icon: Shield, href: "/dashboard/organization" }] : []),
-  ];
+  useEffect(() => {
+    if (previousPath.current === pathname) return;
+    previousPath.current = pathname;
+    content.current?.scrollTo({ top: 0 });
+    content.current?.focus({ preventScroll: true });
+  }, [pathname]);
 
-  const externalLinks = [
-    { name: "Public Marketplace", icon: ExternalLink, href: "/marketplace" },
-    { name: "Site Home", icon: Globe, href: "/" },
-    { name: "Divisions", icon: Swords, href: "/divisions" },
-    { name: "Admin Panel", icon: Shield, href: "/dashboard/admin" },
-  ];
-
-  // Determine user's rank and division
-  const getUserRank = () => {
-    if (!userData?.roles) return "Dragoon";
-    const roleNames = new Set(userData.roles.map(r => r.discordRole.name));
-    return RANK_PRIORITY.find(rank => roleNames.has(rank)) || "Dragoon";
-  };
-
-  const getUserDivision = () => {
-    if (!userData?.roles) return "Dragoon Division";
-
-    const roleNames = new Set(userData.roles.map(r => r.discordRole.name));
-
-    // Check subdivision roles to determine division
-    // Priority order: Command roles first, then regular subdivision roles
-
-    // TACOPS
-    if (roleNames.has("TACOPS - Command")) return "TACOPS Command";
-    if (roleNames.has("TACOPS - Dire Wolfs") || roleNames.has("TACOPS - Howlers")) return "TACOPS";
-
-    // SPECOPS
-    if (roleNames.has("SPECOPS - Command")) return "SPECOPS Command";
-    if (roleNames.has("SPECOPS - Wolfen") || roleNames.has("SPECOPS - Medic") || roleNames.has("SPECOPS - Inquisitor")) return "SPECOPS";
-
-    // LOCOPS
-    if (roleNames.has("LOCOPS - Command")) return "LOCOPS Command";
-    if (roleNames.has("LOCOPS - Heavy Lift") || roleNames.has("LOCOPS - Salvage") || roleNames.has("LOCOPS - Mining") || roleNames.has("LOCOPS - Engineer")) return "LOCOPS";
-
-    // ARCOPS
-    if (roleNames.has("ARCOPS - Command")) return "ARCOPS Command";
-    if (roleNames.has("ARCOPS - Chimeras") || roleNames.has("ARCOPS - Wayfinders") || roleNames.has("ARCOPS - Replicators")) return "ARCOPS";
-
-    // House Wolf Command
-    if (roleNames.has("Leadership Core") || roleNames.has("Officers") || roleNames.has("Non-Commissioned Officers")) return "House Wolf Command";
-
-    return "Dragoon Division";
-  };
-
-  const discordColorToHex = (color: number | null | undefined): string | null => {
-    if (color === null || color === undefined) return null;
-    return `#${color.toString(16).padStart(6, "0")}`;
-  };
-
-  const getDivisionColor = () => {
-    if (!userData?.roles) return "var(--accent-secondary)";
-
-    // Map division names to role names to find the color
-    const divisionRoleMap: Record<string, string[]> = {
-      "TACOPS Command": ["TACOPS - Command"],
-      "TACOPS": ["TACOPS - Dire Wolfs", "TACOPS - Howlers"],
-      "SPECOPS Command": ["SPECOPS - Command"],
-      "SPECOPS": ["SPECOPS - Wolfen", "SPECOPS - Medic", "SPECOPS - Inquisitor"],
-      "LOCOPS Command": ["LOCOPS - Command"],
-      "LOCOPS": ["LOCOPS - Heavy Lift", "LOCOPS - Salvage", "LOCOPS - Mining", "LOCOPS - Engineer"],
-      "ARCOPS Command": ["ARCOPS - Command"],
-      "ARCOPS": ["ARCOPS - Chimeras", "ARCOPS - Wayfinders", "ARCOPS - Replicators"],
-      "House Wolf Command": ["Leadership Core", "Officers", "Non-Commissioned Officers"],
-    };
-
-    const division = getUserDivision();
-    const roleNamesToCheck = divisionRoleMap[division];
-
-    if (roleNamesToCheck) {
-      for (const roleName of roleNamesToCheck) {
-        const role = userData.roles.find(r => r.discordRole.name === roleName);
-        if (role?.discordRole.color) {
-          const hexColor = discordColorToHex(role.discordRole.color);
-          return hexColor || "var(--accent-secondary)";
-        }
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const panel = sidebar.current;
+    const trigger = menuButton.current;
+    const elements = () => Array.from(panel?.querySelectorAll<HTMLElement>('a[href], button') || []).filter(element => element.getClientRects().length);
+    elements()[0]?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+      if (event.key === "Tab") {
+        const items = elements(), first = items[0], last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
-    }
+    };
+    const resize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
+    document.addEventListener("keydown", keydown);
+    window.addEventListener("resize", resize);
+    return () => { document.removeEventListener("keydown", keydown); window.removeEventListener("resize", resize); trigger?.focus(); };
+  }, [mobileOpen]);
 
-    return "var(--accent-secondary)";
-  };
+  function navGroup(label: string, items: NavItem[]) {
+    if (!items.length) return null;
+    return <div className="dash-nav-group"><p className="dash-nav-label">{label}</p>{items.map(item => {
+      const active = item.href === "/dashboard" ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
+      const Icon = item.icon;
+      return <Link key={item.href} href={item.href} className="dash-nav-link" aria-current={active ? "page" : undefined} aria-label={item.name} title={collapsed ? item.name : undefined} onClick={() => setMobileOpen(false)}>
+        <Icon size={18} aria-hidden="true" /><span className="dash-nav-text">{item.name}</span>
+        {!item.href.startsWith("/dashboard") && <ArrowUpRight size={13} className="dash-nav-external" aria-hidden="true" />}
+      </Link>;
+    })}</div>;
+  }
 
-  const userAvatar = userData?.avatarUrl || userData?.image || "https://cdn.discordapp.com/embed/avatars/0.png";
-  const userRank = getUserRank();
-  const userDivision = getUserDivision();
-  const divisionColor = getDivisionColor();
-
-  return (
-    <ThemeProvider>
-      <div id="dashboard-theme-container" className="flex h-[calc(100dvh-4rem)] md:h-[calc(100dvh-5rem)] bg-background text-foreground overflow-hidden">
-        {/* Sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? "w-64" : "w-16 md:w-20"
-          } h-full min-h-0 bg-background-elevated border-r border-border transition-all duration-300 flex flex-col shrink-0`}
-        >
-        {/* Header */}
-        <div
-          className={`shrink-0 flex items-center ${
-            sidebarOpen ? "justify-between" : "justify-center"
-          } p-3 md:p-4 border-b`}
-          style={{
-            borderBottomColor: "var(--border-crimson)",
-            background: "linear-gradient(180deg, rgba(var(--accent-primary-rgb), 0.05) 0%, transparent 100%)"
-          }}
-        >
-          <h1
-            className={`font-bold text-base md:text-lg tracking-widest uppercase transition-all duration-200 ${
-              sidebarOpen ? "opacity-100" : "opacity-0 w-0 hidden"
-            }`}
-            style={{ color: "var(--accent-primary)" }}
-          >
-            House Wolf
-          </h1>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`text-foreground-muted transition-all duration-200 hover:scale-110 cursor-pointer ${
-              sidebarOpen ? "" : "p-2"
-            } focus:outline-none focus:ring-2 rounded-md`}
-            style={{
-              "--tw-ring-color": "var(--accent-primary)"
-            } as React.CSSProperties}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--accent-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--text-muted)";
-            }}
-            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          >
-            <Menu size={20} className="md:w-[22px] md:h-[22px]" />
-          </button>
+  return <div id="dashboard-theme-container" className="dashboard-shell" data-collapsed={collapsed}>
+    <a className="dash-skip" href="#dashboard-content">Skip to content</a>
+    {mobileOpen && <button className="dash-backdrop" onClick={() => setMobileOpen(false)} aria-label="Close navigation" tabIndex={-1} />}
+    <aside ref={sidebar} id="dashboard-navigation" className="dash-sidebar" data-open={mobileOpen} role={mobileOpen ? "dialog" : undefined} aria-modal={mobileOpen || undefined} aria-label="Dashboard navigation">
+      <Link href="/dashboard" className="dash-brand" onClick={() => setMobileOpen(false)} title="House Wolf overview">
+        <Image src="/images/global/HWiconnew.png" width={34} height={34} alt="" />
+        <span className="dash-nav-text"><strong>HOUSE WOLF</strong><span>Command workspace</span></span>
+      </Link>
+      <button className="dash-icon-button dash-mobile-close" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={20} /></button>
+      <nav aria-label="Primary" className="dash-navigation">
+        {navGroup("Workspace", workspace)}{navGroup("Personal", personal)}{navGroup("Command", administration)}{navGroup("Explore", community)}
+      </nav>
+      <div className="dash-sidebar-bottom">
+        <Link href="/dashboard/profile" className="dash-account" onClick={() => setMobileOpen(false)} title={displayName}>
+          <Image src={user?.avatarUrl || user?.image || "https://cdn.discordapp.com/embed/avatars/0.png"} width={36} height={36} alt="" className="dash-avatar" />
+          <span className="dash-nav-text"><strong>{displayName}</strong><span>{rank}</span></span>
+        </Link>
+        <div className="dash-sidebar-actions">
+          <button className="dash-icon-button" onClick={() => void signOut({ callbackUrl: "/" })} aria-label="Sign out" title="Sign out"><LogOut size={17} /></button>
+          <button className="dash-icon-button dash-collapse" onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}</button>
         </div>
-
-        {/* Nav */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-2 mt-4 md:mt-6 space-y-1.5 md:space-y-2">
-          {/* Dashboard Pages */}
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/dashboard"
-                ? pathname === item.href
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2.5 md:py-3 rounded-md text-xs md:text-sm font-medium transition-all duration-300 ${
-                  active
-                    ? ""
-                    : "hover:bg-background-soft text-foreground-muted hover:text-foreground"
-                }`}
-                style={
-                  active
-                    ? {
-                        background: "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)",
-                        color: "var(--text-primary)",
-                        boxShadow: "var(--shadow-crimson)",
-                        borderLeft: "3px solid var(--accent-primary-hover)",
-                      }
-                    : undefined
-                }
-              >
-                <Icon size={16} className="md:w-[18px] md:h-[18px] shrink-0" />
-                {sidebarOpen && <span className="truncate">{item.name}</span>}
-              </Link>
-            );
-          })}
-
-          {/* Divider */}
-          {sidebarOpen && (
-            <div className="border-t border-border-subtle my-3 md:my-4"></div>
-          )}
-
-          {/* External Links */}
-          {externalLinks.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2.5 md:py-3 rounded-md text-xs md:text-sm font-medium transition-all hover:bg-background-soft text-foreground-muted hover:text-foreground"
-              >
-                <Icon size={16} className="md:w-[18px] md:h-[18px] shrink-0" />
-                {sidebarOpen && <span className="truncate">{item.name}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="shrink-0 p-2 md:p-4 border-t flex flex-col items-center gap-2 md:gap-3"
-          style={{
-            borderTopColor: "var(--border-crimson)",
-            background: "linear-gradient(180deg, transparent 0%, rgba(var(--accent-primary-rgb), 0.05) 100%)"
-          }}
-        >
-        <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 transition-all duration-300"
-          style={{
-            borderColor: "var(--accent-primary)",
-            boxShadow: "var(--shadow-crimson), 0 0 16px rgba(var(--accent-primary-rgb), 0.4)"
-          }}
-        >
-          <Image
-            src={userAvatar}
-            alt="User avatar"
-            fill
-            className="object-cover"
-            sizes="48px"
-          />
-        </div>
-
-          {sidebarOpen && (
-            <>
-              <span className="text-xs md:text-sm font-semibold text-foreground text-center truncate w-full px-2">
-                {userRank}
-              </span>
-              <span className="text-[10px] md:text-xs font-mono font-medium text-center uppercase tracking-wider"
-                style={{ color: divisionColor }}
-              >
-                {userDivision}
-              </span>
-            </>
-          )}
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {/* Top bar */}
-        <header className="shrink-0 px-4 md:px-6 lg:px-8 py-3 md:py-4 border-b shadow-md"
-          style={{
-            borderBottomColor: "var(--border-crimson)",
-            backgroundColor: "var(--background-card)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.3), inset 0 -1px 0 var(--border-crimson)"
-          }}
-        >
-          {pathname === "/dashboard/admin" ? (
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-[var(--accent-primary)]/15 border flex items-center justify-center"
-                style={{
-                  borderColor: "var(--accent-primary)",
-                  boxShadow: "0 0 12px rgba(var(--accent-primary-rgb), 0.3)"
-                }}
-              >
-                <Shield className="text-[var(--accent-primary)]" size={18} />
-              </div>
-              <div>
-                <h2 className="text-base md:text-lg font-bold tracking-widest uppercase"
-                  style={{
-                    color: "var(--accent-primary)",
-                    textShadow: "0 0 20px rgba(var(--accent-primary-rgb), 0.4)"
-                  }}
-                >
-                  Admin Panel
-                </h2>
-                <p className="text-xs md:text-sm text-foreground-muted">
-                  Manage dossiers, divisions, users, suspensions, and audit logs.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <h2 className="text-base md:text-lg font-bold tracking-widest uppercase truncate"
-              style={{
-                color: "var(--accent-primary)",
-                textShadow: "0 0 20px rgba(var(--accent-primary-rgb), 0.4)"
-              }}
-            >
-              {pathname === "/dashboard/marketplace"
-                ? "Marketplace Management"
-                : pathname.startsWith("/dashboard/packtracker")
-                ? "PackTracker"
-                : pathname === "/dashboard/profile"
-                ? "Mercenary Bio"
-                : pathname === "/dashboard/settings"
-                ? "Settings"
-                : "Command Center"}
-            </h2>
-          )}
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 min-h-0 overflow-y-auto bg-background p-3 md:p-4 lg:p-6">
-          {children}
-        </main>
       </div>
+    </aside>
+    <div className="dash-workspace" inert={mobileOpen ? true : undefined}>
+      <header className="dash-topbar">
+        <div className="dash-breadcrumb"><button ref={menuButton} className="dash-icon-button dash-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation" aria-expanded={mobileOpen} aria-controls="dashboard-navigation"><Menu size={21} /></button>
+          <Link href="/dashboard" className="dash-breadcrumb-root">Workspace</Link><ChevronRight size={14} aria-hidden="true" /><span>{title}</span>{detail && <><ChevronRight size={14} aria-hidden="true" /><span>{detail}</span></>}
+        </div>
+        <div className="dash-topbar-actions"><Link href="/dashboard/settings" className="dash-theme-shortcut" title="Change appearance"><span className="dash-theme-dot" /><span>{getTheme(theme).displayName}</span></Link><span className="dash-topbar-divider" /><Link href="/" className="dash-public-link">View website <ArrowUpRight size={14} /></Link></div>
+      </header>
+      <main ref={content} id="dashboard-content" className="dash-main" tabIndex={-1}><div className="dash-content">{children}</div></main>
     </div>
-    </ThemeProvider>
-  );
+  </div>;
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return <ThemeProvider><DashboardProfileProvider><DashboardShell>{children}</DashboardShell></DashboardProfileProvider></ThemeProvider>;
 }

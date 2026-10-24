@@ -12,6 +12,7 @@ import { attachPersonnelInteractions, registerPersonnelCommand } from "./personn
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 import { createPersonnelStartup, validateBotEnvironment } from "./runtime.js";
 import { createDiscordActivityService } from "./discordActivity.js";
+import { attachActivityInteractions, registerHistoryCommand } from "./activityCommands.js";
 import { captureRawBody, createBotServiceAuth, createGithubWebhookAuth } from "./httpSecurity.js";
 import { createCommandWorker } from "./commandOperations.js";
 
@@ -81,7 +82,8 @@ const personnelConfig = {
   rsiCheckIntervalMs: process.env.RSI_MEMBERSHIP_CHECK_INTERVAL_MS,
 };
 const personnel = createPersonnelService({ client, prisma, config: personnelConfig });
-const activityReports = createDiscordActivityService({ client, prisma, guildId: personnelConfig.guildId });
+const activityReports = createDiscordActivityService({ client, prisma, guildId: personnelConfig.guildId, rsiApiKey: personnelConfig.rsiApiKey });
+if (process.env.DISCORD_ACTIVITY_ENABLED !== "false") attachActivityInteractions(client, activityReports, personnelConfig);
 const personnelStartup = createPersonnelStartup({ client, personnel, registerCommands: (runtimeClient, guildId) => registerPersonnelCommand(runtimeClient, guildId, personnel), guildId: personnelConfig.guildId });
 if (process.env.PERSONNEL_ENABLED === "true") attachPersonnelInteractions(client, personnel, personnelConfig);
 
@@ -96,7 +98,13 @@ client.once("ready", async () => {
 
   // Reschedule pending marketplace guest removals from database
   marketplaceGuests.start();
-  if (process.env.DISCORD_ACTIVITY_ENABLED !== "false") activityReports.start();
+  if (process.env.DISCORD_ACTIVITY_ENABLED !== "false") {
+    activityReports.start();
+    try {
+      await registerHistoryCommand(client, personnelConfig.guildId);
+      console.log("/history registered with restricted defaults. Allow Clan Warlord and Hand of the Clan in the command's Integration permissions.");
+    } catch (error) { console.error("/history registration failed; run pnpm bot:configure-history to retry:", error.message); }
+  }
   if (process.env.PERSONNEL_ENABLED === "true") {
     void personnelStartup.start();
   }

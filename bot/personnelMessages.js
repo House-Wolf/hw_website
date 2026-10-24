@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { evaluatePromotionVotes, formatVerseDate, SERVICE_RANKS } from "../lib/personnel/policy.js";
 import { renderWelcomeBanner } from "./onboardingWelcome.js";
+import { bannerMessage } from "./bannerMessage.js";
 
 export function safeDiscordText(value) {
   return String(value).replace(/[\\`*_{}[\]()<>#+.!|~]/g, "\\$&").replace(/@/g, "＠");
@@ -55,25 +56,23 @@ export async function promotionAnnouncement(request, member) {
   const salutation = target.key === "foundling"
     ? `With application accepted and RSI organization membership confirmed, <@${member.id}> is received beneath our banner as a **Foundling**, effective **${effectiveDate}**.`
     : `By recorded approval of the Officer Corps, <@${member.id}> advances from **${source?.name}** to **${target.name}**, effective **${effectiveDate}**.`;
-  return {
+  return bannerMessage({
     content: `Attention Dragoons — honor the advancement of <@${member.id}>.`,
     allowedMentions: { parse: [], users: [member.id] },
     nonce: createHash("sha256").update(`promotion:${request.id}`).digest("hex").slice(0, 24), enforceNonce: true,
     files: [{ attachment: banner, name: "house-wolf-promotion.png" }],
-    embeds: [
-      { color: 0x470000, image: { url: "attachment://house-wolf-promotion.png" } },
-      {
-        color: 0x114e62, author: { name: "HOUSE WOLF  /  PERSONNEL ORDERS" },
-        title: `${target.name.toUpperCase()} · THE NEXT CHAPTER`,
-        description: `**Attention Dragoons,**\n\n${salutation}\n\n${target.key === "foundling" ? "The first oath is the beginning of service. The House offers training, fellowship, and the chance to earn a lasting place among its warriors." : "The required term of service has been completed and the necessary officer votes recorded. This advancement carries a greater obligation to the clan, its contracts, and the warriors who fight beneath our banner."}`,
-        fields: [
-          { name: "THE CHARGE", value: target.duty },
-          { name: "THE OATH", value: target.charge },
-          { name: "STAND WITH YOUR FELLOW DRAGOON", value: `Join us in recognizing **${safeDiscordText(member.displayName)}**. Wear this rank with pride. Let strength guide your actions, honor bind your word, and resolve carry you through the ’Verse.` },
-          { name: "FOR THE CLAN. FOR HONOR. FOR VICTORY.", value: "House Wolf Command\nThe Officer Corps · Home of the Dragoons" },
-        ],
-        footer: { text: `Order ${request.id} · Effective ${effectiveDate}` },
-      },
-    ],
-  };
+    image: { url: "attachment://house-wolf-promotion.png" },
+    body: {
+      color: 0x114e62, author: { name: "HOUSE WOLF  /  PERSONNEL ORDERS" },
+      title: `${target.name.toUpperCase()} · THE NEXT CHAPTER`,
+      description: `**Attention Dragoons,**\n\n${salutation}\n\n${target.key === "foundling" ? "The first oath is the beginning of service. The House offers training, fellowship, and the chance to earn a lasting place among its warriors." : "The required term of service has been completed and the necessary officer votes recorded. This advancement carries a greater obligation to the clan, its contracts, and the warriors who fight beneath our banner."}`,
+      fields: [
+        { name: "THE CHARGE", value: target.duty },
+        { name: "THE OATH", value: target.charge },
+        { name: "STAND WITH YOUR FELLOW DRAGOON", value: `Join us in recognizing **${safeDiscordText(member.displayName)}**. Wear this rank with pride. Let strength guide your actions, honor bind your word, and resolve carry you through the ’Verse.` },
+        { name: "FOR THE CLAN. FOR HONOR. FOR VICTORY.", value: "House Wolf Command\nThe Officer Corps · Home of the Dragoons" },
+      ],
+      footer: { text: `Order ${request.id} · Effective ${effectiveDate}` },
+    },
+  });
 }

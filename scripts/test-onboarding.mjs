@@ -196,32 +196,41 @@ test("new onboarding completions get a distinct welcome nonce while retries keep
   assert.notEqual(first.nonce, createWelcomeMessage({ ...profile, completedAt: "2026-10-22T10:40:00Z" }, "123").nonce);
 });
 
-test("welcome has a separate interest block and restricts mentions", () => {
+test("welcome shares one card for banner and text and restricts mentions", () => {
   const message = createWelcomeMessage({ userId: "member", interests: ["bunker-running", "space-trucking"], otherGame: "@everyone **DayZ**" }, "123");
-  assert.equal(message.embeds[0].image.url, "attachment://house-wolf-welcome.png");
-  assert.equal(message.embeds[1].fields[0].value, "▸ Bunker Running\n▸ Space Trucking");
-  assert.equal(message.embeds[1].fields[1].value.includes("@everyone"), false);
+  assert.equal(message.flags, 32768);
+  assert.equal(message.embeds, undefined);
+  assert.equal(message.components.length, 1);
+  const card = message.components[0];
+  assert.equal(card.type, 17);
+  assert.equal(card.components[0].type, 12);
+  assert.equal(card.components[0].items[0].media.url, "attachment://house-wolf-welcome.png");
+  const text = card.components.slice(1).map(component => component.content).join("\n");
+  assert.match(text, /STAR CITIZEN/);
+  assert.match(text, /Bunker Running\n.*Space Trucking/);
+  assert.match(text, /DayZ/);
+  assert.equal(text.includes("@everyone"), false);
+  assert.match(text, /Say hello, invite them/);
+  assert.equal(card.components.at(-1).content, "-# This is the Way!");
   assert.deepEqual(message.allowedMentions, { parse: [], users: ["123"] });
   assert.equal(message.enforceNonce, true);
   assert.equal(message.content, undefined);
-  assert.match(message.embeds[1].fields.at(-1).value, /Say hello, invite them/);
-  assert.equal(message.embeds[1].fields.at(-1).inline, false);
-  assert.equal(message.embeds[1].footer.text, "This is the Way!");
 });
 
 test("other-game-only welcome introduces the member without empty Star Citizen text", () => {
   const message = createWelcomeMessage({ userId: "member", interests: [], otherGame: "DayZ" }, "123", "Wolf @everyone");
-  assert.match(message.embeds[1].fields[0].value, /DayZ/);
-  assert.equal(message.embeds[1].fields.some(field => field.name === "STAR CITIZEN"), false);
-  assert.equal(JSON.stringify(message.embeds).includes("@everyone"), false);
-  assert.match(message.embeds[1].description, /Wolf/);
+  const text = JSON.stringify(message.components);
+  assert.match(text, /DayZ/);
+  assert.match(text, /Wolf/);
+  assert.equal(text.includes("STAR CITIZEN"), false);
+  assert.equal(text.includes("@everyone"), false);
 });
 
 test("welcome omits other games when none were listed", () => {
   const message = createWelcomeMessage({ userId: "member", interests: ["bounty-hunting"], otherGame: null }, "123", "Wolf");
-  assert.match(message.embeds[1].fields[0].value, /Bounty Hunting/);
-  assert.equal(message.embeds[1].fields.some(field => field.name === "BEYOND THE ’VERSE"), false);
-  assert.equal(message.embeds[1].fields.length, 2);
+  const card = message.components[0];
+  assert.match(JSON.stringify(card), /Bounty Hunting/);
+  assert.equal(card.components.length, 5);
 });
 
 test("welcome banner renders with a safely escaped member name", async () => {
@@ -279,11 +288,12 @@ for (const scenario of ["delivered", "send-failure", "claimed-elsewhere", "buyer
       if (delivered) {
         assert.equal(completed.data.welcomeMessageId, "welcome-message");
         assert.equal(sent[0].content, undefined);
-        const card = JSON.stringify(sent[0].embeds[1]);
+        const card = JSON.stringify(sent[0].components[0]);
         assert.match(card, /Wolf/);
         assert.match(card, /Bunker Running/);
         assert.match(card, /DayZ/);
-        assert.equal(sent[0].embeds.length, 2);
+        assert.equal(sent[0].components.length, 1);
+        assert.equal(sent[0].embeds, undefined);
       }
       if (scenario === "send-failure") assert.equal(updates.at(-1).data.welcomeLastError, "Missing channel permission");
       if (scenario === "buyer") assert.match(updates.at(-1).data.welcomeLastError, /Buyer role/);

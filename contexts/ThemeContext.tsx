@@ -1,152 +1,94 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { ThemeName, getTheme, defaultTheme } from '@/lib/theme-config';
-import { useSession } from 'next-auth/react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useSession } from "next-auth/react";
+import { defaultTheme, getTheme, isThemeName, type ThemeName } from "@/lib/theme-config";
 
-interface ThemeContextType {
+type SaveStatus = "idle" | "saving" | "saved" | "local";
+const ThemeContext = createContext<{
   theme: ThemeName;
-  setTheme: (theme: ThemeName) => void;
+  setTheme: (theme: ThemeName) => Promise<void>;
   isLoading: boolean;
-}
+  saveStatus: SaveStatus;
+} | undefined>(undefined);
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+function savedTheme() {
+  try { const value = localStorage.getItem("hw-theme"); return isThemeName(value) ? value : defaultTheme; }
+  catch { return defaultTheme; }
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [theme, setThemeState] = useState<ThemeName>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
-  const hasInitialized = useRef(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const changeVersion = useRef(0);
+  const userId = session?.user?.id;
 
-  // Initialize theme from API or localStorage
   useEffect(() => {
-    if (status === 'loading') {
-      return;
-    }
-
-    if (hasInitialized.current) {
-      return;
-    }
-
-    hasInitialized.current = true;
-
-    if (status === 'authenticated' && session?.user?.id) {
-      fetch('/api/user/theme')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.theme) {
-            setThemeState(data.theme as ThemeName);
-          }
-        })
-        .catch(() => {
-          const savedTheme = localStorage.getItem('hw-theme') as ThemeName | null;
-          if (savedTheme) {
-            setThemeState(savedTheme);
-          }
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      const savedTheme = localStorage.getItem('hw-theme') as ThemeName | null;
-      if (savedTheme) {
-        setThemeState(savedTheme);
+    if (status === "loading") return;
+    const controller = new AbortController();
+    const version = changeVersion.current;
+    async function initialize() {
+      let selected = savedTheme();
+      if (status === "authenticated" && userId) {
+        try {
+          const response = await fetch("/api/user/theme", { signal: controller.signal });
+          if (!response.ok) throw new Error("Theme unavailable");
+          const data = await response.json();
+          if (isThemeName(data.theme)) selected = data.theme;
+        } catch { /* Retain the device preference when account settings are unavailable. */ }
       }
-      setIsLoading(false);
+      if (!controller.signal.aborted && version === changeVersion.current) {
+        setThemeState(selected);
+        setIsLoading(false);
+        try { localStorage.setItem("hw-theme", selected); } catch { /* Storage can be disabled. */ }
+      }
     }
-    // Only run when status changes, not when session object changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+    void initialize();
+    return () => controller.abort();
+  }, [status, userId]);
 
-  // Apply theme whenever theme state changes
   useEffect(() => {
-    applyTheme(theme);
+    const container = document.getElementById("dashboard-theme-container");
+    if (!container) return;
+    const configuration = getTheme(theme);
+    const colors = configuration.colors;
+    container.style.colorScheme = configuration.colorScheme;
+    container.dataset.colorScheme = configuration.colorScheme;
+    for (const [key, value] of Object.entries(colors)) {
+      const token = "--" + key.replace(/[A-Z]/g, letter => "-" + letter.toLowerCase());
+      container.style.setProperty(token, value);
+    }
+    for (const name of ["accentPrimary", "accentSecondary"] as const) {
+      const hex = colors[name].slice(1);
+      const rgb = [0, 2, 4].map(offset => parseInt(hex.slice(offset, offset + 2), 16)).join(", ");
+      container.style.setProperty(name === "accentPrimary" ? "--accent-primary-rgb" : "--accent-secondary-rgb", rgb);
+    }
+    container.dataset.theme = theme;
   }, [theme]);
 
-  const setTheme = async (newTheme: ThemeName) => {
-    setThemeState(newTheme);
-    localStorage.setItem('hw-theme', newTheme);
-
-    if (session?.user?.id) {
-      try {
-        await fetch('/api/user/theme', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ theme: newTheme }),
-        });
-      } catch (error) {
-        console.error('Failed to save theme preference:', error);
-      }
+  async function setTheme(next: ThemeName) {
+    if (!isThemeName(next)) return;
+    const version = ++changeVersion.current;
+    setThemeState(next);
+    try { localStorage.setItem("hw-theme", next); } catch { /* The current session can still preview themes. */ }
+    setSaveStatus("saving");
+    if (!userId) { setSaveStatus("local"); return; }
+    try {
+      const response = await fetch("/api/user/theme", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme: next }) });
+      if (!response.ok) throw new Error("Theme could not be saved");
+      if (version === changeVersion.current) setSaveStatus("saved");
+    } catch {
+      if (version === changeVersion.current) setSaveStatus("local");
     }
-  };
+  }
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme, isLoading }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, setTheme, isLoading, saveStatus }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error("useTheme must be used within a ThemeProvider");
   return context;
-}
-
-function applyTheme(themeName: ThemeName) {
-  const themeConfig = getTheme(themeName);
-  const dashboardContainer = document.getElementById('dashboard-theme-container');
-
-  if (!dashboardContainer) {
-    return;
-  }
-
-  dashboardContainer.style.setProperty('--hw-dark-crimson', themeConfig.colors.hwDarkCrimson);
-  dashboardContainer.style.setProperty('--hw-deep-night', themeConfig.colors.hwDeepNight);
-  dashboardContainer.style.setProperty('--hw-steel-teal', themeConfig.colors.hwSteelTeal);
-  dashboardContainer.style.setProperty('--hw-obsidian', themeConfig.colors.hwObsidian);
-  dashboardContainer.style.setProperty('--hw-shadow', themeConfig.colors.hwShadow);
-  dashboardContainer.style.setProperty('--hw-midnight', themeConfig.colors.hwMidnight);
-  dashboardContainer.style.setProperty('--hw-pure-black', themeConfig.colors.hwPureBlack);
-
-  dashboardContainer.style.setProperty('--background-base', themeConfig.colors.backgroundBase);
-  dashboardContainer.style.setProperty('--background-elevated', themeConfig.colors.backgroundElevated);
-  dashboardContainer.style.setProperty('--background-card', themeConfig.colors.backgroundCard);
-  dashboardContainer.style.setProperty('--background-soft', themeConfig.colors.backgroundSoft);
-
-  dashboardContainer.style.setProperty('--text-primary', themeConfig.colors.textPrimary);
-  dashboardContainer.style.setProperty('--text-secondary', themeConfig.colors.textSecondary);
-  dashboardContainer.style.setProperty('--text-muted', themeConfig.colors.textMuted);
-  dashboardContainer.style.setProperty('--text-inverse', themeConfig.colors.textInverse);
-
-  dashboardContainer.style.setProperty('--accent-primary', themeConfig.colors.accentPrimary);
-  dashboardContainer.style.setProperty('--accent-primary-hover', themeConfig.colors.accentPrimaryHover);
-  dashboardContainer.style.setProperty('--accent-primary-active', themeConfig.colors.accentPrimaryActive);
-  dashboardContainer.style.setProperty('--accent-secondary', themeConfig.colors.accentSecondary);
-  dashboardContainer.style.setProperty('--accent-secondary-hover', themeConfig.colors.accentSecondaryHover);
-  dashboardContainer.style.setProperty('--accent-secondary-active', themeConfig.colors.accentSecondaryActive);
-
-  dashboardContainer.style.setProperty('--border-subtle', themeConfig.colors.borderSubtle);
-  dashboardContainer.style.setProperty('--border-default', themeConfig.colors.borderDefault);
-  dashboardContainer.style.setProperty('--border-strong', themeConfig.colors.borderStrong);
-  dashboardContainer.style.setProperty('--border-crimson', themeConfig.colors.borderCrimson);
-  dashboardContainer.style.setProperty('--border-teal', themeConfig.colors.borderTeal);
-
-  dashboardContainer.style.setProperty('--status-success', themeConfig.colors.statusSuccess);
-  dashboardContainer.style.setProperty('--status-success-text', themeConfig.colors.statusSuccessText);
-  dashboardContainer.style.setProperty('--status-warning', themeConfig.colors.statusWarning);
-  dashboardContainer.style.setProperty('--status-warning-text', themeConfig.colors.statusWarningText);
-  dashboardContainer.style.setProperty('--status-error', themeConfig.colors.statusError);
-  dashboardContainer.style.setProperty('--status-error-text', themeConfig.colors.statusErrorText);
-  dashboardContainer.style.setProperty('--status-info', themeConfig.colors.statusInfo);
-  dashboardContainer.style.setProperty('--status-info-text', themeConfig.colors.statusInfoText);
-
-  dashboardContainer.style.setProperty('--shadow-crimson', themeConfig.colors.shadowCrimson);
-  dashboardContainer.style.setProperty('--shadow-teal', themeConfig.colors.shadowTeal);
-
-  dashboardContainer.setAttribute('data-theme', themeName);
 }

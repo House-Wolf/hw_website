@@ -107,14 +107,14 @@ const initialFormData: FormData = {
 };
 
 const DARK_SELECT_STYLE = {
-    backgroundColor: "#0b1820",
-    color: "#f5efe2",
+    backgroundColor: "var(--background-elevated)",
+    color: "var(--text-primary)",
     colorScheme: "dark" as const,
 };
 
 const DARK_OPTION_STYLE = {
-    backgroundColor: "#0b1820",
-    color: "#f5efe2",
+    backgroundColor: "var(--background-elevated)",
+    color: "var(--text-primary)",
 };
 
 /**
@@ -678,7 +678,7 @@ function MarketplaceDashboardContent() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="card border border-[var(--border-soft)] bg-black">
+            <div className="card border border-[var(--border-soft)] bg-[var(--background-card)]">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="h-10 w-10 rounded-full bg-[var(--accent-strong)]/15 border border-[var(--border)] flex items-center justify-center">
                         <Store className="text-[var(--accent-strong)]" size={20} />
@@ -700,7 +700,7 @@ function MarketplaceDashboardContent() {
             {/* Success/Error/Info Messages */}
             {message && (
                 <div
-                    className={`mb-6 p-4 rounded-lg border bg-black ${
+                    className={`mb-6 p-4 rounded-lg border bg-[var(--background-card)] ${
                         message.type === "success"
                             ? "border-green-700 text-green-300"
                             : message.type === "info"
@@ -749,7 +749,7 @@ function MarketplaceDashboardContent() {
 
             {/* Create/Edit Form */}
             {activeTab === "create" && (
-                <div className="card border border-[var(--border-soft)] bg-black">
+                <div className="card border border-[var(--border-soft)] bg-[var(--background-card)]">
                     {editingId && (
                         <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg flex justify-between items-center">
                             <span className="text-blue-300">Editing listing</span>
@@ -1376,47 +1376,47 @@ function MarketplaceDashboardContent() {
 
                                                 {showSrpExplanation && (
                                                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-                                                        <div className="w-full max-w-2xl rounded-2xl border border-white/20 bg-[#08131a] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+                                                        <div className="w-full max-w-2xl rounded-2xl border border-white/20 bg-[var(--background-card)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
                                                             <div className="flex items-start justify-between gap-4">
                                                                 <div>
-                                                                    <h3 className="text-lg font-semibold text-[#f8f3e7]">
+                                                                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                                                                         How the SRP calculator works
                                                                     </h3>
-                                                                    <p className="mt-1 text-sm text-[#d6d0c3]">
+                                                                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
                                                                         The calculator now prices the item from its actual rank table first, then applies scarcity and markup.
                                                                     </p>
                                                                 </div>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setShowSrpExplanation(false)}
-                                                                    className="text-sm font-semibold text-[#d6d0c3] hover:text-[#f8f3e7] transition-colors"
+                                                                    className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                                                                 >
                                                                     Close
                                                                 </button>
                                                             </div>
 
-                                                            <div className="mt-6 space-y-4 text-sm text-[#f8f3e7]">
-                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                            <div className="mt-6 space-y-4 text-sm text-[var(--text-primary)]">
+                                                                <div className="rounded-xl border border-white/10 bg-[var(--background-elevated)] px-4 py-3">
                                                                     <p className="font-semibold">1. Base value</p>
-                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                    <p className="mt-1 text-[var(--text-secondary)]">
                                                                         Guns and armor use a direct rank table. Components and ship weapons use a size-plus-type table.
                                                                     </p>
                                                                 </div>
-                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                <div className="rounded-xl border border-white/10 bg-[var(--background-elevated)] px-4 py-3">
                                                                     <p className="font-semibold">2. Scarcity multiplier</p>
-                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                    <p className="mt-1 text-[var(--text-secondary)]">
                                                                         Condition affects scarcity. Purchasable items stay lowest, while non-purchasable, pledged, event, and crafted items scale higher.
                                                                     </p>
                                                                 </div>
-                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                <div className="rounded-xl border border-white/10 bg-[var(--background-elevated)] px-4 py-3">
                                                                     <p className="font-semibold">3. Crafted quality</p>
-                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                    <p className="mt-1 text-[var(--text-secondary)]">
                                                                         Crafted items get an additional quality modifier from Q700 through Q1000.
                                                                     </p>
                                                                 </div>
-                                                                <div className="rounded-xl border border-white/10 bg-[#0d1b23] px-4 py-3">
+                                                                <div className="rounded-xl border border-white/10 bg-[var(--background-elevated)] px-4 py-3">
                                                                     <p className="font-semibold">4. Final formula</p>
-                                                                    <p className="mt-1 text-[#d6d0c3]">
+                                                                    <p className="mt-1 text-[var(--text-secondary)]">
                                                                         Final SRP = base value x scarcity multiplier x crafted quality modifier x marketplace markup.
                                                                     </p>
                                                                 </div>
@@ -1531,7 +1531,7 @@ function MarketplaceDashboardContent() {
 
             {/* My Listings Table */}
             {activeTab === "manage" && (
-                <div className="card border border-[var(--border-soft)] bg-black">
+                <div className="card border border-[var(--border-soft)] bg-[var(--background-card)]">
                     <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">Your Active Listings ({myListings.length})</h2>
                     {loading && <p className="text-indigo-400">Loading listings...</p>}
                     {!loading && myListings.length === 0 && (
@@ -1550,7 +1550,7 @@ function MarketplaceDashboardContent() {
                                         <th className="px-6 py-3 text-right text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-black divide-y divide-[var(--border-soft)]">
+                                <tbody className="bg-[var(--background-card)] divide-y divide-[var(--border-soft)]">
                                     {myListings.map((listing) => (
                                         <tr key={listing.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--foreground)]">

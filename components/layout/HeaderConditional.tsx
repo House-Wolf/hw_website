@@ -13,7 +13,7 @@ export default function HeaderConditional() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
-  if (pathname?.startsWith("/invite/") || pathname === "/onboarding") {
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/invite/") || pathname === "/onboarding") {
     return null;
   }
 
