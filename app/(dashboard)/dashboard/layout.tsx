@@ -17,6 +17,7 @@ type NavItem = { name: string; href: string; icon: LucideIcon };
 const workspace: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: Home },
   { name: "Operations", href: "/dashboard/operations", icon: Swords },
+  { name: "Fleet readiness", href: "/dashboard/fleet-readiness", icon: Compass },
   { name: "PackTracker", href: "/dashboard/packtracker", icon: PackageSearch },
   { name: "Marketplace", href: "/dashboard/marketplace", icon: Store },
 ];

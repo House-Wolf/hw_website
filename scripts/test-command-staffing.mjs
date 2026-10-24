@@ -2,6 +2,44 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { crewMember, CREW_ROLES, overlaps, staffingWindow, shipReady, validCredential, credentialCode } from "../lib/command/staffingPolicy.js";
 import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
+import { createCrewService } from "../lib/command/crewService.js";
+
+function crewViewFixture(manager = true) {
+  const queries = [];
+  const actor = { id: "manager", guildId: "guild", roleIds: [manager ? PERSONNEL_ROLES.lieutenant : PERSONNEL_ROLES.member] };
+  const prisma = {
+    commandOperation: { findFirst: async () => ({ creatorId: "manager", managerIds: [], guildId: "guild", state: "PUBLISHED", input: { visibility: "GUILD" }, crewRevision: 1 }) },
+    commandOperationShip: { findMany: async () => [] }, commandSeat: { findMany: async () => [] },
+    commandCrewAssignment: { findMany: async () => [] }, commandSignup: { findMany: async () => [] },
+    commandQualification: { findMany: async () => [] }, auditLog: { findMany: async () => [] },
+    commandShip: {
+      findMany: async (query) => { queries.push(query); return [{ id: "verified-ship", name: "Wolf", model: "Cutlass", verifiedAt: new Date(), productionState: "FLIGHT_READY", availability: "AVAILABLE", readiness: "READY", owner: { name: "Pilot" } }]; },
+      count: async (query) => { queries.push(query); return 3; },
+    },
+  };
+  return { service: createCrewService({ prisma, authorize: async () => actor }), queries };
+}
+
+test("operation managers see ships pending verification separately from attachable ships", async () => {
+  const { service, queries } = crewViewFixture();
+  const result = await service.view("manager", "00000000-0000-4000-8000-000000000001");
+  assert.equal(result.pendingVerification, 3);
+  assert.equal(result.availableShips.length, 1);
+  assert.equal(result.availableShips[0].ready, true);
+  assert.deepEqual(queries.map((q) => q.where), [
+    { guildId: "guild", verifiedAt: { not: null }, owner: { isActive: true } },
+    { guildId: "guild", verifiedAt: null, owner: { isActive: true } },
+  ]);
+});
+
+test("ordinary crew viewers do not query or receive the manager's fleet inventory", async () => {
+  const { service, queries } = crewViewFixture(false);
+  const result = await service.view("manager", "00000000-0000-4000-8000-000000000001");
+  assert.equal(result.canManage, false);
+  assert.equal(result.pendingVerification, 0);
+  assert.deepEqual(result.availableShips, []);
+  assert.equal(queries.length, 0);
+});
 test("operational roles never substitute for security/member roles", () => {
   assert.ok(CREW_ROLES.includes("PILOT"));
   assert.equal(crewMember({ roleIds: ["PILOT", "Administrator", "SITE_ADMIN"] }), false);
