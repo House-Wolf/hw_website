@@ -42,6 +42,7 @@ test("domain role denial and outage preserve explicit status; unexpected failure
 test("streaming JSON body bound, malformed JSON and successful responses", async () => {
   const f = fixture(); assert.deepEqual(JSON.parse(JSON.stringify(await f.commandBody(f.request({ body: '{"title":"test"}' })))), { title: "test" });
   await assert.rejects(f.commandBody(f.request({ body: "invalid" })), (e) => e.status === 400);
+  for (const body of ["null", "[]", "1", "true", '"text"']) await assert.rejects(f.commandBody(f.request({ body })), (e) => e.status === 400);
   await assert.rejects(f.commandBody(f.request({ body: "x".repeat(800001) })), (e) => e.status === 400);
   const response = await f.commandHttp(f.request(), true, async () => ({ nativeEventId: "mapped" }));
   assert.equal(response.status, 200); assert.match(response.headers.get("cache-control"), /no-store/); assert.deepEqual((await response.json()).data, { nativeEventId: "mapped" });

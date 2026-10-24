@@ -36,5 +36,8 @@ export async function boundedCommandBytes(request: NextRequest, limit: number) {
 }
 export async function commandBody(request: NextRequest) {
   const raw = (await boundedCommandBytes(request, 800000)).toString("utf8");
-  try { return JSON.parse(raw); } catch { throw new CommandError(400, "INVALID_JSON", "Submit valid JSON."); }
+  let body;
+  try { body = JSON.parse(raw); } catch { throw new CommandError(400, "INVALID_JSON", "Submit valid JSON."); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new CommandError(400, "INVALID_JSON", "Submit a JSON object.");
+  return body;
 }

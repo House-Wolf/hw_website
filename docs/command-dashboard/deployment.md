@@ -27,4 +27,12 @@ For rollback, disable both flags and stop/drain new workers before rolling back 
 
 ## Remaining launch gates
 
-The native slice has local mocked/domain/DB evidence, not live Discord or staging evidence. Broader operation templates/occurrences/calendar/crew/reminders/attendance/AAR, remaining privileged-write freshness, personnel/awards/logistics/recruiting/solver/treasury/alliances, complete browser acceptance and production config review remain mandatory. The broader command dashboard must not be described as complete or launch-ready.
+### Manual staffing rollout
+
+`COMMAND_STAFFING_ENABLED="false"` is the default. Before enabling it, back up through the operator's established database procedure and apply additive migration `20261024160000_manual_crews_readiness`, after the existing 16 migrations. Deploy generated-client-compatible web and worker code together before enabling staffing. The new Prisma client expects `crewRevision` even with the flag off: the flag does not permit deploying this client before its migration. No bot permission, Discord channel or new secret is needed for the staffing forms.
+
+In authorized staging, enable staffing on compatible processes; declare a ship as its owner, independently verify it as another officer, attest availability/readiness, attach it to a one-time operation with an explicit end, grant owner consent and assign an explicitly committed member. Verify simultaneous occupancy rejection, stale revisions, restricted evidence, qualification expiry, rescheduling conflicts and releases on withdrawal/cancellation. Crew changes do not publish Discord messages or advance the native event revision.
+
+For incompatible rollback, stop dashboard operation/staffing writes and drain workers first. Simply turning off staffing while leaving existing staffed operations editable bypasses staffing lifecycle checks; it is not a safe standalone rollback. Retain the additive tables/history, wait for transactions and delivery leases, and prefer a forward fix. Do not drop staffing data or reverse production migrations as part of an automated rollback. PackTracker remains unchanged and deferred.
+
+The native slice has local mocked/domain/DB evidence, not live Discord or staging evidence. Use scope.md for current release gates: remaining privileged-write freshness, operations/crew/readiness/attendance/AAR, applicable browser/accessibility/regression acceptance and production configuration review. PackTracker/connected logistics and advanced optional phases are deferred, not launch blockers or completed features. Historical broader requirements do not override the operator's latest scope decision.

@@ -11,6 +11,13 @@ model User {
   commandOperations         CommandOperation[]
   commandSignups            CommandSignup[]
   commandDeliveries         CommandDelivery[]
+  commandShips              CommandShip[] @relation("CommandShipOwner")
+  verifiedCommandShips      CommandShip[] @relation("CommandShipVerifier")
+  commandConsents           CommandOperationShip[]
+  commandCrewMemberships    CommandCrewAssignment[] @relation("CommandCrewMember")
+  commandCrewOrders         CommandCrewAssignment[] @relation("CommandCrewAssigner")
+  commandQualifications     CommandQualification[] @relation("CommandQualificationMember")
+  issuedCommandQualifications CommandQualification[] @relation("CommandQualificationIssuer")
   id                        String                            @id @default(uuid()) @db.Uuid
   discordId                 String                            @unique @map("discord_id")
   discordUsername           String                            @map("discord_username")
@@ -56,6 +63,7 @@ model CommandOperation {
   input          Json
   state          String @default("DRAFT")
   revision       Int @default(1)
+  crewRevision   Int @default(0)
   requestKey     String
   nativeEventId  String? @unique
   nativeSnapshot Json?
@@ -67,6 +75,9 @@ model CommandOperation {
   updatedAt      DateTime @updatedAt @db.Timestamptz(6)
   deliveries     CommandDelivery[]
   signups        CommandSignup[]
+  ships          CommandOperationShip[]
+  seats          CommandSeat[]
+  crew           CommandCrewAssignment[]
   @@unique([guildId, creatorId, requestKey])
   @@index([guildId, state, updatedAt])
   @@map("command_operations")
@@ -103,6 +114,98 @@ model CommandSignup {
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
   @@id([operationId, userId])
   @@map("command_signups")
+}
+
+model CommandShip {
+  id              String @id @default(uuid()) @db.Uuid
+  guildId         String
+  ownerId         String @db.Uuid
+  owner           User @relation("CommandShipOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  name            String
+  model           String
+  externalRef     String?
+  availability    String @default("UNAVAILABLE")
+  readiness       String @default("UNKNOWN")
+  productionState String @default("UNKNOWN")
+  capacity        Int @default(1)
+  verifiedAt      DateTime? @db.Timestamptz(6)
+  verifiedById    String? @db.Uuid
+  verifiedBy      User? @relation("CommandShipVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  evidence        String @default("")
+  revision        Int @default(1)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+  operations      CommandOperationShip[]
+  @@unique([guildId, externalRef])
+  @@index([guildId, ownerId])
+  @@map("command_ships")
+}
+
+model CommandOperationShip {
+  id            String @id @default(uuid()) @db.Uuid
+  operationId   String @db.Uuid
+  operation     CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  shipId        String @db.Uuid
+  ship          CommandShip @relation(fields: [shipId], references: [id], onDelete: Restrict)
+  consentAt     DateTime? @db.Timestamptz(6)
+  consentById   String? @db.Uuid
+  consentBy     User? @relation(fields: [consentById], references: [id], onDelete: Restrict)
+  seats         CommandSeat[]
+  @@unique([operationId, shipId])
+  @@unique([id, operationId])
+  @@index([shipId])
+  @@map("command_operation_ships")
+}
+
+model CommandSeat {
+  id              String @id @default(uuid()) @db.Uuid
+  operationId     String @db.Uuid
+  operation       CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operationShipId String? @db.Uuid
+  operationShip   CommandOperationShip? @relation(fields: [operationShipId, operationId], references: [id, operationId], onDelete: Restrict)
+  label           String
+  role            String
+  requiredCode    String?
+  archived        Boolean @default(false)
+  assignments     CommandCrewAssignment[]
+  @@unique([id, operationId])
+  @@unique([operationId, label])
+  @@map("command_seats")
+}
+
+model CommandCrewAssignment {
+  id           String @id @default(uuid()) @db.Uuid
+  operationId  String @db.Uuid
+  operation    CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  seatId       String @db.Uuid
+  seat         CommandSeat @relation(fields: [seatId, operationId], references: [id, operationId], onDelete: Restrict)
+  userId       String @db.Uuid
+  user         User @relation("CommandCrewMember", fields: [userId], references: [id], onDelete: Restrict)
+  assignedById String @db.Uuid
+  assignedBy   User @relation("CommandCrewAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  releasedAt   DateTime? @db.Timestamptz(6)
+  releaseReason String?
+  @@index([userId, releasedAt])
+  @@index([operationId, releasedAt])
+  @@map("command_crew_assignments")
+}
+
+model CommandQualification {
+  id          String @id @default(uuid()) @db.Uuid
+  guildId     String
+  userId      String @db.Uuid
+  user        User @relation("CommandQualificationMember", fields: [userId], references: [id], onDelete: Restrict)
+  code        String
+  issuerId    String @db.Uuid
+  issuer      User @relation("CommandQualificationIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
+  evidence    String
+  issuedAt    DateTime @default(now()) @db.Timestamptz(6)
+  expiresAt   DateTime? @db.Timestamptz(6)
+  revokedAt   DateTime? @db.Timestamptz(6)
+  revokeReason String?
+  @@index([guildId, userId, code])
+  @@map("command_qualifications")
 }
 
 model OnboardingProfile {

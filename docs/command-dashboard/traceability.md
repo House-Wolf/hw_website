@@ -2,7 +2,7 @@
 
 Baseline: adc6afd3a4aa2a60889db4505e910b3f6830e3d1. Implementation base/main: 69101c24531ac356527813f765f2f15910ebbf7a (git fetch verified). Branch: feature/command-dashboard. Inventory date: 2026-10-23. Root/nested AGENTS.md absent after the base commit; baseline AGENTS.md read. Baseline test guidance and Tailwind config references are stale. Node runner and CSS 4 are authoritative.
 
-Status describes the whole requirement, not the mere existence of models. Planned paths below are not claims that those files exist. Exact local evidence is in PROGRESS.md. No staging or production verification has occurred.
+Status describes technical implementation, not delivery priority. [scope.md](scope.md) records the operator-approved single-organization scope and overrides earlier mandatory launch scope. **H03 / PackTracker and connected logistics are deferred until revisited**, and advanced optional phases are backlog. Preserve their partial/not-started status; deferral is not completion. Planned paths below are not claims that those files exist. Exact evidence is in PROGRESS.md; no staging verification is claimed.
 
 | ID | Source | Existing evidence / planned implementation | Migration / reuse | Acceptance evidence planned | Configuration | Status |
 |---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@ Status describes the whole requirement, not the mere existence of models. Planne
 | P04 | OrgDeck / House Wolf | No ledger/payout workflow found. Planned lib/treasury and dashboard/treasury | New immutable balanced ledger, reversals, snapshots | exact decimals, deterministic remainder, immutable approval, no transfer claims | separate treasury capability | not started |
 | H01 | Explicit officer gate | Reuse OFFICER_ROLE_IDS and PERSONNEL_ROLES, planned lib/command/access.js + server adapter; operations service recheck before commit/dispatch | Active User; live configured-guild member; existing permissions | anonymous/all lower ranks/admin-only/owner-only/each allowed ID/revocation/suspension/outage; no denied writes | existing guild/token; flags disabled | partial |
 | H02 | Latest native-event clarification overrides text-channel prerequisite | lib/command/nativeDelivery.js, nativePreflight.js, bot/commandOperations.js; dashboard/operations | CommandOperation / CommandDelivery; optional SiteSetting routing | Native without text ID, voice/external, updates/cancel/restart/conflicts; see N01–N09 | guild/token; text ID optional; flags false | verified locally |
-| H03 | House Wolf scope | PackTracker has read-only pages, request/comment/claim/stock models. Planned writable services and operations manifests | Reuse PackTracker entities; additive stock movement/reservation constraints | claim/reservation races; partial/idempotent delivery; consumed vs returned; no seller-stock writes | logistics flag | partial |
+| H03 | House Wolf scope; later operator deferral | Existing PackTracker pages/models retained; writable workflows and operation logistics deferred until revisited | No new PackTracker migration in active scope | Acceptance checks retained as future backlog | Deferred by operator; not a current release gate | partial |
 | F01 | Review findings / contract section 12 | lib/auth JWT initial snapshot; lib/permissions; direct route session checks. Planned fresh access adapter, fleet normalization, safe formatting and CI | SiteSetting; no schema-only completion | revoked/suspended roles; arrays/nesting/pagination/distinct models/Unknown size; mention/spoiler/subtext fixtures; full CI | mocks/local disposable DB only | partial |
 | F01-auth | Contract 12 F01 | Fresh server officer/permission checks; audit every privileged write entry point | Reuse active User and DiscordRole mappings | 401/403/503, forged claims, wrong guild, request-scoped dedup, no name/rank bypass | Discord bot REST adapter | partial |
 | F02 | Contract 12 F02 | lib/fleetyards/normalization.ts and shared fleet API/components count stable distinct models/instances, source sizes and unassessed readiness | No migration; shared adapters | Six shape/size/pagination/partial/empty fixtures; actual counts preserved | Public FleetYards only; internal readiness is P01 | verified locally |
@@ -27,6 +27,19 @@ Status describes the whole requirement, not the mere existence of models. Planne
 | F04 | Contract 12 F04 | Existing Node suites plus new domain/HTTP/DB suites and .github/workflows/command-dashboard.yml | Disposable PostgreSQL full migration history | Local lint/typecheck/validate/bot/domain/DB/build; browser and remote CI remain open | Fake CI secrets; delivery flags false | partial |
 
 ## Source revalidation
+
+## Single-organization manual staffing slice
+
+These rows refine P01 and the manual-approval part of personnel scope. They do not mark full Phase 4 or training/awards complete. Design/API/limits: [manual-crews.md](manual-crews.md).
+
+| ID | Source | Code / migration | Acceptance evidence | Configuration / status |
+|---|---|---|---|---|
+| M01 | Approved single-org P01 scope: owned readiness | fleetService.js; dashboard/fleet-readiness; fleet API; CommandShip in migration 20261024160000_manual_crews_readiness | PostgreSQL owner/officer independence, declaration idempotency, concept/unavailable rejection, evidence privacy | COMMAND_STAFFING_ENABLED=false; verified locally |
+| M02 | Manual crew/owner consent | crewService.js; CrewPanel.tsx; crew API; CommandOperationShip/Seat/CrewAssignment | Real DB last-seat and consenting-ship races, capacity/consent, unique backstops, overlap, stale revision, role/suspension/outage, audit privacy | One-time operation with explicit end; verified locally |
+| M03 | Preserve lifecycle/history | staffingPolicy.js; operations.js; separate crewRevision and partial active indexes | Reschedule conflict; withdrawal/cancel/seat archival release with retained history; native revision unchanged | Compatible writes must stay enabled for existing staffed operations; verified locally |
+| M04 | Manual officer qualification approval | fleetService.js; qualification API and fleet form; CommandQualification | Evidence required, no self-issue, expiry/renewal/revocation, dependent crew release | No courses, awards, Discord roles or rank automation; verified locally |
+
+P01 remains partial overall: automatic external ownership refresh, per-occurrence staffing, wings/reserves and complete browser/staging acceptance are not delivered. Earlier planned ShipInstance references are implemented by CommandShip rather than a duplicate model. Public fleet normalization remains shared and unchanged by this slice. Existing personnel and marketplace services/policies are preserved.
 
 ## Native clarification implementation evidence (supersedes earlier channel prerequisite)
 
