@@ -61,7 +61,7 @@ export function fleetStatistics(vehicles: FleetYardsVehicle[]) {
 }
 
 /** A failed later page is explicitly partial, never silently an empty/complete fleet. */
-export async function loadPublicFleet(fleetSlug: string, read: (path: string) => Promise<unknown>, perPage = 25, maxPages = 50): Promise<HouseWolfFleetPayload> {
+export async function loadPublicFleet(fleetSlug: string, read: (path: string) => Promise<unknown>, perPage = 240, maxPages = 50): Promise<HouseWolfFleetPayload> {
   const vehicles: FleetYardsVehicle[] = [], seen = new Set<string>(), warnings: string[] = [];
   let complete = false;
   for (let page = 1; page <= maxPages; page++) {
