@@ -80,12 +80,6 @@ export default function DragoonCodePage() {
       />
 
       <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <nav aria-label="Dragoon Code sections" className="mb-8 flex flex-wrap gap-x-6 gap-y-1 border-b border-white/10 pb-4 text-sm text-foreground-muted">
-          <a href="#creed" className="inline-flex min-h-11 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50 focus-visible:outline-white">The creed</a>
-          <a href="#three-pillars" className="inline-flex min-h-11 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50 focus-visible:outline-white">The Three Pillars</a>
-          <a href="#resolnare" className="inline-flex min-h-11 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-white hover:decoration-white/50 focus-visible:outline-white">The six principles</a>
-        </nav>
-
         <section id="creed" aria-labelledby="creed-heading" className="scroll-mt-44">
           <header className="mb-6">
             <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">01 / The creed</p>
@@ -150,11 +144,11 @@ export default function DragoonCodePage() {
           </ol>
         </section>
 
-        <section id="join-house-wolf" aria-labelledby="join-heading" className="mt-10 scroll-mt-44 rounded-xl border border-white/15 bg-background-base p-6 sm:mt-12 sm:p-8">
+        <section id="join-house-wolf" aria-labelledby="join-heading" className="mt-10 scroll-mt-44 border-t border-white/10 pt-10 sm:mt-12 sm:pt-12">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
             <div className="max-w-xl">
-              <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">Carry the Code forward</p>
-              <h2 id="join-heading" className="mb-4 text-2xl font-bold text-white sm:text-3xl">Walk the Path of the Dragoon</h2>
+              <p className="mb-3 text-xs font-mono uppercase tracking-[0.18em] text-foreground-muted">04 / Carry the Code forward</p>
+              <h2 id="join-heading" className="mb-3 text-3xl font-bold text-white sm:text-4xl">Walk the Path of the Dragoon</h2>
               <p className="text-base leading-relaxed text-foreground-muted">These principles are not mere words—they are the foundation of our existence, the pillars upon which House Wolf stands. Live by the Code. Die by the Code.</p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">

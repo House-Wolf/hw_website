@@ -1,5 +1,6 @@
-"use client";
-
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { SafeImage } from "@/components/utils/SafeImage";
 import { DIVISION_GLOW } from "@/lib/divisions/divisionConfig";
 import type { DivisionMember } from "@/lib/divisions/getDivisionsRoster";
@@ -14,8 +15,11 @@ interface DivisionPageTemplateProps {
   divisionDescription: string;
   patchImagePath: string;
   patchAlt: string;
-  officers: DivisionMember[];
-  members: DivisionMember[];
+  officers?: DivisionMember[];
+  members?: DivisionMember[];
+  children?: ReactNode;
+  backHref?: string;
+  backLabel?: string;
 }
 
 /* ================= TEMPLATE ================= */
@@ -27,13 +31,21 @@ export function DivisionPageTemplate({
   divisionDescription,
   patchImagePath,
   patchAlt,
-  officers,
-  members,
+  officers = [],
+  members = [],
+  children,
+  backHref = "/divisions",
+  backLabel = "All divisions",
 }: DivisionPageTemplateProps) {
   const glow = DIVISION_GLOW[divisionSlug];
 
   return (
     <div className="min-h-screen bg-background-base">
+      <div className="mx-auto max-w-7xl px-5 pt-8 sm:px-8">
+        <Link href={backHref} className="inline-flex min-h-11 items-center gap-2 text-sm text-foreground-muted underline underline-offset-4 transition-colors hover:text-white focus-visible:outline-white">
+          <ArrowLeft size={16} aria-hidden="true" />{backLabel}
+        </Link>
+      </div>
       {/* HEADER */}
       <section className="relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 py-16 text-center">
@@ -82,8 +94,13 @@ export function DivisionPageTemplate({
 
       {/* CONTENT */}
       <div className="max-w-7xl mx-auto px-4 py-16 space-y-12">
-        {officers.length > 0 && <RosterSection title="Division Officers" members={officers} />}
-        {members.length > 0 && <RosterSection title="Division Staff" members={members} />}
+        {children ?? <>
+          {officers.length > 0 && <RosterSection title="Division Officers" members={officers} />}
+          {members.length > 0 && <RosterSection title="Division Staff" members={members} />}
+          {officers.length === 0 && members.length === 0 && (
+            <p className="rounded-xl border border-white/10 bg-white/[0.025] p-8 text-center text-foreground-muted">No approved public profiles are assigned to this division yet.</p>
+          )}
+        </>}
       </div>
     </div>
   );

@@ -1,117 +1,25 @@
-# Database Maintenance Scripts
+# Scripts
 
-## verify-division-slugs.ts
+Run commands from the repository root. `pnpm test` runs every `test-*.mjs` regression file using Node's test runner. The tests mock external services and do not apply migrations, post Discord messages or change live roles.
 
-Verifies and fixes division slugs in the database to match the application configuration.
+## Operational checks
 
-### Usage
+| Script | Purpose |
+| --- | --- |
+| `prisma-env.mjs` | Load local environment files before Prisma status/deploy commands |
+| `verify-personnel-migration.mjs` | Verify the personnel database structures |
+| `verify-personnel-assignment-lock.mjs` | Exercise database assignment locks using synthetic identifiers |
+| `configure-personnel-commands.mjs` | Configure personnel command access mappings |
+| `check-db.ts` | Inspect users and linked authentication accounts |
+| `verify-divisions.ts`, `verify-division-slugs.ts` | Inspect division records and slugs; the slug tool repairs only with `--fix` |
+| `verify-subdivision-patches.ts` | Inspect subdivision patch mappings |
 
-**Check current database (dry run):**
-```bash
-npx tsx scripts/verify-division-slugs.ts
-```
+Maintenance tools require the intended database environment. They are separate from the regression tests. The assignment-lock check uses real database transactions; command configuration writes mappings. Inspect each tool before running it against production.
 
-**Fix issues in current database:**
-```bash
-npx tsx scripts/verify-division-slugs.ts --fix
-```
+## Seed and repair tools
 
-### Checking Production Database
+`seed-subdivisions.ts` and `update-subdivision-patches.ts` write subdivision data. Division/rank/category tools are in `prisma/`. TypeScript tools use the installed `ts-node` runner and need `DATABASE_URL` supplied explicitly or in the environment their Prisma client reads. They do not all use the Next.js environment loader.
 
-**Option 1: Using Production DATABASE_URL directly**
-```bash
-# Temporarily set production DATABASE_URL
-DATABASE_URL="your-production-url" npx tsx scripts/verify-division-slugs.ts
+## Message previews
 
-# To fix issues in production
-DATABASE_URL="your-production-url" npx tsx scripts/verify-division-slugs.ts --fix
-```
-
-**Option 2: Using .env.production**
-```bash
-# Create .env.production with your production DATABASE_URL
-echo "DATABASE_URL=your-production-url" > .env.production
-
-# Load and check
-dotenv -e .env.production npx tsx scripts/verify-division-slugs.ts
-
-# Load and fix
-dotenv -e .env.production npx tsx scripts/verify-division-slugs.ts --fix
-```
-
-**Option 3: SSH into production server**
-```bash
-# SSH into your production server
-ssh your-server
-
-# Navigate to app directory
-cd /path/to/hw_website
-
-# Run the check
-npx tsx scripts/verify-division-slugs.ts
-
-# Fix if needed
-npx tsx scripts/verify-division-slugs.ts --fix
-```
-
-**Option 4: Using Prisma Studio**
-```bash
-# Open Prisma Studio with production database
-DATABASE_URL="your-production-url" pnpm db:studio
-
-# Navigate to the Division table and manually check/update slugs
-```
-
-### What the script checks
-
-- ✅ Verifies all 4 divisions exist: arcops, locops, specops, tacops
-- ✅ Checks for the incorrect "arccops" slug (should be "arcops")
-- ✅ Shows profile counts for each division
-- ✅ Safe dry-run mode by default (won't make changes without --fix flag)
-
-### Expected Output (Healthy Database)
-
-```
-🔍 Checking division slugs...
-
-Mode: DRY RUN (no changes will be made)
-
-📊 Found 4+ divisions in database
-
-✅ TACOPS: TACOPS
-   Slug: tacops
-   Active: true
-   Profiles: X
-
-✅ ARCOPS: ARCOPS
-   Slug: arcops
-   Active: true
-   Profiles: X
-
-✅ SPECOPS: SPECOPS
-   Slug: specops
-   Active: true
-   Profiles: X
-
-✅ LOCOPS: LOCOPS
-   Slug: locops
-   Active: true
-   Profiles: X
-
-✅ All division slugs are correct!
-```
-
-### If Issues Are Found
-
-The script will show what needs to be fixed and prompt you to run with `--fix` flag to apply changes.
-
-Example:
-```
-❌ Found incorrect slug: 'arccops' should be 'arcops'
-   Division has 1 member profiles
-
-⚠️  Found 1 issue(s) to fix
-
-🔒 DRY RUN MODE - No changes made
-Run with --fix flag to apply changes: npx tsx scripts/verify-division-slugs.ts --fix
-```
+Run `node scripts/preview-promotion-post.mjs` or `node scripts/preview-promotion-review.mjs` to generate local Discord message previews. Output goes to the ignored `artifacts/previews/` directory. The renderers currently reference the Windows Segoe UI font; adjust the font path when running elsewhere. Preview generation does not send messages.

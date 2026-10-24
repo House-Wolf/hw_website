@@ -208,8 +208,6 @@ export async function getFeaturedPhotos(): Promise<FeaturedPhoto[]> {
     });
   }
 
-  console.log("Resolved featured photos:", photos);
-
   return photos;
 }
 

@@ -34,6 +34,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "artifacts/**",
+    ".artifacts/**",
     // Prisma generated files:
     "app/generated/**",
   ]),

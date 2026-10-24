@@ -5,20 +5,20 @@ import { DIVISIONS, type DivisionSlug } from "@/lib/divisions/divisionConfig";
 
 const divisionHighlights: Record<DivisionSlug, { summary: string; specialties: string[] }> = {
   arcops: {
-    summary: "Explore uncharted systems, chart new routes, and turn research into the knowledge and technology that move House Wolf forward.",
-    specialties: ["Exploration", "Cartography", "Research"],
+    summary: "Explore uncharted systems and turn research, field data, and advanced crafting into capabilities that empower every command.",
+    specialties: ["Exploration", "Science & research", "Advanced crafting"],
   },
   locops: {
-    summary: "Keep every operation supplied through industry, trade, salvage, and heavy-lift logistics.",
-    specialties: ["Industry", "Trade", "Logistics"],
+    summary: "Fuel every campaign through mining, engineering, trade, salvage, and heavy-lift logistics.",
+    specialties: ["Industry & repair", "Trade & salvage", "Heavy lift"],
   },
   specops: {
-    summary: "Operate beyond conventional reach with covert reconnaissance, precision strikes, and critical extractions.",
-    specialties: ["Reconnaissance", "Covert operations", "Extractions"],
+    summary: "Deploy special forces, combat medics, and reconnaissance teams for covert strikes and critical extractions.",
+    specialties: ["Special forces", "Combat medics", "Reconnaissance"],
   },
   tacops: {
-    summary: "Control the battlespace from atmosphere to vacuum with coordinated fighter wings, close support, and heavy bombardment.",
-    specialties: ["Fighter wings", "Air support", "Bombardment"],
+    summary: "Deliver decisive firepower from atmosphere to vacuum with coordinated fighter wings, support wings, and heavy bombers.",
+    specialties: ["Fighter wings", "Support wings", "Heavy bombers"],
   },
 };
 

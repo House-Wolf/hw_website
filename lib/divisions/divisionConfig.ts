@@ -71,3 +71,7 @@ export const DIVISION_GLOW: Record<DivisionSlug, string> = {
   arcops: "#1f4e5f",  
 };
 
+export function isDivisionSlug(value: string): value is DivisionSlug {
+  return Object.hasOwn(DIVISIONS, value);
+}
+

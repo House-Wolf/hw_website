@@ -72,8 +72,14 @@ export const LOCOPS_SUBDIVISIONS: Record<string, SubdivisionPatchConfig> = {
   "locops-engineer": {
     slug: "locops-engineer",
     name: "LOCOPS - Engineer",
-    patchImagePath: "/images/divisions/locops/locops.png",
+    patchImagePath: "/images/divisions/locops/engineer.png",
     patchAlt: "LOCOPS Engineer Patch",
+  },
+  "locops-merchant": {
+    slug: "locops-merchant",
+    name: "LOCOPS - Merchant",
+    patchImagePath: "/images/divisions/locops/merchant.png",
+    patchAlt: "LOCOPS Merchant Patch",
   },
 };
 
@@ -128,6 +134,12 @@ export const TACOPS_SUBDIVISIONS: Record<string, SubdivisionPatchConfig> = {
     name: "TACOPS - Howlers",
     patchImagePath: "/images/divisions/tacops/howlers.png",
     patchAlt: "TACOPS Howlers Patch",
+  },
+  "tacops-timber-wolfs": {
+    slug: "tacops-timber-wolfs",
+    name: "TACOPS - Timber Wolfs",
+    patchImagePath: "/images/divisions/tacops/timberwolfs.png",
+    patchAlt: "TACOPS Timber Wolfs Patch",
   },
 };
 

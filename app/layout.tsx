@@ -6,7 +6,6 @@ import Navbar from "@/components/layout/Navbar";
 import { validateEnv } from "@/lib/env";
 import WolfChatLauncher from "@/components/chat/WolfChatLauncher";
 import PwaServiceWorker from "@/components/utils/PwaServiceWorker";
-import ScrollbarAutoHide from "@/components/utils/ScrollbarAutoHide";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.housewolf.co"),
@@ -44,7 +43,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <WolfChatLauncher />
           <PwaServiceWorker />
-          <ScrollbarAutoHide />
         </Providers>
       </body>
     </html>

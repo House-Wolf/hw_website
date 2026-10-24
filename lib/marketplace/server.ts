@@ -79,15 +79,3 @@ export function createMarketplaceThreadPayload(
     itemImageUrl: listing.images[0]?.imageUrl ?? null,
   };
 }
-
-export function createBotServiceHeaders(): HeadersInit {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (process.env.BOT_SERVICE_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.BOT_SERVICE_TOKEN}`;
-  }
-
-  return headers;
-}

@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# House Wolf
 
-## Getting Started
+Next.js website, marketplace and member dashboard, with a separate Discord bot and a shared PostgreSQL database.
 
-First, run the development server:
+## Development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Use Node.js 22+ and pnpm 10. The dependency lockfile is `pnpm-lock.yaml`; use pnpm for installs and audits.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Copy `.env.example` to `.env.local` and configure the services you need.
+2. Run `pnpm install` to install dependencies and generate Prisma Client.
+3. Run `pnpm dev:next` for the website at http://localhost:3000.
+4. Run `pnpm dev:bot` separately when working on Discord features. `pnpm dev` starts both services.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Purpose |
+| --- | --- |
+| `pnpm test` | Run all local regression tests using mocked services |
+| `pnpm test:bot` | Run the bot, onboarding and marketplace regression subset |
+| `pnpm lint` | Check TypeScript, React and JavaScript conventions |
+| `pnpm build` | Generate Prisma Client and build the production website |
+| `pnpm start` | Serve the production website |
+| `pnpm audit --prod` | Audit locked production dependencies |
+| `pnpm db:status` | Inspect database migration status |
+| `pnpm db:deploy` | Apply committed migrations to the configured database |
+| `pnpm db:migrate` | Create and apply development migrations |
 
-## Learn More
+## Repository layout
 
-To learn more about Next.js, take a look at the following resources:
+- `app/`: pages, layouts, API handlers and route-specific components.
+- `components/`, `contexts/`, `lib/`, `types/`: shared UI, providers, application services and types.
+- `bot/`: Discord Gateway worker and standalone HTTP integrations.
+- `prisma/`: authoritative database schema, migration history and seed utilities.
+- `scripts/`: regression tests, operational checks, maintenance tools and message previews.
+- `public/`: static assets, PWA service worker and offline page.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Generated dependencies, build outputs, logs, editor settings and local environment files are ignored. Prisma Client and its native engine are generated under `node_modules`; do not copy engine binaries into `lib/`. Preview scripts generate ignored files in `artifacts/previews/`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Configuration and deployment
 
-## Deploy on Vercel
+Start with `.env.example` and the runtime requirements in `lib/env.ts` and `bot/runtime.js`. See the [database workflow](prisma/README.md) and [maintenance scripts](scripts/README.md).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Production uses the website and one Discord worker declared in `vercel.json` and `Dockerfile.discord`. The Vercel worker does not accept inbound HTTP requests. Run tests, lint, build and audit before a release. Verify production variables and pending migrations separately; builds do not apply migrations. Pushing `main` triggers the linked Vercel production deployment.
