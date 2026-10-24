@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./EventWizard";
 
@@ -22,7 +21,7 @@ export default function CrewPanel({ operationId, revisionKey }: { operationId: s
     catch (e) { setError(e instanceof Error ? e.message : "Crew change failed."); } finally { setPending(false); }
   }
   const open = data && ["DRAFT", "PUBLISHED", "ACTIVE"].includes(data.state);
-  return <section className="dash-panel space-y-5" aria-labelledby="crew-heading"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="crew-heading" className="text-2xl font-bold">Ships &amp; crew</h2><div className="flex flex-wrap gap-3"><Link className="underline" href="/dashboard/fleet-readiness">Fleet readiness &amp; qualifications</Link><button className={button} disabled={pending} onClick={() => void refresh().catch((e) => setError(e.message))}>Refresh crew</button></div></div>
+  return <section className="dash-panel space-y-5" aria-labelledby="crew-heading"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="crew-heading" className="text-2xl font-bold">Ships &amp; crew</h2><div className="flex flex-wrap gap-3"><button className={button} disabled={pending} onClick={() => void refresh().catch((e) => setError(e.message))}>Refresh crew</button></div></div>
     {error && <p role="alert" className="text-red-300">{error}</p>}{!data ? <p role="status">{error ? "Crew unavailable. Use Refresh crew to retry." : "Loading crew..."}</p> : <>
       <p className="text-sm">Manual staffing requires a one-time operation with an end time. Commitment, owner consent, readiness and credentials are checked when saving assignments.</p>
       <div className="grid gap-4 md:grid-cols-2">{data.ships.map((ship) => <article key={ship.id} className="rounded-lg border border-[var(--border-default)] p-4 space-y-2"><h3 className="font-bold">{ship.name} · {ship.model}</h3><p>Owner: {ship.ownerName} · Capacity: {ship.capacity}</p><p>{ship.ready ? "Ready and verified" : "Not ready"} · {ship.consentAt ? "Owner consent recorded" : "Awaiting owner consent"}</p>{open && ship.ownerId === data.userId && <button className={button} disabled={pending || (!ship.consentAt && !ship.ready)} onClick={() => void change(ship.consentAt ? "withdrawConsent" : "consent", { operationShipId: ship.id })}>{ship.consentAt ? "Withdraw consent and release crew" : "Consent to this operation"}</button>}</article>)}</div>{!data.ships.length && <p>No ships attached. Ground-team seats can be staffed independently.</p>}
