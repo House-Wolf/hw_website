@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -31,7 +31,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Please sign in again to load your Discord profile.", code: "REAUTH_REQUIRED" }, { status: 401 });
     }
 
     // Derive permissions

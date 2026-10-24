@@ -22,9 +22,9 @@ function formatDate(value: string | null) {
 function roleColor(value: number | null) { return value && value > 0 ? `#${value.toString(16).padStart(6, "0")}` : "var(--text-muted)"; }
 
 export default function DashboardHomePage() {
-  const { user, loading, error, refresh } = useDashboardProfile();
+  const { user, loading, error, needsSignIn, refresh } = useDashboardProfile();
   if (loading && !user) return <div className="dash-loading" role="status" aria-label="Loading your workspace"><div className="dash-skeleton dash-skeleton-heading" /><div className="dash-skeleton dash-skeleton-hero" /><div className="dash-quick-grid">{[0, 1, 2].map(value => <div key={value} className="dash-skeleton dash-skeleton-tile" />)}</div><span className="sr-only">Loading your workspace...</span></div>;
-  if (!user) return <section className="dash-panel dash-empty" role="alert"><Shield size={28} /><h1>Your profile could not be loaded</h1><p>Check your connection, then try again.</p><button className="dash-button" onClick={refresh}>Try again <RefreshCw size={15} /></button></section>;
+  if (!user) return <section className="dash-panel dash-empty" role="alert"><Shield size={28} /><h1>{needsSignIn ? "Sign in to load your Discord profile" : "Your profile could not be loaded"}</h1><p>{needsSignIn ? "Your session no longer matches an account in this environment. Sign in with Discord to load your name, avatar and roles." : "Check your connection, then try again."}</p>{needsSignIn ? <Link className="dash-button" href="/auth/signin">Sign in with Discord</Link> : <button className="dash-button" onClick={refresh}>Try again <RefreshCw size={15} /></button>}</section>;
   const roles = [...user.roles].sort((a, b) => (b.discordRole.position ?? 0) - (a.discordRole.position ?? 0) || a.discordRole.name.localeCompare(b.discordRole.name));
   const roleNames = new Set(roles.map(role => role.discordRole.name));
   const rank = RANK_PRIORITY.find(name => roleNames.has(name)) || "House Wolf member";

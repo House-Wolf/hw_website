@@ -11,6 +11,7 @@ export function previewEnvironment(source) {
     throw new Error("Preview requires the named disposable loopback database.");
   }
   return { ...source, NODE_ENV: "development", DATABASE_URL: database,
+    COMMAND_LOCAL_PREVIEW: "true",
     NEXTAUTH_URL: "http://localhost:3000", AUTH_URL: "http://localhost:3000",
     COMMAND_DASHBOARD_ENABLED: "true", COMMAND_STAFFING_ENABLED: "true",
     COMMAND_DISCORD_DELIVERY_ENABLED: "false", BOT_HTTP_ENABLED: "false",
