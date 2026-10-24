@@ -25,9 +25,15 @@ export function normalizeFleetVehicles(value: unknown): FleetYardsVehicle[] {
     // FleetYards v1 Model references ModelMetrics.size/sizeLabel (official schema).
     const metrics = record(rawModel?.metrics) ? rawModel.metrics : null;
     const size = label(rawModel?.sizeLabel) || label(metrics?.sizeLabel) || label(metrics?.size) || (record(rawSize) ? label(rawSize.label) || label(rawSize.name) : label(rawSize));
+    const username = label(row.username);
+    const displayName = label(row.userDisplayName) || label(row.user_display_name);
+    const rsiHandle = label(row.userRsiHandle) || label(row.user_rsi_handle);
+    const hidden = row.hideOwner === true || row.hide_owner === true;
     return {
       id: label(row.id) || (typeof row.id === "number" && Number.isSafeInteger(row.id) ? String(row.id) : undefined),
       name: label(row.name), serial: label(row.serial),
+      owner: !hidden && (username || displayName || rsiHandle) ? { username, displayName, rsiHandle } : null,
+      loaner: row.loaner === true,
       model: rawModel ? { ...rawModel, id: label(rawModel.id) || (typeof rawModel.id === "number" ? String(rawModel.id) : undefined), size: size || null, sizeLabel: size || null } as FleetYardsModel : null,
     };
   });
@@ -55,7 +61,7 @@ export function fleetStatistics(vehicles: FleetYardsVehicle[]) {
 }
 
 /** A failed later page is explicitly partial, never silently an empty/complete fleet. */
-export async function loadPublicFleet(fleetSlug: string, read: (path: string) => Promise<unknown>, perPage = 25, maxPages = 50): Promise<HouseWolfFleetPayload> {
+export async function loadPublicFleet(fleetSlug: string, read: (path: string) => Promise<unknown>, perPage = 240, maxPages = 50): Promise<HouseWolfFleetPayload> {
   const vehicles: FleetYardsVehicle[] = [], seen = new Set<string>(), warnings: string[] = [];
   let complete = false;
   for (let page = 1; page <= maxPages; page++) {

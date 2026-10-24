@@ -13,7 +13,7 @@ import { SafeImage } from "../utils/SafeImage";
 
 export default function EpicCTA() {
   return (
-    <section className="relative w-full min-h-[700px] overflow-hidden border-t border-white/40">
+    <section className="relative w-full min-h-[600px] overflow-hidden border-b border-border-default sm:min-h-[700px]">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <SafeImage
@@ -22,7 +22,7 @@ export default function EpicCTA() {
           fill
           className="object-cover brightness-150"
           sizes="100vw"
-          priority
+          preload
         />
         {/* Gradient Overlays for depth - lighter */}
         <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/20 to-black/50" />
@@ -40,7 +40,7 @@ export default function EpicCTA() {
         <div className="max-w-5xl mx-auto text-center space-y-8 sm:space-y-10">
 
           {/* Icon Row */}
-          <div className="flex justify-center items-center gap-8 mb-8">
+          <div className="flex justify-center items-center gap-3 sm:gap-8 mb-8">
             <div className="animate-float">
               <SafeImage
                 src="/images/divisions/locops/locops.png"
@@ -90,13 +90,13 @@ export default function EpicCTA() {
 
           {/* Main Heading */}
           <div className="space-y-6">
-            <h2 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight">
               <span className="block text-foreground drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
                 ANSWER THE CALL
               </span>
-            </h2>
+            </h1>
 
-            <p className="text-xl md:text-2xl text-white max-w-3xl mx-auto leading-relaxed font-light tracking-wide [text-shadow:0_2px_4px_rgb(0_0_0/90%),0_4px_12px_rgb(0_0_0/70%)]">
+            <p className="text-lg md:text-2xl text-white max-w-3xl mx-auto leading-relaxed font-light tracking-wide [text-shadow:0_2px_4px_rgb(0_0_0/90%),0_4px_12px_rgb(0_0_0/70%)]">
               The Dragoons stand ready. Elite warriors, bound by honor and forged in battle.
               <span className="block mt-4 text-white font-semibold drop-shadow-lg">
                 Will you rise to join our ranks?

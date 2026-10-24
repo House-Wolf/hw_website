@@ -20,6 +20,8 @@ The operator accepted the single-organization recommendation, then explicitly in
 
 Existing dossiers, rosters, onboarding, RSI acceptance boundaries, personnel ballots/announcements, marketplace and other authorized work are preserved. Reuse their existing services rather than rebuilding them. Branding/organization settings should serve House Wolf only. No new organization directory or partner authentication platform is required for the active release.
 
+Operator UI hold (2026-10-24): hide the Fleet Readiness sidebar entry and operation-detail shortcut for now. Retain its page, APIs, data and staffing safety checks; this is link removal, not permission to delete the implementation or disable safeguards. Restore dashboard entry points only when the operator asks.
+
 ## Resume rule
 
 Read this file with PROGRESS.md and traceability.md before selecting the next task. Follow active priorities; do not restart PackTracker or advanced backlog phases because the original contract called them mandatory. Keep technical status separate from the scope decision: partial/not-started deferred requirements must never be marked complete. Revisit deferred implementation only when the operator asks.

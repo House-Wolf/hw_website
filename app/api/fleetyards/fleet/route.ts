@@ -13,5 +13,8 @@ export async function GET() {
 
   const data = await getPublicFleetData(fleetSlug);
 
-  return NextResponse.json(data, { status: data.sourceStatus === "unavailable" ? 503 : 200 });
+  return NextResponse.json(data, {
+    status: data.sourceStatus === "unavailable" ? 503 : 200,
+    headers: { "Cache-Control": data.sourceStatus === "complete" ? "public, max-age=60, s-maxage=1800, stale-while-revalidate=300" : "no-store" },
+  });
 }

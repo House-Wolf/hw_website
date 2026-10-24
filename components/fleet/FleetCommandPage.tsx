@@ -11,29 +11,35 @@ export default function FleetCommandPage() {
   const [data, setData] = useState<HouseWolfFleetPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
   const [search, setSearch] = useState("");
   const [classification, setClassification] = useState("All");
   const [manufacturer, setManufacturer] = useState("All");
 
   useEffect(() => {
+    const controller = new AbortController();
     async function loadFleet() {
       try {
-        const res = await fetch("/api/fleetyards/fleet");
-        if (!res.ok) throw new Error("The public fleet source is unavailable. Please retry.");
+        const res = await fetch("/api/fleetyards/fleet", { signal: controller.signal });
+        if (!res.ok) throw new Error("The public fleet source is unavailable. Please try again later.");
         const json = await res.json();
+        if (controller.signal.aborted) return;
         setData(json);
+        setError(null);
       } catch (error) {
+        if (controller.signal.aborted) return;
         setError(error instanceof Error ? error.message : "The public fleet could not be loaded.");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
-    loadFleet();
-  }, [attempt]);
+    void loadFleet();
+    return () => controller.abort();
+  }, []);
 
-  const vehicles = data?.vehicles ?? [];
+  const vehicles = useMemo(() => data?.vehicles ?? [], [data]);
 
   const manufacturers = useMemo(() => {
     const values = new Set<string>();
@@ -105,7 +111,6 @@ export default function FleetCommandPage() {
     return (
       <main className="min-h-screen bg-[#090706] p-8 text-white">
         <p role="alert">{error || "Failed to load fleet data."}</p>
-        <button className="btn btn-secondary mt-4" onClick={() => { setError(null); setLoading(true); setAttempt((value) => value + 1); }}>Retry fleet source</button>
       </main>
     );
   }
