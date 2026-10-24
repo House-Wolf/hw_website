@@ -35,6 +35,8 @@ The latest width request removed dashboard.css's 1480px content cap and added re
 
 ### Review and deployment boundary
 
+Final committed-source build (`05b1106`): full Prisma generation and Next production build passed in the clean export; TypeScript completed and all 44 static pages generated. The export contains only committed files, no production `.env` files, and no unrelated presentation/history/PWA edits. Final integration evidence is 14/14 passing, including safe mapped-ID PATCH retry and ten repeated settings races. The disposable container `hw-command-dashboard-test` remains available on loopback port 15432 for the next development session; no production database was used.
+
 Branch `feature/command-dashboard`; phase 0 commit `088defa`, foundation commit `61a0bfa`; native slice commit `fe1d020`, retry/concurrency follow-up `669301a`. A follow-up verified fix distinguishes safe mapped-ID PATCH retries from uncertain native creates and uses a per-setting advisory lock to make settings races consistently return 409. `native-events.md` describes field ownership/API constraints; `deployment.md` covers operator setup, minimum permissions, migration order, staging smoke, ambiguity handling, shutdown and rollback. No branch push/PR creation (which may trigger deployment), production migration, website publish, Discord event/message send, role edit or command registration was performed. Feature flags remain false in `.env.example`. The optional events text ID remains unset.
 
 ### Remaining comprehensive scope — do not call the dashboard complete
