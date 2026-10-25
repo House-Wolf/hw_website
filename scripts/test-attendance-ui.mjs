@@ -51,6 +51,13 @@ test("review action cannot publish unsaved report edits", () => {
   assert.equal(approve.props.disabled, true);
 });
 
+test("report authors are told they can approve their own saved report", () => {
+  const html = renderToStaticMarkup(fixture({ canReview: true }).render());
+  assert.match(html, /You can approve your own report; a second officer is not required/);
+  assert.match(html, /Approve saved report for members/);
+  assert.ok(!html.includes("another officer"));
+});
+
 test("active operations offer walk-ins and draft saving without finalization or reports", () => {
   const html = renderToStaticMarkup(fixture({ canFinalize: false }).render());
   assert.match(html, /Add a walk-in member/);

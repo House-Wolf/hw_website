@@ -65,12 +65,13 @@ after(async () => {
   await prisma.user.deleteMany({ where: { id: { in: users } } }); await prisma.$disconnect();
 });
 
-test("independent approval queues one AAR; only the approved summary reaches the configured channel", async () => {
+test("author approval queues one AAR; only the approved summary reaches the configured channel", async () => {
   const op = await operation(), start = calls.length;
   await mutate(op, "saveReport", { summary: "Approved @everyone summary", privateNotes: "PRIVATE OFFICER EVIDENCE" });
   assert.equal(await prisma.commandAarDelivery.count({ where: { operationId: op.id } }), 0);
-  await assert.rejects(mutate(op, "reviewReport"), error => error.code === "INDEPENDENT_REVIEW");
-  await mutate(op, "reviewReport", {}, reviewer);
+  assert.equal((await service.view(manager, op.id)).canReview, true);
+  await assert.rejects(mutate(op, "reviewReport", {}, member), error => error.status === 403);
+  await mutate(op, "reviewReport");
   const result = await deliver(op);
   assert.equal(result.status, "POSTED"); assert.equal(calls.length, start + 1);
   assert.equal(calls.at(-1)[1], `/channels/${channel}/messages`);
@@ -89,6 +90,17 @@ test("competing worker leases and repeated processing cannot post duplicate mess
   const claims = await Promise.all([one.claim(), two.claim()]); assert.equal(claims.filter(Boolean).length, 1);
   const job = claims.find(Boolean); await one.processJob(job); await two.processJob(job);
   assert.equal(calls.length, start + 1);
+});
+
+test("self-approved reports cannot post after the author's officer authority is revoked", async () => {
+  const op = await operation();
+  await mutate(op, "saveReport", { summary: "Self-approved summary", privateNotes: "Private" });
+  await mutate(op, "reviewReport");
+  const start = calls.length;
+  roles.set(manager, [PERSONNEL_ROLES.member]);
+  try { assert.equal((await deliver(op)).status, "BLOCKED"); }
+  finally { roles.set(manager, [PERSONNEL_ROLES.lieutenant]); }
+  assert.equal(calls.length, start);
 });
 
 test("unreviewed edits suppress pending delivery, and reapproval updates the same Discord message", async () => {

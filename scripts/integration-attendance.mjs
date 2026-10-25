@@ -65,11 +65,14 @@ test("every expected participant is marked before finalization and corrections c
   await mutate(op, "finalizeAttendance", { entries: [entry(), entry("PRESENT", other)] });
   await assert.rejects(mutate(op, "saveAttendance", { entries: [entry()] }), (e) => e.code === "ATTENDANCE_INCOMPLETE");
 });
-test("independent review publishes only the summary and subsequent edits withdraw publication", async () => {
+test("authors can approve their own reports; only the summary is published and edits withdraw publication", async () => {
   const op = await operation(); await mutate(op, "saveReport", { summary: "Member summary\nSecond paragraph", privateNotes: "Officer secret\nPrivate follow-up" });
   assert.equal((await service.view(member, op.id)).summary, "");
-  await assert.rejects(mutate(op, "reviewReport", {}, manager), (e) => e.code === "INDEPENDENT_REVIEW");
-  await mutate(op, "reviewReport", {}, reviewer);
+  assert.equal((await service.view(manager, op.id)).canReview, true);
+  await assert.rejects(mutate(op, "reviewReport", {}, member), (e) => e.status === 403);
+  await mutate(op, "reviewReport", {}, manager);
+  const approved = await prisma.commandDebrief.findUnique({ where: { operationId: op.id } });
+  assert.equal(approved.authorId, manager); assert.equal(approved.reviewerId, manager); assert.ok(approved.reviewedAt);
   const published = await service.view(member, op.id);
   assert.equal(published.summary, "Member summary\nSecond paragraph"); assert.ok(!JSON.stringify(published).includes("Officer secret"));
   await mutate(op, "saveReport", { summary: "Revised summary", privateNotes: "Still private" });
@@ -83,6 +86,15 @@ test("member, nonmanager, private, foreign-guild, incomplete and recurring opera
   await assert.rejects(mutate(await operation("COMPLETED", "GUILD", "WEEKLY"), "saveAttendance", { entries: [entry()] }), (e) => e.code === "OCCURRENCE_REQUIRED");
   await assert.rejects(service.view(member, (await operation("COMPLETED", "PRIVATE")).id), (e) => e.status === 404);
   await assert.rejects(service.view(manager, (await operation("COMPLETED", "GUILD", "NONE", `${guildId}-foreign`)).id), (e) => e.status === 404);
+});
+
+test("database still requires an author, approver, approval time and summary for approved reports", async () => {
+  const op = await operation();
+  await mutate(op, "saveReport", { summary: "Approved summary", privateNotes: "Private" });
+  await mutate(op, "reviewReport", {}, manager);
+  for (const data of [{ authorId: null }, { reviewerId: null }, { reviewedAt: null }, { summary: "  " }]) {
+    await assert.rejects(prisma.commandDebrief.update({ where: { operationId: op.id }, data }), /reviewed_report_requires_approval/);
+  }
 });
 
 test("walk-ins persist during an active operation without a signup and count only after completion and finalization", async () => {

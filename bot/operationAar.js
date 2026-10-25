@@ -31,7 +31,7 @@ export function createOperationAarWorker({ prisma, authorize, discord, guildId, 
           const author = await authorize(report.authorId, { officer: true });
           await authorize(report.reviewerId, { officer: true });
           const actor = await authorize(job.actorId, { officer: true });
-          if (!mayManageOperation(author, op) || report.authorId === report.reviewerId || (actor.id !== report.reviewerId && !mayManageOperation(actor, op))) throw new CommandError(403, "AAR_AUTHORITY_CHANGED", "Report authority changed before Discord delivery.");
+          if (!mayManageOperation(author, op) || (actor.id !== report.reviewerId && !mayManageOperation(actor, op))) throw new CommandError(403, "AAR_AUTHORITY_CHANGED", "Report authority changed before Discord delivery.");
         };
         await checkAuthority();
         const setting = await tx.siteSetting.findUnique({ where: { key: `command:${guildId}:settings` } });
