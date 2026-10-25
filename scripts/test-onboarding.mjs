@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import * as jsxRuntime from "react/jsx-runtime";
 import sharp from "sharp";
 import { randomUUID } from "node:crypto";
 import { createWelcomeMessage, publishPendingWelcomes, renderWelcomeBanner } from "../bot/onboardingWelcome.js";
@@ -10,7 +11,7 @@ import { PERSONNEL_ROLES } from "../lib/personnel/policy.js";
 
 function loadTypeScript(path, dependencies = {}, environment = {}) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const loadedModule = { exports: {} };
   vm.runInNewContext(code, { module: loadedModule, exports: loadedModule.exports, require: (name) => {
     if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);
@@ -22,6 +23,39 @@ function loadTypeScript(path, dependencies = {}, environment = {}) {
 const onboarding = loadTypeScript("../lib/onboarding.ts");
 const { readOnboardingResume } = loadTypeScript("../lib/onboardingResume.ts", { "./onboarding": onboarding });
 const validInput = { interests: ["bunker-running"], otherGameSelected: false, otherGame: "", rulesAccepted: true, rulesVersion: onboarding.ONBOARDING_RULES_VERSION };
+
+function mountOnboarding(search) {
+  const states = [], effects = [], local = new Map([["housewolf-onboarding-v1", JSON.stringify(validInput)]]);
+  const session = new Map([["housewolf-onboarding-resume-v1", JSON.stringify({ ...validInput, rulesAcceptedAt: Date.now() })]]);
+  const storage = map => ({ getItem: key => map.get(key) || null, removeItem: key => map.delete(key) });
+  const component = loadTypeScript("../app/onboarding/OnboardingExperience.tsx", {
+    react: { useState(initial) { const slot = states.length; states.push(initial); return [initial, value => { states[slot] = value; }]; }, useEffect: callback => effects.push(callback), useRef: value => ({ current: value }), useCallback: callback => callback },
+    "react/jsx-runtime": jsxRuntime, "next/image": { default: () => null }, "next/link": { default: () => null },
+    "next-auth/react": { useSession: () => ({ data: null, status: "unauthenticated" }), signIn: async () => {} },
+    "lucide-react": new Proxy({}, { get: () => () => null }),
+    "@/lib/onboarding": onboarding,
+    "@/lib/onboardingResume": { ONBOARDING_RESUME_KEY: "housewolf-onboarding-resume-v1", readOnboardingResume },
+    "./onboarding.module.css": { default: new Proxy({}, { get: (_, key) => String(key) }) },
+  }, { window: { location: { search } }, localStorage: storage(local), sessionStorage: storage(session), URLSearchParams });
+  component.default(); effects[0]();
+  return { states, local, session };
+}
+
+test("a fresh onboarding visit starts unselected and discards the previous person's saved choices", () => {
+  const page = mountOnboarding("");
+  assert.deepEqual(Array.from(page.states[1]), []);
+  assert.equal(page.states[2], false);
+  assert.equal(page.states[3], "");
+  assert.equal(page.states[4], false);
+  assert.equal(page.local.size, 0);
+  assert.equal(page.session.size, 0);
+});
+test("only the current Discord return restores the one-time accepted onboarding choices", () => {
+  const page = mountOnboarding("?connected=1");
+  assert.deepEqual(Array.from(page.states[1]), validInput.interests);
+  assert.equal(page.states[4], true);
+  assert.equal(page.session.size, 0);
+});
 
 test("a recent accepted onboarding draft survives the Discord round trip", () => {
   const now = Date.now();

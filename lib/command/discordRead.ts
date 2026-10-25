@@ -26,7 +26,11 @@ export async function readDiscord(
       if (response.status >= 500 && attempt === 0) continue;
       if (response.status === 401) throw new CommandError(503, "DISCORD_BOT_AUTH_FAILED", "Discord rejected the website's bot credentials. A site administrator needs to check the production bot configuration.");
       if (response.status === 403) throw new CommandError(503, "DISCORD_BOT_ACCESS_DENIED", "The website's bot cannot access the required Discord server or resource. A site administrator needs to check its access.");
-      if (response.status === 429) throw new CommandError(503, "DISCORD_RATE_LIMITED", "Discord is rate limiting the website's verification requests. Please wait before retrying.");
+      if (response.status === 429) {
+        let retryAfter = Number(response.headers?.get("retry-after")) || 60;
+        try { const body = await response.json(); if (Number.isFinite(body.retry_after)) retryAfter = Math.max(retryAfter, body.retry_after); } catch { /* Retain the bounded header/default delay. */ }
+        throw Object.assign(new CommandError(503, "DISCORD_RATE_LIMITED", "Discord is rate limiting the website's verification requests. Please wait before retrying."), { retryAfter });
+      }
       throw new CommandError(503, "DISCORD_UNAVAILABLE", "Discord verification is unavailable. Please retry shortly.");
     }
     try { return await response.json(); }

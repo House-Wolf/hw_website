@@ -37,13 +37,21 @@ export async function getOperationsOverview(userId: string, at = new Date()): Pr
       ORDER BY a.created_at DESC, a.id DESC LIMIT 6`,
     fleetSlug ? getPublicFleetData(fleetSlug).catch(() => null) : Promise.resolve(null),
   ]);
+  let reliability: OperationsOverview["reliability"] = { value: null, description: "Reliability will be available once mission attendance is recorded." };
+  if (leadership && process.env.COMMAND_ATTENDANCE_ENABLED === "true") {
+    const counts = await prisma.commandAttendance.groupBy({ by: ["status"], where: { debrief: { finalizedAt: { not: null }, operation: { guildId: actor.guildId, state: { in: ["COMPLETED", "ARCHIVED"] } } } }, _count: true });
+    const present = counts.find((row) => row.status === "PRESENT")?._count ?? 0;
+    const absent = counts.find((row) => row.status === "ABSENT")?._count ?? 0;
+    const excused = counts.find((row) => row.status === "EXCUSED")?._count ?? 0;
+    reliability = { value: present + absent ? Math.round(100 * present / (present + absent)) : null, description: `${present} present / ${present + absent} expected across finalized attendance records. ${excused} excused absences excluded.` };
+  }
   return {
     generatedAt: at.toISOString(), leadership,
     members: { total, newThisMonth },
     ...operationOverviewStatistics(rows, at),
     fleet: { total: fleetResult && fleetResult.sourceStatus !== "unavailable" ? fleetResult.vehicles.length : null,
       status: fleetResult?.sourceStatus ?? "unavailable" },
-    reliability: { value: null, description: "Reliability will be available once mission attendance is recorded." },
+    reliability,
     recentMembers: recentMembers.map(member => {
       const names = new Set(member.roles.map(role => role.discordRole.name));
       return { name: member.discordDisplayName || member.name || member.discordUsername, rank: RANK_PRIORITY.find(rank => names.has(rank)) || "Member", joinedAt: member.createdAt.toISOString() };

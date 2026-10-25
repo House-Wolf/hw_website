@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, ChevronRight, Crosshair, Gamepad2, Gem, LoaderCircle, LockKeyhole, Pickaxe, Radar, ShieldCheck, Truck } from "lucide-react";
-import { ONBOARDING_INTERESTS, ONBOARDING_RULES, ONBOARDING_RULES_VERSION, validateOnboardingChoices } from "@/lib/onboarding";
+import { ONBOARDING_INTERESTS, ONBOARDING_RULES, ONBOARDING_RULES_VERSION } from "@/lib/onboarding";
 import { ONBOARDING_RESUME_KEY, readOnboardingResume } from "@/lib/onboardingResume";
 import styles from "./onboarding.module.css";
 
@@ -38,24 +38,21 @@ export default function OnboardingExperience() {
       setError("We couldn't add you to Discord. Please retry connecting, or contact a moderator if the problem continues.");
     }
     try {
-      const stored = localStorage.getItem(draftKey);
-      const draft = stored ? validateOnboardingChoices(JSON.parse(stored)) : null;
-      if (draft) {
-        setInterests(draft.interests);
-        setOtherGame(draft.otherGame);
-        setOtherGameSelected(draft.otherGameSelected);
-        if (params.get("connected") === "1" || joinFailed) setStep("rules");
-      }
-      if (params.get("connected") === "1" && !joinFailed) {
-        const resume = readOnboardingResume(sessionStorage.getItem(ONBOARDING_RESUME_KEY));
-        sessionStorage.removeItem(ONBOARDING_RESUME_KEY);
+      // Remove the old shared-device draft; fresh visits always start unselected.
+      localStorage.removeItem(draftKey);
+    } catch {}
+    try {
+      const stored = sessionStorage.getItem(ONBOARDING_RESUME_KEY);
+      sessionStorage.removeItem(ONBOARDING_RESUME_KEY);
+      if (params.get("connected") === "1" || joinFailed) {
+        const resume = readOnboardingResume(stored);
         if (resume) {
           setInterests(resume.interests);
           setOtherGame(resume.otherGame);
           setOtherGameSelected(resume.otherGameSelected);
-          setAccepted(true);
+          setAccepted(!joinFailed);
           setStep("rules");
-          setResumePending(true);
+          setResumePending(!joinFailed);
         }
       }
     } catch {}
@@ -66,13 +63,8 @@ export default function OnboardingExperience() {
     hasMoved.current = true;
   }, [step]);
 
-  const saveDraft = useCallback(() => {
-    try { localStorage.setItem(draftKey, JSON.stringify({ interests, otherGame, otherGameSelected })); } catch {}
-  }, [interests, otherGame, otherGameSelected]);
-
   const finish = useCallback(async () => {
     if (!accepted || !ready || saving || status === "loading") return;
-    saveDraft();
     if (!session?.user || needsJoin) {
       setSaving(true);
       setError("");
@@ -109,7 +101,7 @@ export default function OnboardingExperience() {
     } finally {
       setSaving(false);
     }
-  }, [accepted, ready, saving, status, saveDraft, session, needsJoin, interests, otherGame, otherGameSelected]);
+  }, [accepted, ready, saving, status, session, needsJoin, interests, otherGame, otherGameSelected]);
 
   useEffect(() => {
     if (!resumePending || status !== "authenticated" || !accepted || !ready || saving || resumeStarted.current) return;
@@ -186,14 +178,14 @@ export default function OnboardingExperience() {
               <p className={styles.subtitle}>A mercenary’s word is their bond. Read the House Wolf code and pledge to stand by your fellow Dragoons, on and off the battlefield.</p>
               <div className={styles.rules}>{ONBOARDING_RULES.map((rule, index) => <article className={styles.rule} key={rule.label}><span className={styles.ruleNumber}>0{index + 1}</span><div><span className={styles.ruleLabel}>{rule.label}</span><h2>{rule.title}</h2><p>{rule.text}</p></div></article>)}</div>
               <label className={`${styles.acceptance} ${accepted ? styles.accepted : ""}`}><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} /><span><strong>I’ve read the rules. I’m ready to stand with the pack.</strong><small>I agree to follow these rules while taking part in House Wolf.</small></span></label>
-              {(!session?.user || needsJoin) && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to join House Wolf. After authorization, onboarding will finish and open Discord automatically. Already a member? You can use the same button. Your interests stay saved on this device.</p>}
+              {(!session?.user || needsJoin) && <p className={styles.signInNote}><LockKeyhole size={14} /> Connect Discord to join House Wolf. After authorization, onboarding will finish and open Discord automatically. Already a member? You can use the same button. Your choices are kept only for this Discord connection.</p>}
             </>}
 
             {step === "complete" && <div className={styles.completion}><div className={styles.completionIcon}><ShieldCheck size={46} strokeWidth={1.3} /></div><span className={styles.kicker}>YOUR NEXT CHAPTER</span><h1 ref={heading} tabIndex={-1}>Welcome to<br />House Wolf.</h1><p>Your Visitor role is ready. Your interests are saved.<br />Opening Discord? Watch general chat for your welcome to the pack.</p><a className={styles.primaryButton} href={discordUrl}>Return to Discord <ArrowRight size={17} /></a><Link href="/dashboard" className={styles.dashboardLink}>Explore your dashboard <ChevronRight size={14} /></Link></div>}
 
             {error && <div className={styles.error} role="alert">{error}</div>}
           </div>
-          {step !== "complete" && <footer className={styles.panelFooter}><div>{step === "rules" ? <button type="button" className={styles.backButton} disabled={saving} onClick={() => { setStep("interests"); setError(""); }}><ArrowLeft size={16} /> Back</button> : <span className={styles.footerNote}>YOUR STORY. YOUR CALLING.</span>}</div><button type="button" className={styles.primaryButton} disabled={step === "interests" ? !ready : !accepted || saving || status === "loading"} onClick={() => { if (step === "interests") { saveDraft(); setStep("rules"); } else { void finish(); } }}>{saving ? <><LoaderCircle className={styles.spinner} size={17} /> Finishing up…</> : step === "interests" ? <>Continue <ArrowRight size={17} /></> : <>{session?.user && !needsJoin ? "Join the pack" : "Connect Discord & join"} <ArrowRight size={17} /></>}</button></footer>}
+          {step !== "complete" && <footer className={styles.panelFooter}><div>{step === "rules" ? <button type="button" className={styles.backButton} disabled={saving} onClick={() => { setStep("interests"); setError(""); }}><ArrowLeft size={16} /> Back</button> : <span className={styles.footerNote}>YOUR STORY. YOUR CALLING.</span>}</div><button type="button" className={styles.primaryButton} disabled={step === "interests" ? !ready : !accepted || saving || status === "loading"} onClick={() => { if (step === "interests") { setStep("rules"); } else { void finish(); } }}>{saving ? <><LoaderCircle className={styles.spinner} size={17} /> Finishing up…</> : step === "interests" ? <>Continue <ArrowRight size={17} /></> : <>{session?.user && !needsJoin ? "Join the pack" : "Connect Discord & join"} <ArrowRight size={17} /></>}</button></footer>}
         </section>
       </div>
       <footer className={styles.pageFooter}><span>HOUSE WOLF <span aria-hidden="true">/</span> EST. 2951</span><span>STRONGER TOGETHER. ALWAYS.</span></footer>
