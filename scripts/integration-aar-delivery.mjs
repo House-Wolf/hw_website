@@ -22,15 +22,15 @@ let postFailure = null, acceptThenFail = false;
 const discord = {
   get: async path => path.includes("/messages?") ? remote : path.startsWith("/channels/") ? { guild_id: guildId, type: 0 }
     : path.endsWith("/roles") ? [{ id: guildId, permissions: "84992" }] : path === "/users/@me" ? { id: "bot" } : { user: { id: "bot" }, roles: [guildId] },
-  async post(path, body) {
-    calls.push(["POST", path, body]);
+  async post(path, body, files) {
+    calls.push(["POST", path, body, files]);
     if (postFailure && !acceptThenFail) throw postFailure;
     const message = { id: String(900000000000000010n + BigInt(remote.length)), author: { id: "bot" }, ...body }; remote.push(message);
     if (postFailure) throw postFailure;
     return message;
   },
-  async patch(path, body) {
-    calls.push(["PATCH", path, body]);
+  async patch(path, body, files) {
+    calls.push(["PATCH", path, body, files]);
     const message = remote.find(row => path.endsWith(`/${row.id}`));
     if (!message) throw Object.assign(new Error("Missing message"), { status: 404 });
     Object.assign(message, body); return message;
@@ -58,6 +58,7 @@ after(async () => {
   const ops = await prisma.commandOperation.findMany({ where: { guildId }, select: { id: true } }), ids = ops.map(op => op.id);
   await prisma.commandAarDelivery.deleteMany({ where: { operationId: { in: ids } } });
   await prisma.commandDebriefRevision.deleteMany({ where: { operationId: { in: ids } } });
+  await prisma.commandAttendance.deleteMany({ where: { operationId: { in: ids } } });
   await prisma.commandDebrief.deleteMany({ where: { operationId: { in: ids } } });
   await prisma.auditLog.deleteMany({ where: { targetId: { in: ids } } });
   await prisma.siteSetting.deleteMany({ where: { key: `command:${guildId}:settings` } });
@@ -92,6 +93,26 @@ test("competing worker leases and repeated processing cannot post duplicate mess
   assert.equal(calls.length, start + 1);
 });
 
+test("banner attachments, public brief and finalized totals are posted and edited together", async () => {
+  const op = await operation();
+  const imageData = "data:image/jpeg;base64,/9j/2Q==";
+  await prisma.commandOperation.update({ where: { id: op.id }, data: { input: { ...op.input, description: "Public mission brief", imageData } } });
+  await mutate(op, "finalizeAttendance", { entries: [{ userId: member, status: "PRESENT", note: "PRIVATE ATTENDANCE NOTE" }] });
+  await approve(op); const first = await deliver(op);
+  const [, , payload, files] = calls.at(-1);
+  assert.equal(payload.embeds[0].image.url, "attachment://operation-banner.jpg");
+  assert.match(payload.embeds[1].description, /Public mission brief/);
+  assert.equal(payload.embeds[1].fields.find(f => f.name === "Present").value, "1");
+  assert.equal(files[0].name, "operation-banner.jpg"); assert.ok(Buffer.isBuffer(files[0].data));
+  assert.ok(!JSON.stringify(payload).includes("PRIVATE ATTENDANCE NOTE"));
+  assert.ok(!JSON.stringify(payload).includes("PRIVATE OFFICER EVIDENCE"));
+  await mutate(op, "saveReport", { summary: "Updated public report", privateNotes: "PRIVATE" });
+  await mutate(op, "reviewReport"); const edited = await deliver(op);
+  assert.equal(edited.messageId, first.messageId); assert.equal(calls.at(-1)[0], "PATCH");
+  assert.match(calls.at(-1)[2].embeds[1].description, /Updated public report/);
+  assert.ok(Buffer.isBuffer(calls.at(-1)[3][0].data));
+});
+
 test("self-approved reports cannot post after the author's officer authority is revoked", async () => {
   const op = await operation();
   await mutate(op, "saveReport", { summary: "Self-approved summary", privateNotes: "Private" });
@@ -109,7 +130,7 @@ test("unreviewed edits suppress pending delivery, and reapproval updates the sam
   assert.equal(calls.length, start);
   await mutate(op, "reviewReport", {}, reviewer); const updated = await deliver(op);
   assert.equal(updated.messageId, first.messageId); assert.equal(calls.at(-1)[0], "PATCH");
-  assert.equal(calls.at(-1)[2].embeds[0].description, "Unreviewed replacement");
+  assert.match(calls.at(-1)[2].embeds[0].description, /Unreviewed replacement/);
   const pending = await operation(); await approve(pending);
   await mutate(pending, "saveReport", { summary: "New draft", privateNotes: "Secret" });
   assert.equal((await prisma.commandAarDelivery.findUnique({ where: { operationId: pending.id } })).status, "SUPERSEDED");
@@ -145,7 +166,9 @@ test("Discord rate limits delay retry without claiming success", async () => {
 });
 
 test("an accepted POST with a lost response is reconciled from the bot's own message, never reposted", async () => {
-  const op = await operation(); await approve(op); const start = calls.length;
+  const op = await operation();
+  await prisma.commandOperation.update({ where: { id: op.id }, data: { input: { ...op.input, imageData: "data:image/jpeg;base64,/9j/2Q==" } } });
+  await approve(op); const start = calls.length;
   postFailure = Object.assign(new Error("Lost response"), { status: 503 }); acceptThenFail = true;
   try { assert.equal((await deliver(op)).status, "AMBIGUOUS"); } finally { postFailure = null; acceptThenFail = false; }
   await assert.rejects(mutate(op, "sendReport"), error => error.code === "AAR_AMBIGUOUS");

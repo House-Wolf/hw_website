@@ -16,8 +16,8 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   let timer, stopped = false, running = false;
   const guildId = env.DISCORD_GUILD_ID;
   const rest = env.DISCORD_BOT_TOKEN ? new REST({ version: "10", timeout: 15000, retries: 0, rejectOnRateLimit: () => true }).setToken(env.DISCORD_BOT_TOKEN) : client.rest;
-  async function remoteCall(method, path, body) {
-    try { return await rest[method](path, ...(body === undefined ? [] : [{ body }])); }
+  async function remoteCall(method, path, body, files) {
+    try { return await rest[method](path, ...(body === undefined ? [] : [{ body, ...(files ? { files } : {}) }])); }
     catch (error) {
       if (error.name === "RateLimitError") throw Object.assign(new Error("Discord rate limited"), { status: 429, retry_after: Math.max(error.retryAfter || 0, error.timeToReset || 0) / 1000 });
       throw error;
@@ -25,8 +25,8 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   }
   const discord = {
     async get(path) { try { return await remoteCall("get", path); } catch (error) { if (error.status === 404) return null; throw error; } },
-    post: (path, body) => remoteCall("post", path, body),
-    patch: (path, body) => remoteCall("patch", path, body),
+    post: (path, body, files) => remoteCall("post", path, body, files),
+    patch: (path, body, files) => remoteCall("patch", path, body, files),
   };
   const authorize = createAuthorizer({ guildId,
     loadAccount: (id) => prisma.user.findUnique({ where: { id }, select: { id: true, discordId: true, isActive: true } }),

@@ -3,6 +3,9 @@ import { CommandError, mayManageOperation } from "../lib/command/access.js";
 import { lockOperation } from "../lib/command/operations.js";
 import { validateTextDestination } from "../lib/command/channels.js";
 import { aarMessage } from "../lib/command/aarDelivery.js";
+import { aarContext, aarFooter } from "../lib/command/aarPresentation.js";
+import { attendanceTotals } from "../lib/command/attendanceService.js";
+import { operationBriefingUrl } from "../lib/command/commitmentComponents.js";
 
 export function createOperationAarWorker({ prisma, authorize, discord, guildId, env = process.env }) {
   let running = false;
@@ -22,7 +25,7 @@ export function createOperationAarWorker({ prisma, authorize, discord, guildId, 
         const current = await tx.commandAarDelivery.findUnique({ where: { id: job.id } });
         if (current?.leaseToken !== job.leaseToken || current.status !== "PROCESSING") return;
         // Never load private officer notes or participant notes for a Discord payload.
-        const report = await tx.commandDebrief.findUnique({ where: { operationId: op.id }, select: { summary: true, reportState: true, authorId: true, reviewerId: true, reviewedAt: true } });
+        const report = await tx.commandDebrief.findUnique({ where: { operationId: op.id }, select: { summary: true, reportState: true, authorId: true, reviewerId: true, reviewedAt: true, finalizedAt: true } });
         if (!report || report.reportState !== "REVIEWED" || report.reviewedAt?.getTime() !== job.reviewedAt.getTime() || !["COMPLETED", "ARCHIVED"].includes(op.state)) {
           await tx.commandAarDelivery.update({ where: { id: job.id }, data: { status: "SUPERSEDED", leaseUntil: null } }); return;
         }
@@ -39,12 +42,15 @@ export function createOperationAarWorker({ prisma, authorize, discord, guildId, 
         if (!channelId) throw new CommandError(422, "AAR_CHANNEL_REQUIRED", "Configure the AAR channel before sending a report.");
         if (current.channelId && current.channelId !== channelId && (current.messageId || current.sendingAt)) throw new CommandError(409, "AAR_CHANNEL_CHANGED", "The previous AAR channel must be reviewed before moving this report.");
         await validateTextDestination({ guildId, channelId, discord: discord.get, requireHistory: true });
-        const payload = aarMessage({ operationId: op.id, title: op.input.title, summary: report.summary, reviewRevision: job.reviewRevision, baseUrl: env.NEXTAUTH_URL || env.AUTH_URL });
+        const context = aarContext(op), baseUrl = env.NEXTAUTH_URL || env.AUTH_URL;
+        const attendance = report.finalizedAt ? attendanceTotals(await tx.commandAttendance.findMany({ where: { operationId: op.id }, select: { status: true } })) : null;
+        const payload = aarMessage({ operationId: op.id, ...context, summary: report.summary, reviewRevision: job.reviewRevision, baseUrl, attendance });
+        const files = context.bannerUrl?.startsWith("data:") ? [{ name: "operation-banner.jpg", data: Buffer.from(context.bannerUrl.split(",")[1], "base64"), contentType: "image/jpeg" }] : undefined;
         let messageId = current.messageId;
         if (current.sendingAt && !messageId) {
           const bot = await discord.get("/users/@me");
           const messages = await discord.get(`/channels/${channelId}/messages?limit=100`);
-          const matches = Array.isArray(messages) ? messages.filter(message => message.author?.id === bot.id && message.embeds?.some(embed => embed.footer?.text === payload.embeds[0].footer.text && embed.url === payload.embeds[0].url)) : [];
+          const matches = Array.isArray(messages) ? messages.filter(message => message.author?.id === bot.id && message.embeds?.some(embed => embed.footer?.text === aarFooter(op.id) && embed.url === operationBriefingUrl(op.id, baseUrl))) : [];
           if (matches.length !== 1) throw new CommandError(409, "AAR_AMBIGUOUS", "An interrupted AAR send needs channel review; no duplicate was posted.");
           messageId = matches[0].id;
         }
@@ -55,8 +61,8 @@ export function createOperationAarWorker({ prisma, authorize, discord, guildId, 
         if (intent.count !== 1) throw new CommandError(409, "AAR_LEASE_CHANGED", "AAR delivery changed before sending.");
         if (messageId) uncertainRecovery = false;
         attempted = true;
-        const sent = messageId ? await discord.patch(`/channels/${channelId}/messages/${messageId}`, payload)
-          : await discord.post(`/channels/${channelId}/messages`, { ...payload, nonce: job.id.replaceAll("-", "").slice(0, 25), enforce_nonce: true });
+        const sent = messageId ? await discord.patch(`/channels/${channelId}/messages/${messageId}`, payload, files)
+          : await discord.post(`/channels/${channelId}/messages`, { ...payload, nonce: job.id.replaceAll("-", "").slice(0, 25), enforce_nonce: true }, files);
         const savedMessageId = sent?.id || messageId;
         if (!savedMessageId) throw new CommandError(503, "AAR_RESPONSE_INVALID", "Discord did not confirm the report message.");
         await tx.commandAarDelivery.update({ where: { id: job.id }, data: { status: "POSTED", messageId: savedMessageId, channelId, sendingAt: null, leaseUntil: null, errorCode: null } });

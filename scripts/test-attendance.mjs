@@ -22,6 +22,7 @@ test("member views query only their finalized attendance and never select privat
   } });
   const result = await service.view(id, id);
   assert.equal(result.summary, ""); assert.equal("privateNotes" in result, false); assert.equal("history" in result, false);
+  assert.equal("reportContext" in result, false);
   assert.equal("privateNotes" in queries[0].select, false); assert.equal("summary" in queries[0].select, false);
   assert.equal(queries[1].where.userId, id); assert.equal("note" in queries[1].select, false);
 });

@@ -15,6 +15,7 @@ function fixture(overrides = {}, marked = false, handleRequest = null) {
   const deps = {
     react: { ...React, useEffect() {}, useCallback: (fn) => fn, useState(initial) { const slot = index++; if (!(slot in states)) states[slot] = slot === 0 ? row : slot === 2 ? row.officer ? [{ userId: "member", name: "Member Wolf", status: marked ? "PRESENT" : "", note: "" }] : row.entries : slot === 3 ? row.summary : slot === 4 ? row.privateNotes || "" : slot === 5 ? "Acceptance reason" : initial; return [states[slot], (value) => { states[slot] = typeof value === "function" ? value(states[slot]) : value; }]; } },
     "react/jsx-runtime": jsx,
+    "./AarPreview": { default: () => null },
     "./EventWizard": { api: async (...args) => { requests.push(args); if (handleRequest) return handleRequest(...args); return args[0] === "attendance" ? { present: 1, absent: 0, excused: 0, operations: 1, value: 100 } : row; } },
   };
   const loaded = { exports: {} };
