@@ -13,7 +13,8 @@
 }
 .dashboard-shell button, .dashboard-shell a, .dashboard-shell summary { -webkit-tap-highlight-color: transparent; }
 .dashboard-shell button:not(:disabled), .dashboard-shell summary { cursor: pointer; }
-.dashboard-shell button:disabled { cursor: wait; opacity: .6; }
+.dashboard-shell button:disabled { cursor: not-allowed; opacity: .6; }
+.dashboard-shell button[aria-busy="true"] { cursor: wait; }
 .dashboard-shell :where(a, button, summary, input, select, textarea):focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 4px; }
 .dashboard-shell .card, .dash-panel { background: var(--background-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 24px; box-shadow: 0 4px 16px rgb(0 0 0 / .07); }
 .dashboard-shell .card:hover { transform: none; border-color: var(--border-default); box-shadow: 0 4px 16px rgb(0 0 0 / .07); }

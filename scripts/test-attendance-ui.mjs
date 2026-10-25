@@ -59,6 +59,18 @@ test("report authors are told they can approve their own saved report", () => {
   assert.ok(!html.includes("another officer"));
 });
 
+test("disabled report saving explains the required reason instead of appearing busy", () => {
+  const f = fixture(); f.render(); f.states[5] = "";
+  let tree = f.render();
+  let save = descendants(tree).find(node => node.type === "button" && node.props.children === "Save report for review");
+  assert.equal(save.props.disabled, true); assert.equal(save.props["aria-busy"], false);
+  assert.equal(save.props["aria-describedby"], "report-save-help");
+  assert.match(renderToStaticMarkup(tree), /Add a reason in the required field above to enable saving/);
+  f.states[5] = "Initial report";
+  tree = f.render(); save = descendants(tree).find(node => node.type === "button" && node.props.children === "Save report for review");
+  assert.equal(save.props.disabled, false); assert.equal(save.props["aria-describedby"], undefined);
+});
+
 test("failed report saves release the busy state and retain the officer's unsaved text", async () => {
   const f = fixture({}, false, async () => { throw new Error("The save request timed out."); });
   f.render(); f.states[3] = "Unsaved report text";
