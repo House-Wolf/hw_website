@@ -63,7 +63,10 @@ test("FleetYards verifies an existing owner's ship for attachment without office
   assert.equal(row.productionState, "UNKNOWN");
   assert.equal(row.availability, "UNAVAILABLE");
   assert.equal(row.readiness, "UNKNOWN");
-  assert.equal((await fleet.list(owner)).ships.find((ship) => ship.id === row.id).verificationSource, "FLEETYARDS");
+  const ownFleet = await fleet.list(owner, owner);
+  const listedShip = ownFleet.ships.find((ship) => ship.id === row.id);
+  assert.ok(listedShip, "Selecting the owner must include the imported ship");
+  assert.equal(listedShip.verificationSource, "FLEETYARDS");
   const op = await operation();
   assert.ok((await crew.view(officer, op.id)).availableShips.some((ship) => ship.id === row.id));
   const attached = await attach(op.id, row.id);
@@ -198,10 +201,17 @@ test("one member cannot hold two active seats and qualification expiry blocks a 
 });
 test("operational fleet and qualification evidence are private to the correct member/officers", async () => {
   await assert.rejects(fleet.list(visitor), (e) => e.status === 403);
-  const record = await ship(); const publicRead = await fleet.list(member);
-  assert.equal(publicRead.ships.find((s) => s.id === record.id).evidence, undefined);
+  const record = await ship();
+  assert.deepEqual((await fleet.list(member)).ships, [], "No ships load until an owner is selected");
+  const publicRead = await fleet.list(member, owner);
+  const visibleShip = publicRead.ships.find((s) => s.id === record.id);
+  assert.ok(visibleShip, "Another member can see the selected owner's verified ship");
+  assert.equal(visibleShip.evidence, undefined);
   assert.ok(publicRead.qualifications.every((q) => q.userId === member));
-  const ownRead = await fleet.list(owner); assert.ok(ownRead.ships.find((s) => s.id === record.id).evidence);
+  const ownRead = await fleet.list(owner, owner);
+  const ownShip = ownRead.ships.find((s) => s.id === record.id);
+  assert.ok(ownShip, "The owner can see their selected inventory");
+  assert.ok(ownShip.evidence);
   const op = await operation(); await assert.rejects(crew.view(visitor, op.id), (e) => e.status === 403);
   await seat(op.id);
   assert.ok((await crew.view(officer, op.id)).audit.length);
