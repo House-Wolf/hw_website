@@ -23,6 +23,14 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
     for (const person of row.candidates) if (!recorded.has(person.id)) recorded.set(person.id, { userId: person.id, name: person.name, status: "", note: "" });
     setEntries([...recorded.values()].sort((a, b) => a.name.localeCompare(b.name)));
   }, []);
+  async function reloadSaved() {
+    setError("");
+    try {
+      install(await api<Debrief>(path));
+      if (data) { setSummary(summary); setNotes(notes); setMessage("Saved version loaded. Your report text has been kept in the editor."); }
+    }
+    catch (e) { setError(e instanceof Error ? e.message : "Could not load the saved report."); }
+  }
   useEffect(() => {
     let active = true;
     api<Debrief>(path).then((row) => { if (active) install(row); }).catch((e) => { if (active) setError(e.message); });
@@ -38,13 +46,16 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
   async function save(action: string) {
     if (!data || pending) return;
     setPending(true); setError(""); setMessage("");
+    let persisted = false;
     try {
       await api(path, "POST", { action, revision: data.revision, input: { entries: entries.filter((row) => row.status).map(({ userId, status, note }) => ({ userId, status, note })), summary, privateNotes: notes, reason } });
-      const saved = await api<Debrief>(path); install(saved); setStats(await api<Statistics>("attendance")); setReason(""); setMessage(action === "reviewReport" ? saved.aarEnabled ? "Review recorded. Check Discord delivery status below." : "Review recorded. The summary is now visible to members." : ["sendReport", "reconcileReport"].includes(action) ? "Discord delivery queued. Check its status below." : "Saved. Attendance totals use finalized records only.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not save debrief."); }
+      persisted = true;
+      const saved = await api<Debrief>(path); install(saved); setReason(""); setMessage(action === "reviewReport" ? saved.aarEnabled ? "Review recorded. Check Discord delivery status below." : "Review recorded. The summary is now visible to members." : ["sendReport", "reconcileReport"].includes(action) ? "Discord delivery queued. Check its status below." : action === "saveReport" ? "Report draft saved. You can now approve it below." : "Saved. Attendance totals use finalized records only.");
+      if (["saveAttendance", "finalizeAttendance"].includes(action)) void api<Statistics>("attendance").then(setStats).catch(() => {});
+    } catch (e) { setError(`${persisted ? "Your change was saved, but its confirmation could not be loaded. " : ""}${e instanceof Error ? e.message : "Could not save debrief."}`); }
     finally { setPending(false); }
   }
-  if (!data) return <section className="dash-panel"><p role={error ? "alert" : "status"}>{error || "Loading attendance and report..."}</p></section>;
+  if (!data) return <section className="dash-panel"><p role={error ? "alert" : "status"}>{error || "Loading attendance and report..."}</p>{error && <button type="button" className={button} onClick={() => void reloadSaved()}>Try loading again</button>}</section>;
   const edit = data.canManage && data.editable;
   const unmarked = entries.some((row) => !row.status);
   return <section className="space-y-5" aria-labelledby="debrief-heading">
@@ -55,7 +66,8 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
       {stats && <p className="text-sm">{data.officer ? "Organization" : "Your"} finalized record: {stats.present} present · {stats.absent} absent · {stats.excused} excused across {stats.operations} operations. Reliability: {stats.value === null ? "Not measured" : `${stats.value}%`}. Excused absences are excluded.</p>}
       {data.officer && !!stats?.members?.length && <details><summary className="cursor-pointer text-sm">Member attendance totals</summary><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Finalized attendance across completed operations</caption><thead><tr>{["Member", "Operations", "Present", "Absent", "Excused", "Reliability"].map((label) => <th key={label} scope="col" className="p-2">{label}</th>)}</tr></thead><tbody>{stats.members.map((person) => <tr key={person.id} className="border-t border-border-default"><th scope="row" className="p-2">{person.name}</th><td className="p-2">{person.operations}</td><td className="p-2">{person.present}</td><td className="p-2">{person.absent}</td><td className="p-2">{person.excused}</td><td className="p-2">{person.value === null ? "Not measured" : `${person.value}%`}</td></tr>)}</tbody></table></div></details>}
     </div>
-    {error && <p role="alert" className="dash-notice">{error} <button type="button" className={button} disabled={pending} onClick={() => { void api<Debrief>(path).then((row) => { install(row); setError(""); }).catch((e) => setError(e.message)); }}>Reload saved version</button></p>}
+    {error && <p role="alert" className="dash-notice">{error} <button type="button" className={button} disabled={pending} onClick={() => void reloadSaved()}>Reload saved version</button></p>}
+    {pending && <p role="status" className="dash-notice">Saving changes...</p>}
     {message && <p role="status" className="dash-notice">{message}</p>}
     <div className="dash-panel space-y-4"><h3 className="text-lg font-semibold">{data.officer ? "Attendance roster" : "Your attendance"} · {data.finalizedAt ? "Finalized" : "Draft"}</h3>
       {!entries.length && <p className="text-sm">{data.officer ? "No participants recorded. Add walk-ins or record committed members and assigned crew." : "No finalized attendance recorded for you."}</p>}

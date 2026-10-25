@@ -8,18 +8,18 @@ import * as jsx from "react/jsx-runtime";
 import ts from "typescript";
 
 function descendants(node) { return !node || typeof node !== "object" ? [] : [node, ...React.Children.toArray(node.props?.children).flatMap(descendants)]; }
-function fixture(overrides = {}, marked = false) {
+function fixture(overrides = {}, marked = false, handleRequest = null) {
   const row = { revision: 1, finalizedAt: null, reportState: "DRAFT", summary: "Saved summary", privateNotes: "Private evidence", officer: true, canManage: true, canReview: false, editable: true, canFinalize: true, candidates: [{ id: "member", name: "Member Wolf" }], entries: [], history: [], totals: { present: 0, absent: 0, excused: 0, value: null }, ...overrides };
   let index = 0;
   const states = [], requests = [];
   const deps = {
     react: { ...React, useEffect() {}, useCallback: (fn) => fn, useState(initial) { const slot = index++; if (!(slot in states)) states[slot] = slot === 0 ? row : slot === 2 ? row.officer ? [{ userId: "member", name: "Member Wolf", status: marked ? "PRESENT" : "", note: "" }] : row.entries : slot === 3 ? row.summary : slot === 4 ? row.privateNotes || "" : slot === 5 ? "Acceptance reason" : initial; return [states[slot], (value) => { states[slot] = typeof value === "function" ? value(states[slot]) : value; }]; } },
     "react/jsx-runtime": jsx,
-    "./EventWizard": { api: async (...args) => { requests.push(args); return args[0] === "attendance" ? { present: 1, absent: 0, excused: 0, operations: 1, value: 100 } : row; } },
+    "./EventWizard": { api: async (...args) => { requests.push(args); if (handleRequest) return handleRequest(...args); return args[0] === "attendance" ? { present: 1, absent: 0, excused: 0, operations: 1, value: 100 } : row; } },
   };
   const loaded = { exports: {} };
   const code = ts.transpileModule(readFileSync(new URL("../app/(dashboard)/dashboard/operations/DebriefPanel.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(code, { module: loaded, exports: loaded.exports, require(name) { assert.ok(name in deps, name); return deps[name]; } });
+  vm.runInNewContext(code, { module: loaded, exports: loaded.exports, Error, require(name) { assert.ok(name in deps, name); return deps[name]; } });
   return { requests, states, render() { index = 0; return loaded.exports.default({ operationId: "operation" }); } };
 }
 test("unmarked attendance cannot finalize and controls have explicit accessible labels", () => {
@@ -56,6 +56,50 @@ test("report authors are told they can approve their own saved report", () => {
   assert.match(html, /You can approve your own report; a second officer is not required/);
   assert.match(html, /Approve saved report for members/);
   assert.ok(!html.includes("another officer"));
+});
+
+test("failed report saves release the busy state and retain the officer's unsaved text", async () => {
+  const f = fixture({}, false, async () => { throw new Error("The save request timed out."); });
+  f.render(); f.states[3] = "Unsaved report text";
+  descendants(f.render()).find(node => node.type === "button" && node.props.children === "Save report for review").props.onClick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.states[8], false); assert.equal(f.states[3], "Unsaved report text");
+  assert.match(renderToStaticMarkup(f.render()), /save request timed out/);
+});
+
+test("a successful report save does not wait for organization attendance totals", async () => {
+  const row = { revision: 2, summary: "Saved report", privateNotes: "", entries: [], candidates: [], officer: true, history: [], totals: {}, canManage: true, editable: true, canFinalize: true };
+  const f = fixture({}, false, async (path) => path === "attendance" ? new Promise(() => {}) : row);
+  descendants(f.render()).find(node => node.type === "button" && node.props.children === "Save report for review").props.onClick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.states[8], false); assert.equal(f.states[0].revision, 2);
+  assert.equal(f.requests.some(([path]) => path === "attendance"), false);
+  assert.match(renderToStaticMarkup(f.render()), /Report draft saved/);
+});
+
+test("a failed initial report load offers a retry", async () => {
+  const f = fixture(); f.render(); f.states[0] = null; f.states[6] = "The request timed out.";
+  assert.match(renderToStaticMarkup(f.render()), /Try loading again/);
+  descendants(f.render()).find(node => node.type === "button" && node.props.children === "Try loading again").props.onClick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.states[0].summary, "Saved summary"); assert.equal(f.states[6], "");
+});
+
+test("reloading after an error preserves unsaved report text and private notes", async () => {
+  const f = fixture(); f.render();
+  f.states[3] = "Keep my report"; f.states[4] = "Keep my private notes"; f.states[6] = "Timed out";
+  descendants(f.render()).find(node => node.type === "button" && node.props.children === "Reload saved version").props.onClick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.states[3], "Keep my report"); assert.equal(f.states[4], "Keep my private notes");
+  assert.equal(f.states[0].summary, "Saved summary");
+});
+
+test("a failed refresh after a successful save says the write succeeded", async () => {
+  const f = fixture({}, false, async (_path, method) => { if (method === "POST") return { revision: 2 }; throw new Error("The request timed out."); });
+  descendants(f.render()).find(node => node.type === "button" && node.props.children === "Save report for review").props.onClick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.states[8], false);
+  assert.match(f.states[6], /Your change was saved, but its confirmation could not be loaded/);
 });
 
 test("active operations offer walk-ins and draft saving without finalization or reports", () => {

@@ -4,15 +4,11 @@ import Image from "next/image";
 import { localInstant } from "@/lib/command/eventInput.js";
 import { easternEditorSchedule } from "@/lib/command/eventEditor.js";
 import { uploadEventCover } from "@/lib/command/coverSelection.js";
+import { commandApi as api } from "@/lib/command/browserApi";
+export { api };
 
 export type EventInput = { title: string; description: string; entityType: string; channelId: string; location: string; timezone: string; startLocal: string; endLocal: string; startChoice: string; endChoice: string; recurrence: string; visibility: string; imageData: string | null; imageBehavior: string };
 export type Operation = { id: string; input: EventInput & { start: string; end: string | null }; state: string; revision: number; guildId: string; nativeEventId: string | null; voiceChannelName?: string | null; announcementChannelId?: string | null; syncState: string; canManage?: boolean; staffingEnabled?: boolean; advancedEnabled?: boolean; attendanceEnabled?: boolean; remoteSnapshot?: { name: string; description: string; start: string; end: string | null; location: string | null; channel_id: string | null; status: number }; deliveries?: { id: string; revision: number; kind: string; status: string; errorCode: string | null }[]; signups?: { status: string; preferences: string }[] };
-export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
-  const response = await fetch(`/api/command/${path}`, { method, cache: "no-store", headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Request failed. Please retry.");
-  return result.data;
-}
 const empty: EventInput = { title: "", description: "", entityType: "EXTERNAL", channelId: "", location: "", timezone: "America/New_York", startLocal: "", endLocal: "", startChoice: "reject", endChoice: "reject", recurrence: "NONE", visibility: "GUILD", imageData: null, imageBehavior: "PRESERVE" };
 const control = "mt-1 w-full rounded-lg border border-[var(--border-default)] bg-[var(--background-card)] p-3 text-[var(--text-primary)] disabled:opacity-50";
 export default function EventWizard({ operation, initialValues, onSaved }: { operation?: Operation; initialValues?: Partial<EventInput>; onSaved: (operation: Operation) => void }) {
