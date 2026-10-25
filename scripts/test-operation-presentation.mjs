@@ -37,7 +37,7 @@ function renderDetail(voiceChannelName, overrides = {}) {
     react: { ...React, useState: initial => [initial === null ? { ...operation, voiceChannelName, ...overrides } : initial, () => {}], useEffect() {}, useCallback: callback => callback },
     "react/jsx-runtime": awaitlessJsx,
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children), __esModule: true },
-    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": { default: () => null, __esModule: true }, "./OperationsBrowser": {}, "./PlanningPanel": {},
+    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": { default: () => null, __esModule: true }, "./OperationsBrowser": {}, "./PlanningPanel": {}, "./DebriefPanel": {},
   };
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(code, { exports: loaded.exports, module: loaded, require(name) { assert.ok(name in dependencies, name); return dependencies[name]; } });

@@ -8,6 +8,10 @@ datasource db {
 }
 
 model User {
+  attendanceRecords CommandAttendance[]
+  authoredDebriefs CommandDebrief[] @relation("DebriefAuthor")
+  reviewedDebriefs CommandDebrief[] @relation("DebriefReviewer")
+  debriefChanges CommandDebriefRevision[]
   operationTemplates CommandOperationTemplate[]
   operationPlans CommandOperationPlan[]
   operationWaitlist CommandOperationWaitlist[]
@@ -62,6 +66,7 @@ model User {
 }
 
 model CommandOperation {
+  debrief CommandDebrief?
   plan CommandOperationPlan?
   waitlist CommandOperationWaitlist[]
   wings CommandWing[]
@@ -99,6 +104,49 @@ model CommandOperation {
   @@map("command_operations")
 }
 
+model CommandDebrief {
+  operationId String @id @db.Uuid
+  operation CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  revision Int @default(1)
+  finalizedAt DateTime? @db.Timestamptz(6)
+  summary String @default("")
+  privateNotes String @default("")
+  reportState String @default("DRAFT")
+  authorId String? @db.Uuid
+  author User? @relation("DebriefAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  reviewerId String? @db.Uuid
+  reviewer User? @relation("DebriefReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewedAt DateTime? @db.Timestamptz(6)
+  entries CommandAttendance[]
+  history CommandDebriefRevision[]
+  @@map("command_debriefs")
+}
+
+model CommandAttendance {
+  operationId String @db.Uuid
+  debrief CommandDebrief @relation(fields: [operationId], references: [operationId], onDelete: Restrict)
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status String
+  note String @default("")
+  @@id([operationId, userId])
+  @@map("command_attendance")
+}
+
+model CommandDebriefRevision {
+  operationId String @db.Uuid
+  debrief CommandDebrief @relation(fields: [operationId], references: [operationId], onDelete: Restrict)
+  revision Int
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  @@id([operationId, revision])
+  @@map("command_debrief_revisions")
+}
+
 model CommandDelivery {
   id          String @id @default(uuid()) @db.Uuid
   operationId String @db.Uuid
@@ -126,6 +174,7 @@ model CommandSignup {
   userId      String @db.Uuid
   user        User @relation(fields: [userId], references: [id], onDelete: Restrict)
   status      String
+  source      String @default("WEBSITE")
   preferences String @default("")
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
   @@id([operationId, userId])

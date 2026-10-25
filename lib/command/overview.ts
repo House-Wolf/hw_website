@@ -7,7 +7,7 @@ export type OperationsOverview = {
   members: { total: number; newThisMonth: number };
   operations: { active: number; scheduled: number; total: number };
   fleet: { total: number | null; status: "complete" | "partial" | "unavailable" };
-  reliability: { value: null; description: string };
+  reliability: { value: number | null; description: string };
   trend: { month: string; label: string; count: number }[];
   statuses: { state: string; count: number }[];
   upcoming: { id: string; title: string; start: string | null; state: string }[];

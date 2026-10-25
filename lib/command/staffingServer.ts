@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { authorize } from "./server";
+import { authorize, discordRead } from "./server";
+import { createDiscordInterestService } from "./discordInterestService.js";
 import { createFleetService } from "./fleetService.js";
 import { createCrewService } from "./crewService.js";
 import { createFleetRegistryService } from "./fleetRegistryService.js";
@@ -17,5 +18,6 @@ async function loadFleet() {
 }
 const refreshProduction = createFleetProductionService({ prisma, loadFleet });
 export const fleetService = createFleetService({ prisma, authorize, refreshProduction });
-export const crewService = createCrewService({ prisma, authorize, refreshProduction, advanced: (process.env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && process.env.COMMAND_STAFFING_ENABLED === "true") });
+const interests = createDiscordInterestService({ prisma, authorize, discord: discordRead });
+export const crewService = createCrewService({ prisma, authorize, refreshProduction, interests, advanced: (process.env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && process.env.COMMAND_STAFFING_ENABLED === "true") });
 export const fleetRegistryService = createFleetRegistryService({ prisma, authorize, loadFleet });

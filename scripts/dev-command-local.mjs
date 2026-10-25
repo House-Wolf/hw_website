@@ -14,6 +14,7 @@ export function previewEnvironment(source) {
     COMMAND_LOCAL_PREVIEW: "true",
     NEXTAUTH_URL: "http://localhost:3000", AUTH_URL: "http://localhost:3000",
     COMMAND_DASHBOARD_ENABLED: "true", COMMAND_STAFFING_ENABLED: "true", COMMAND_ADVANCED_OPERATIONS_ENABLED: "true",
+    COMMAND_ATTENDANCE_ENABLED: "true",
     COMMAND_DISCORD_DELIVERY_ENABLED: "false", BOT_HTTP_ENABLED: "false",
     ONBOARDING_ENABLED: "false", PERSONNEL_ENABLED: "false" };
 }
@@ -30,6 +31,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (!prisma.commandShip) throw new Error("Generate the current Prisma client first.");
     await prisma.commandShip.count();
     await prisma.commandOperationPlan.count();
+    await prisma.commandDebrief.count();
     await prisma.commandOperation.findFirst({ select: { crewRevision: true } });
   } finally { await prisma.$disconnect(); }
   console.log("Local preview: http://localhost:3000/dashboard — disposable database, staffing enabled, no bot worker or Discord delivery.");

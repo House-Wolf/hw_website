@@ -4,6 +4,7 @@ import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { previewSessionCookies } from "../lib/authPreview.js";
+import { createDiscordOAuthUser } from "../lib/authDiscordIdentity.js";
 
 function load(path, dependencies, globals) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
@@ -44,6 +45,7 @@ function fixture(options = {}) {
     "@/lib/deriveUserpermissions": {},
     "@/lib/onboardingDiscordJoin": join,
     "@/lib/authPreview.js": { previewSessionCookies },
+    "@/lib/authDiscordIdentity.js": { createDiscordOAuthUser },
   }, globals);
   return {
     calls,
