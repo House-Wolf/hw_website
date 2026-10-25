@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  aarDeliveries CommandAarDelivery[]
   attendanceRecords CommandAttendance[]
   authoredDebriefs CommandDebrief[] @relation("DebriefAuthor")
   reviewedDebriefs CommandDebrief[] @relation("DebriefReviewer")
@@ -105,6 +106,7 @@ model CommandOperation {
 }
 
 model CommandDebrief {
+  discordDelivery CommandAarDelivery?
   operationId String @id @db.Uuid
   operation CommandOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
   revision Int @default(1)
@@ -120,6 +122,27 @@ model CommandDebrief {
   entries CommandAttendance[]
   history CommandDebriefRevision[]
   @@map("command_debriefs")
+}
+
+model CommandAarDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @db.Uuid
+  debrief CommandDebrief @relation(fields: [operationId], references: [operationId], onDelete: Restrict)
+  reviewRevision Int
+  reviewedAt DateTime @db.Timestamptz(6)
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  status String @default("PENDING")
+  attempts Int @default(0)
+  availableAt DateTime @default(now()) @db.Timestamptz(6)
+  leaseUntil DateTime? @db.Timestamptz(6)
+  leaseToken String?
+  sendingAt DateTime? @db.Timestamptz(6)
+  channelId String?
+  messageId String?
+  errorCode String?
+  @@index([status, availableAt, leaseUntil])
+  @@map("command_aar_deliveries")
 }
 
 model CommandAttendance {

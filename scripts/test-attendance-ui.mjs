@@ -84,3 +84,14 @@ test("Discord-only search choices show usernames and save their stable Discord i
   await descendants(f.render()).find(node => node.type === "button" && node.props.children === "Save attendance draft").props.onClick();
   assert.ok(f.requests.find(([, method]) => method === "POST")[2].input.entries.some(entry => entry.userId === id && entry.status === "PRESENT"));
 });
+
+test("AAR approval advertises Discord delivery and failed posts offer an explicit retry", async () => {
+  const f = fixture({ aarEnabled: true, canReview: true });
+  const approve = descendants(f.render()).find(node => node.type === "button" && node.props.children === "Approve saved report & send to Discord");
+  assert.ok(approve); await approve.props.onClick();
+  assert.equal(f.requests.find(([, method]) => method === "POST")[2].action, "reviewReport");
+  const retry = fixture({ aarEnabled: true, reportState: "REVIEWED", reportDelivery: { status: "BLOCKED", errorCode: "AAR_CHANNEL_REQUIRED" } });
+  assert.match(renderToStaticMarkup(retry.render()), /AAR_CHANNEL_REQUIRED/);
+  await descendants(retry.render()).find(node => node.type === "button" && node.props.children === "Send approved AAR to Discord").props.onClick();
+  assert.equal(retry.requests.find(([, method]) => method === "POST")[2].action, "sendReport");
+});

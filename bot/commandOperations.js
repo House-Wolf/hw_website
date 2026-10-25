@@ -8,6 +8,7 @@ import { createOperationService } from "../lib/command/operations.js";
 import { createCommitmentPolicy } from "../lib/command/planningPolicy.js";
 import { commitmentComponents } from "../lib/command/commitmentComponents.js";
 import { createOperationReminderWorker } from "./operationReminders.js";
+import { createOperationAarWorker } from "./operationAar.js";
 import { createOperationCommitmentHandler } from "./operationCommitments.js";
 import { lockOperation } from "../lib/command/operations.js";
 
@@ -33,6 +34,7 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   });
   const advanced = env.COMMAND_ADVANCED_OPERATIONS_ENABLED === "true" && env.COMMAND_STAFFING_ENABLED === "true";
   const reminderWorker = createOperationReminderWorker({ prisma, authorize, discord, guildId, env });
+  const aarWorker = createOperationAarWorker({ prisma, authorize, discord, guildId, env });
   const commitments = createOperationService({ prisma, authorize, staffingEnabled: env.COMMAND_STAFFING_ENABLED === "true", commitmentPolicy: advanced ? createCommitmentPolicy({ authorize }) : null });
   const handleCommitment = createOperationCommitmentHandler({ prisma, operations: commitments, guildId });
   if (advanced && env.COMMAND_DASHBOARD_ENABLED === "true" && client.on) client.on("interactionCreate", (interaction) => { void handleCommitment(interaction).catch(() => console.error("command.commitment.unavailable")); });
@@ -120,7 +122,7 @@ export function createCommandWorker({ prisma, client, env = process.env }) {
   async function tick() {
     if (running || stopped) return;
     running = true;
-    try { for (let i = 0; i < 10 && !stopped; i++) { const job = await claim(); if (!job) break; await processJob(job); } await reconcile(); if (advanced) await reminderWorker.tick(); }
+    try { for (let i = 0; i < 10 && !stopped; i++) { const job = await claim(); if (!job) break; await processJob(job); } await reconcile(); if (advanced) await reminderWorker.tick(); await aarWorker.tick(); }
     catch { console.error("command.worker.unavailable"); }
     finally { running = false; }
   }
