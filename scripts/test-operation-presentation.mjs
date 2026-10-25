@@ -30,14 +30,14 @@ test("unauthorized requests cannot resolve channel names", async () => {
   await assert.rejects(service(async () => { calls++; }, { authorize: async () => { throw new Error("Denied"); } }).detail("actor", id), /Denied/);
   assert.equal(calls, 0);
 });
-function renderDetail(voiceChannelName) {
+function renderDetail(voiceChannelName, overrides = {}) {
   const source = readFileSync(new URL("../app/(dashboard)/dashboard/operations/OperationsPanel.tsx", import.meta.url), "utf8");
   const loaded = { exports: {} };
   const dependencies = {
-    react: { ...React, useState: initial => [initial === null ? { ...operation, voiceChannelName } : initial, () => {}], useEffect() {}, useCallback: callback => callback },
+    react: { ...React, useState: initial => [initial === null ? { ...operation, voiceChannelName, ...overrides } : initial, () => {}], useEffect() {}, useCallback: callback => callback },
     "react/jsx-runtime": awaitlessJsx,
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children), __esModule: true },
-    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": {}, "./OperationsBrowser": {}, "./PlanningPanel": {},
+    "lucide-react": {}, "./EventWizard": {}, "./CrewPanel": { default: () => null, __esModule: true }, "./OperationsBrowser": {}, "./PlanningPanel": {},
   };
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(code, { exports: loaded.exports, module: loaded, require(name) { assert.ok(name in dependencies, name); return dependencies[name]; } });
@@ -53,6 +53,16 @@ test("an unavailable voice channel uses a readable fallback without exposing its
   const html = renderDetail(null);
   assert.ok(html.includes("Voice channel: Channel unavailable"));
   assert.ok(!html.includes(operation.input.channelId));
+});
+
+test("the operation page exposes the missing schedule prerequisite and preserves saved commitment", () => {
+  const html = renderDetail("Wolf Den", { canManage: true, staffingEnabled: true, advancedEnabled: true, signups: [{ status: "COMMITTED", preferences: "PILOT" }] });
+  assert.ok(html.includes("Set an end time before assigning crew"));
+  assert.ok(html.includes("Set end time"));
+  assert.ok(html.includes("Crew &amp; ships"));
+  assert.ok(html.includes("Planning tools"));
+  assert.ok(html.includes('value="COMMITTED" selected=""'));
+  assert.ok(html.includes("PILOT</textarea>"));
 });
 
 function planningTree(canManage, requests = []) {
