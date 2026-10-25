@@ -93,7 +93,7 @@ test("competing worker leases and repeated processing cannot post duplicate mess
   assert.equal(calls.length, start + 1);
 });
 
-test("banner attachments, public brief and finalized totals are posted and edited together", async () => {
+test("banner attachments and finalized totals are posted and edited without the mission brief", async () => {
   const op = await operation();
   const imageData = "data:image/jpeg;base64,/9j/2Q==";
   await prisma.commandOperation.update({ where: { id: op.id }, data: { input: { ...op.input, description: "Public mission brief", imageData } } });
@@ -101,7 +101,7 @@ test("banner attachments, public brief and finalized totals are posted and edite
   await approve(op); const first = await deliver(op);
   const [, , payload, files] = calls.at(-1);
   assert.equal(payload.embeds[0].image.url, "attachment://operation-banner.jpg");
-  assert.match(payload.embeds[1].description, /Public mission brief/);
+  assert.doesNotMatch(payload.embeds[1].description, /Public mission brief/);
   assert.equal(payload.embeds[1].fields.find(f => f.name === "Present").value, "1");
   assert.equal(files[0].name, "operation-banner.jpg"); assert.ok(Buffer.isBuffer(files[0].data));
   assert.ok(!JSON.stringify(payload).includes("PRIVATE ATTENDANCE NOTE"));

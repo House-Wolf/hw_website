@@ -21,10 +21,10 @@ vm.runInNewContext(code, { module: loaded, exports: loaded.exports, require(name
 const props = { context: { title: "Black Breach", brief: "Public briefing", visibility: "GUILD", bannerUrl: "https://cdn.discordapp.com/guild-events/900000000000000001/0123456789abcdef0123456789abcdef.png?size=1024" }, summary: "**Mission outcome**\nExtraction complete", finalized: true, totals: { present: 6, absent: 1, excused: 0 }, unsaved: true, privateNotes: "SECRET NOTES" };
 const render = overrides => renderToStaticMarkup(loaded.exports.default({ ...props, ...overrides }));
 
-test("website preview renders banner before the brief and live AAR, without private notes", () => {
+test("website preview renders banner before the live AAR without the mission brief or private notes", () => {
   const html = render();
-  assert.ok(html.indexOf("<img") < html.indexOf("Mission brief"));
-  assert.match(html, /Public briefing/); assert.match(html, /<strong>Mission outcome<\/strong>/);
+  assert.ok(html.indexOf("<img") < html.indexOf("<h5"));
+  assert.doesNotMatch(html, /Mission brief|Public briefing/); assert.match(html, /<strong>Mission outcome<\/strong>/);
   assert.match(html, /Previewing unsaved report text/); assert.match(html, />6<\/dd>/);
   assert.ok(!html.includes("SECRET NOTES"));
   assert.match(render({ summary: "Updated draft" }), /Updated draft/);

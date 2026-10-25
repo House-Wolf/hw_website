@@ -19,14 +19,13 @@ test("AAR delivery requires message history access for safe recovery of interrup
   await assert.rejects(validateTextDestination({ guildId: "guild", channelId: "channel", discord, requireHistory: true }), error => error.code === "BOT_PERMISSIONS");
 });
 
-test("AAR has its banner first, then the brief, report and finalized attendance", () => {
+test("AAR has its banner first, then the report and finalized attendance without the brief", () => {
   const bannerUrl = "https://cdn.discordapp.com/guild-events/900000000000000001/0123456789abcdef0123456789abcdef.png?size=1024";
   const payload = aarMessage({ operationId: "op", title: "Black Breach", brief: "Secure objectives", summary: "Extraction complete", reviewRevision: 2, baseUrl: "https://example.test", bannerUrl, attendance: { present: 6, absent: 1, excused: 0 } });
   assert.equal(payload.embeds[0].image.url, bannerUrl);
   assert.equal(payload.embeds[0].url, undefined); // Discord deduplicates embeds with the same URL.
   const report = payload.embeds[1];
-  assert.ok(report.description.indexOf("Mission brief") < report.description.indexOf("After-action report"));
-  assert.match(report.description, /Secure objectives/); assert.match(report.description, /Extraction complete/);
+  assert.doesNotMatch(report.description, /Mission brief|Secure objectives/); assert.match(report.description, /Extraction complete/);
   assert.equal(report.footer.text, aarFooter("op"));
   assert.deepEqual(report.fields.slice(0, 3).map(f => f.value), ["6", "1", "0"]);
 });
@@ -46,7 +45,7 @@ test("preview and Discord use the same bounded public sections, including mentio
   const input = { title: "@".repeat(300), brief: "@".repeat(700), summary: "@".repeat(10000) };
   const section = aarSections(input), payload = aarMessage({ operationId: "op", ...input, reviewRevision: 1, baseUrl: "https://example.test" });
   const report = payload.embeds[0];
-  assert.equal(report.title, section.title); assert.ok(report.description.includes(section.brief)); assert.ok(report.description.includes(section.summary));
+  assert.equal(report.title, section.title); assert.equal(section.brief, undefined); assert.ok(report.description.includes(section.summary));
   assert.ok(report.description.length <= 4096); assert.ok(report.title.length <= 256);
   assert.ok(report.title.length + report.description.length + report.author.name.length + report.footer.text.length + report.fields.reduce((n, f) => n + f.name.length + f.value.length, 0) <= 6000);
   assert.ok(section.truncated);
