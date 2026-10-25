@@ -13,11 +13,12 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
   const [data, setData] = useState<Debrief | null>(null), [stats, setStats] = useState<Statistics | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]), [summary, setSummary] = useState(""), [notes, setNotes] = useState(""), [reason, setReason] = useState("");
   const [error, setError] = useState(""), [message, setMessage] = useState(""), [pending, setPending] = useState(false);
-  const [memberId, setMemberId] = useState(""), [members, setMembers] = useState<{ id: string; name: string }[]>([]), [query, setQuery] = useState("");
+  const [memberId, setMemberId] = useState(""), [members, setMembers] = useState<{ id: string; name: string; username?: string }[]>([]), [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false), [searched, setSearched] = useState(false);
   const path = `operations/${operationId}/debrief`;
   const install = useCallback((row: Debrief) => {
     setData(row); setSummary(row.summary); setNotes(row.privateNotes || "");
+    setMembers([]); setMemberId(""); setSearched(false);
     const recorded = new Map(row.entries.map((entry) => [entry.userId, entry]));
     for (const person of row.candidates) if (!recorded.has(person.id)) recorded.set(person.id, { userId: person.id, name: person.name, status: "", note: "" });
     setEntries([...recorded.values()].sort((a, b) => a.name.localeCompare(b.name)));
@@ -55,7 +56,7 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
       <fieldset disabled={pending || !edit} className="space-y-3">{entries.map((entry) => <div key={entry.userId} className="grid gap-3 rounded-lg border border-border-default p-3 sm:grid-cols-2"><label className="text-sm">{entry.name}<select aria-label={`Attendance for ${entry.name}`} className={control} value={entry.status} onChange={(e) => setEntries((rows) => rows.map((row) => row.userId === entry.userId ? { ...row, status: e.target.value } : row))}><option value="">Not recorded</option><option value="PRESENT">Present</option><option value="ABSENT">Absent</option><option value="EXCUSED">Excused</option></select></label>{data.officer && <label className="text-sm">Private attendance note<input className={control} maxLength={1000} value={entry.note || ""} onChange={(e) => setEntries((rows) => rows.map((row) => row.userId === entry.userId ? { ...row, note: e.target.value } : row))} /></label>}</div>)}</fieldset>
       {edit && <section className="rounded-lg border border-border-default p-4 space-y-3" aria-labelledby="walk-in-heading">
         <h4 id="walk-in-heading" className="font-semibold">Add a walk-in member</h4>
-        <p className="text-sm text-foreground-muted">No signup required. Find a registered member and add them as present, then save attendance below.</p>
+        <p className="text-sm text-foreground-muted">Search House Wolf Discord members and add anyone who showed up. Website registration and event signup are not required. Save attendance below to keep the change.</p>
         <form className="space-y-3" onSubmit={async (e) => {
           e.preventDefault(); if (searching || pending) return;
           setSearching(true); setSearched(false); setMemberId(""); setMembers([]); setError("");
@@ -63,11 +64,11 @@ export default function DebriefPanel({ operationId }: { operationId: string }) {
           catch (e) { setError(e instanceof Error ? e.message : "Member search failed."); }
           finally { setSearching(false); }
         }}>
-          <label className="block text-sm">Find member<input className={control} maxLength={80} value={query} disabled={searching || pending} onChange={(e) => setQuery(e.target.value)} placeholder="Discord name or member name" /></label>
-          <button className={button} disabled={pending || searching}>{searching ? "Searching..." : "Search members"}</button>
+          <label className="block text-sm">Find Discord member<input className={control} required minLength={2} maxLength={80} value={query} disabled={searching || pending} onChange={(e) => setQuery(e.target.value)} placeholder="Start of username or server nickname, or user ID" /></label>
+          <button className={button} disabled={pending || searching || query.trim().length < 2}>{searching ? "Searching..." : "Search Discord members"}</button>
         </form>
         {searched && !members.some((person) => !entries.some((entry) => entry.userId === person.id)) && <p role="status" className="text-sm">No matching members to add. Try another name; members already on the roster are excluded.</p>}
-        <label className="block text-sm">Search results<select className={control} disabled={pending || searching} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">Choose a member</option>{members.filter((person) => !entries.some((entry) => entry.userId === person.id)).map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
+        <label className="block text-sm">Search results<select className={control} disabled={pending || searching} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">Choose a member</option>{members.filter((person) => !entries.some((entry) => entry.userId === person.id)).map((person) => <option key={person.id} value={person.id}>{person.name}{person.username ? ` (@${person.username})` : ""}</option>)}</select></label>
         <button type="button" className={button} disabled={pending || searching || !memberId} onClick={() => {
           const person = members.find((row) => row.id === memberId);
           if (person) setEntries((rows) => rows.some((row) => row.userId === person.id) ? rows : [...rows, { userId: person.id, name: person.name, status: "PRESENT", note: "" }]);

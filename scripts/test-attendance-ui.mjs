@@ -72,3 +72,15 @@ test("walk-ins are added as present once and included in the attendance save", a
   await descendants(f.render()).find((node) => node.type === "button" && node.props.children === "Save attendance draft").props.onClick();
   assert.ok(f.requests.find(([, method]) => method === "POST")[2].input.entries.some((entry) => entry.userId === "walk-in" && entry.status === "PRESENT"));
 });
+
+test("Discord-only search choices show usernames and save their stable Discord identity", async () => {
+  const f = fixture({}, true), id = "discord:900000000000000001";
+  f.render();
+  f.states[9] = id; f.states[10] = [{ id, name: "Late Wolf", username: "latewolf" }];
+  const tree = f.render(), html = renderToStaticMarkup(tree);
+  assert.match(html, /Late Wolf \(@latewolf\)/);
+  assert.match(html, /Website registration and event signup are not required/);
+  descendants(tree).find(node => node.type === "button" && node.props.children === "Add as present").props.onClick();
+  await descendants(f.render()).find(node => node.type === "button" && node.props.children === "Save attendance draft").props.onClick();
+  assert.ok(f.requests.find(([, method]) => method === "POST")[2].input.entries.some(entry => entry.userId === id && entry.status === "PRESENT"));
+});

@@ -1,5 +1,23 @@
 ﻿# Command dashboard progress
 
+## Attendance production repair, 2026-10-25
+
+The operator reported missing live changes and an unavailable operation detail page, then explicitly requested applying migrations. Production deployment `dpl_FFTQinvPjeSdMkpNP2H76MpbLZsm` already contained main commit `02a6c3f4e9905d9673997c0673cfa3f66d0fc8da`, but PostgreSQL had only 18 migrations. A read-only default signup query reproduced P2022 for `command_signups.source`; all three attendance tables were absent and the attendance flag was unset.
+
+Created a full custom-format PostgreSQL 17 backup at `C:/Users/sentinel_wolf/AppData/Local/HouseWolf/production-backups/housewolf-before-attendance-2026-10-25T03-44-24-041Z.dump` (539484 bytes, SHA256 `7a88e08f3a188befb5064270d52da460a3cedc2843b82a4f7d21d00e9d95a7c1`). Restored the complete archive in a temporary PostgreSQL 17 container with no network or published ports, applied both pending migrations there, and verified the signup column and attendance tables. Removed the disposable restore container; backup and manifest remain outside Git.
+
+Applied `20261025020000_discord_interested_crew` and `20261025030000_attendance_debriefs` to the confirmed production datasource through Prisma migrate deploy. All 20 migrations are finished. The signup query, actual operation detail service, attendance view and attendance statistics now pass using live Discord authorization and read-only transactions. No signups, assignments, attendance entries, test operations or Discord messages were created.
+
+Enabled only production `COMMAND_ATTENDANCE_ENABLED=true`. The first redeploy failed because the daemon image repository reached its 50-image limit. After explicit approval through the execution gate, removed only old untagged image `image_yDo6LUGxhtEWm2UT5kzE5n5tdsAP` (created October 22), verifying its digest was not used by the active daemon. Current production image and tagged rollback images were retained. Retry deployment `dpl_AEdVh83bni4xmME3KFf7pCH7wfh5` reached Ready from the same main commit and received `www.housewolf.co` and `housewolf.co`. Confirmed its runtime and build environment include the attendance variable, and the production setting is exactly true. No source revision or bot feature setting was changed by this repair.
+
+Final live checks: sign-in and fleet return 200; dashboard operations redirects anonymous requests to sign-in (307); operations and attendance APIs reject anonymous requests (401). Real production service reads with live Discord authorization pass for operation detail, attendance and statistics. No signed-in browser interaction is claimed. Removed the temporary production environment file after verification. A screenshot taken before the new deployment was ready lacked the attendance tab; the operator was instructed to refresh the operation page after rollout.
+
+## Discord member attendance lookup, 2026-10-25
+
+The operator requested attendance for Discord members who have not registered on the website. Attendance lookup now searches the configured guild's Discord usernames/server nicknames by prefix, with direct user-ID/mention lookup. Only operation managers can search; bots, pending/ineligible members and suspended identities are excluded. Search never creates database records. Saving explicitly selected attendance creates or reuses the unique Discord identity inside the existing locked, revision-checked audit transaction. It creates no OAuth account, session, roles, signup or crew assignment. Live membership is rechecked before commit, duplicate UUID/Discord choices are rejected, and later OAuth registration reuses the identity and attendance history. No database migration or new feature flag is needed.
+
+Validation: 449 regression tests, 57 disposable PostgreSQL integration tests, targeted lint, TypeScript and full isolated production build pass. Integration evidence covers an unregistered attendee during an active operation, finalization, subsequent registration, member/privacy boundaries, duplicates, suspension, provider failure and revocation rollback. Read-only production search verified existing bot access (five eligible matches from sample prefixes); it created no attendance or identities. Publication of this source update is the remaining step.
+
 ## Current operator-approved scope
 
 ### Public fleet owner labels deployed, 2026-10-24
